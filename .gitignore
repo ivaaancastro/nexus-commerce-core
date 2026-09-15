@@ -1,0 +1,31 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IntelliJ IDEA / JetBrains
+.idea/
+*.iml
+*.iws
+out/
+.mvn/
+
+# Maven / Java
+target/
+*.class
+*.jar
+*.war
+
+# Node / React (para cuando levantemos el frontend)
+node_modules/
+dist/
+build/
+.npm/
+
+# Logs y entornos
+*.log
+.env
+.env.local
+
+# Docker
+.docker/
