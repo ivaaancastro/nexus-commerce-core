@@ -2,6 +2,7 @@ package com.nexus.commerce.service;
 
 import com.nexus.commerce.dto.ReserveStockRequest;
 import com.nexus.commerce.dto.StockReservationResponse;
+import com.nexus.commerce.dto.StockResponse;
 import com.nexus.commerce.entity.StockItem;
 import com.nexus.commerce.entity.Warehouse;
 import com.nexus.commerce.exception.InsufficientStockException;
@@ -13,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -78,5 +80,40 @@ class InventoryServiceTest {
                 .hasMessageContaining("Stock insuficiente en WH_ARTEIXO");
 
         verify(stockItemRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("Debe agregar el stock omnicanal correctamente y calcular el total disponible")
+    void shouldReturnAggregatedStockBreakdownForSku() {
+        // GIVEN: Dos almacenes (Sabón con 145 netas, Zaragoza con 80 netas -> Total 225)
+        Warehouse sabon = Warehouse.builder().code("WH_ARTEIXO").name("Sabón").countryCode("ES").build();
+        Warehouse zaragoza = Warehouse.builder().code("WH_ZARAGOZA").name("Zaragoza").countryCode("ES").build();
+
+        StockItem item1 = StockItem.builder()
+                .warehouse(sabon)
+                .quantityAvailable(150)
+                .quantityReserved(5)
+                .build();
+
+        StockItem item2 = StockItem.builder()
+                .warehouse(zaragoza)
+                .quantityAvailable(80)
+                .quantityReserved(0)
+                .build();
+
+        when(stockItemRepository.findBySkuIdWithWarehouse(1L)).thenReturn(List.of(item1, item2));
+
+        // WHEN
+        StockResponse response = inventoryService.getStockBySku(1L);
+
+        // THEN
+        assertThat(response.skuId()).isEqualTo(1L);
+        assertThat(response.totalAvailable()).isEqualTo(225);
+        assertThat(response.inStock()).isTrue();
+        assertThat(response.breakdown()).hasSize(2);
+        assertThat(response.breakdown().getFirst().netAvailable()).isEqualTo(145);
+        assertThat(response.breakdown().get(1).netAvailable()).isEqualTo(80);
+
+        verify(stockItemRepository, times(1)).findBySkuIdWithWarehouse(1L);
     }
 }
