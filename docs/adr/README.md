@@ -7,3 +7,4 @@ Este directorio documenta formalmente las decisiones arquitectónicas del núcle
 | ID | Fecha | Título | Estado |
 | :---: | :---: | :--- | :---: |
 | [ADR-0001](0001-core-architecture-and-concurrency.md) | 2026-09-25 | Definición de Stack Base, Concurrencia de Inventario y Precisión Financiera | **Aprobado** |
+| [ADR-0002](0002-hybrid-semantic-search-pgvector.md) | 2026-09-27 | Búsqueda Semántica Híbrida con PostgreSQL y pgvector | **Aprobado** |

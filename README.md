@@ -79,6 +79,10 @@ flowchart TD
 * `GET /api/v1/inventory/skus/{skuId}` $\rightarrow$ Consulta agregada del stock omnicanal y desglose por almacén.
 * `POST /api/v1/inventory/reserve` $\rightarrow$ Reserva atómica de existencias. Devuelve `409 Conflict` si el ATS es insuficiente.
 
+### Búsqueda y Enriquecimiento
+* `GET /api/v1/products/search/semantic?query={q}&family={f}&limit={n}` $\rightarrow$ Búsqueda por similitud semántica mediante embeddings vectoriales (HNSW).
+* `POST /api/v1/products/search/index` $\rightarrow$ Dispara la reindexación vectorial completa del catálogo.
+
 ---
 
 ## 4. Puesta en Marcha Local
