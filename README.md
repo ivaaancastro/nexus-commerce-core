@@ -62,6 +62,7 @@ flowchart TD
 | **Pricing Engine** | Precios multidivisa por mercado con desglose impositivo. | Modelado desacoplado por mercado (`MarketPrice`), cálculo dinámico de base neta e IVA. |
 | **Inventory Engine** | Visión omnicanal de existencias y control de reservas atómicas. | Cálculo ATS (*Available to Sell*), bloqueo pesimista contra condiciones de carrera. |
 | **AI Enrichment** | Extracción automática de taxonomía, ocasión y tags de búsqueda. | Spring AI `ChatClient` con `gpt-4o-mini`, deserialización a record tipado. |
+| **Order & Checkout Engine** | Orquestación transaccional de compra e idempotencia. | Clave de idempotencia única, snapshot financiero inmutable y rollback ante falta de stock. |
 
 ---
 
@@ -82,6 +83,10 @@ flowchart TD
 ### Búsqueda y Enriquecimiento
 * `GET /api/v1/products/search/semantic?query={q}&family={f}&limit={n}` $\rightarrow$ Búsqueda por similitud semántica mediante embeddings vectoriales (HNSW).
 * `POST /api/v1/products/search/index` $\rightarrow$ Dispara la reindexación vectorial completa del catálogo.
+
+### Pedidos y Checkout
+* `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID). Reserva existencias, congela precios y genera la orden (`201 Created`).
+* `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido confirmado.
 
 ---
 
