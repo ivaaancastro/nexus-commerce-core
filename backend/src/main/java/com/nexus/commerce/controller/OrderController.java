@@ -3,6 +3,7 @@ package com.nexus.commerce.controller;
 import com.nexus.commerce.dto.CheckoutRequest;
 import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.service.OrderService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/orders")
 @RequiredArgsConstructor
+@Tag(name = "Orders & Checkout", description = "Motor transaccional de pedidos con control de idempotencia")
 public class OrderController {
 
     private final OrderService orderService;

@@ -3,6 +3,7 @@ package com.nexus.commerce.controller;
 import com.nexus.commerce.dto.ProductSearchRequest;
 import com.nexus.commerce.dto.ProductSearchResultResponse;
 import com.nexus.commerce.service.ProductSearchService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/products/search")
 @RequiredArgsConstructor
+@Tag(name = "Search & AI", description = "Búsqueda semántica híbrida con pgvector e indexación de catálogo")
 public class ProductSearchController {
 
     private final ProductSearchService productSearchService;

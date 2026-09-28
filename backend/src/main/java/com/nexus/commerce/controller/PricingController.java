@@ -2,6 +2,7 @@ package com.nexus.commerce.controller;
 
 import com.nexus.commerce.dto.PriceCalculationResponse;
 import com.nexus.commerce.service.PricingService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/pricing")
 @RequiredArgsConstructor
+@Tag(name = "Pricing", description = "Cálculo financiero multidivisa y desglose impositivo por mercado")
 public class PricingController {
 
     private final PricingService pricingService;

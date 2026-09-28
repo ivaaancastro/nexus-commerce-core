@@ -3,6 +3,7 @@ package com.nexus.commerce.controller;
 import com.nexus.commerce.dto.StockResponse;
 import com.nexus.commerce.dto.StockReservationResponse;
 import com.nexus.commerce.service.InventoryService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/inventory")
 @RequiredArgsConstructor
+@Tag(name = "Inventory", description = "Control omnicanal de existencias y reservas atómicas")
 public class InventoryController {
 
     private final InventoryService inventoryService;

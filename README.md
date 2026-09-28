@@ -88,6 +88,10 @@ flowchart TD
 * `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID). Reserva existencias, congela precios y genera la orden (`201 Created`).
 * `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido confirmado.
 
+### Documentación Interactiva y Contratos (OpenAPI 3 / Swagger)
+* **Swagger UI:** `http://localhost:8080/swagger-ui.html` (consola de ejecución y pruebas de endpoints).
+* **OpenAPI Spec:** `http://localhost:8080/v3/api-docs` (contrato JSON para generación de clientes tipados).
+
 ---
 
 ## 4. Puesta en Marcha Local
