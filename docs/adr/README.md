@@ -9,3 +9,4 @@ Este directorio documenta formalmente las decisiones arquitectónicas del núcle
 | [ADR-0001](0001-core-architecture-and-concurrency.md) | 2026-09-25 | Definición de Stack Base, Concurrencia de Inventario y Precisión Financiera | **Aprobado** |
 | [ADR-0002](0002-hybrid-semantic-search-pgvector.md) | 2026-09-27 | Búsqueda Semántica Híbrida con PostgreSQL y pgvector | **Aprobado** |
 | [ADR-0003](0003-transactional-order-checkout-and-idempotency.md) | 2026-09-28 | Motor Transaccional de Pedidos, Snapshot Fiscal e Idempotencia | **Aprobado** |
+| [ADR-0004](0004-frontend-architecture-and-proxy.md) | 2026-09-29 | Arquitectura Frontend Monorepo, Rewrite Proxy e Idempotencia en Cliente | **Aprobado** |
