@@ -5,14 +5,18 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { Product, Sku, PriceBreakdown, StockInfo, Order } from "@/types/commerce";
+import { useRouter, useParams } from "next/navigation";
 
 interface PageProps {
     params: Promise<{ reference: string }>;
 }
 
-export default function ProductDetailPage({ params }: PageProps) {
-    const resolvedParams = use(params);
-    const referenceCode = decodeURIComponent(resolvedParams.reference);
+export default function ProductDetailPage() {
+    const router = useRouter();
+    const params = useParams();
+    const referenceCode = params?.reference
+        ? decodeURIComponent(params.reference as string)
+        : "";
 
     const [product, setProduct] = useState<Product | null>(null);
     const [selectedSku, setSelectedSku] = useState<Sku | null>(null);
@@ -21,7 +25,6 @@ export default function ProductDetailPage({ params }: PageProps) {
 
     const [loading, setLoading] = useState(true);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
-    const [orderConfirmed, setOrderConfirmed] = useState<Order | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
@@ -47,6 +50,11 @@ export default function ProductDetailPage({ params }: PageProps) {
 
         async function loadSkuData() {
             try {
+                // 1. Limpiamos el estado anterior para evitar datos residuales
+                setStock(null);
+                setPricing(null);
+                setErrorMessage(null);
+
                 const [priceData, stockData] = await Promise.all([
                     api.getPrice(selectedSku!.id, "ES"),
                     api.getStock(selectedSku!.id),
@@ -55,11 +63,11 @@ export default function ProductDetailPage({ params }: PageProps) {
                 setStock(stockData);
             } catch (err: unknown) {
                 console.error("Error al actualizar precio/stock:", err);
+                setErrorMessage("No se pudieron recuperar las existencias para la talla seleccionada.");
             }
         }
         loadSkuData();
     }, [selectedSku]);
-
     const handleCheckout = async () => {
         if (!selectedSku || !stock || stock.breakdown.length === 0) return;
 
@@ -90,7 +98,9 @@ export default function ProductDetailPage({ params }: PageProps) {
                 idempotencyKey
             );
 
-            setOrderConfirmed(order);
+            // Redirección inmediata a la página de recibo
+            router.push(`/orders/${encodeURIComponent(order.orderNumber)}`);
+
         } catch (err: unknown) {
             setErrorMessage(err instanceof Error ? err.message : "Error al procesar el checkout");
         } finally {
@@ -243,7 +253,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                         <div>
                             <button
                                 onClick={handleCheckout}
-                                disabled={checkoutLoading || !stock?.inStock}
+                                disabled={checkoutLoading || !stock?.inStock || !stock?.breakdown.some(w => w.netAvailable > 0)}
                                 className="w-full bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest py-4 transition-all disabled:opacity-40 disabled:hover:bg-neutral-900"
                             >
                                 {checkoutLoading
@@ -261,57 +271,6 @@ export default function ProductDetailPage({ params }: PageProps) {
                         </div>
                     </div>
                 </div>
-
-                {/* Modal de Confirmación de Pedido */}
-                {orderConfirmed && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <div className="bg-white max-w-md w-full border border-neutral-900 p-8 shadow-2xl">
-              <span className="text-[10px] uppercase tracking-widest text-emerald-600 block mb-1 font-semibold">
-                Compra completada con éxito
-              </span>
-                            <h2 className="text-xl font-light uppercase tracking-wide text-neutral-900 mb-4">
-                                Pedido {orderConfirmed.orderNumber}
-                            </h2>
-
-                            <div className="space-y-2 text-xs text-neutral-600 pb-4 border-b border-neutral-200 mb-4">
-                                <div className="flex justify-between">
-                                    <span>Estado:</span>
-                                    <span className="font-semibold text-neutral-900">{orderConfirmed.status}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Mercado:</span>
-                                    <span>{orderConfirmed.marketCode} ({orderConfirmed.currency})</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Base Imponible:</span>
-                                    <span>{orderConfirmed.subtotalAmount.toFixed(2)} {orderConfirmed.currency}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Impuestos (IVA):</span>
-                                    <span>{orderConfirmed.taxAmount.toFixed(2)} {orderConfirmed.currency}</span>
-                                </div>
-                                <div className="flex justify-between text-sm font-medium text-neutral-900 pt-2 border-t border-neutral-100">
-                                    <span>Total Cargado:</span>
-                                    <span>{orderConfirmed.totalAmount.toFixed(2)} {orderConfirmed.currency}</span>
-                                </div>
-                            </div>
-
-                            <div className="text-[10px] font-mono text-neutral-400 break-all mb-6">
-                                Idempotency-Key: {orderConfirmed.idempotencyKey}
-                            </div>
-
-                            <button
-                                onClick={() => {
-                                    setOrderConfirmed(null);
-                                    window.location.reload();
-                                }}
-                                className="w-full bg-neutral-900 text-white text-xs uppercase tracking-widest py-3 hover:bg-black transition-colors"
-                            >
-                                Aceptar y Finalizar
-                            </button>
-                        </div>
-                    </div>
-                )}
             </main>
         </div>
     );

@@ -61,4 +61,12 @@ export const api = {
         });
         return handleResponse<Order>(res);
     },
+
+    // Pedidos
+    getOrder: async (orderNumber: string): Promise<Order> => {
+        const res = await fetch(`${BASE_URL}/api/v1/orders/${encodeURIComponent(orderNumber)}`, {
+            cache: "no-store",
+        });
+        return handleResponse<Order>(res);
+    },
 };
