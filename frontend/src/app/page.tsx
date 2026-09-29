@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import SemanticSearchBar from "@/components/SemanticSearchBar";
 import ProductCard from "@/components/ProductCard";
+import ProductCardSkeleton from "@/components/ProductCardSkeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { api } from "@/lib/api";
 import { Product, SemanticSearchResult } from "@/types/commerce";
 
@@ -93,21 +95,25 @@ export default function HomePage() {
           </div>
 
           {loading && (
-              <div className="py-24 text-center text-xs uppercase tracking-widest text-neutral-400">
-                Consultando núcleo transaccional...
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                      <ProductCardSkeleton key={i} />
+                  ))}
               </div>
           )}
 
           {!loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {isSemanticView
-                    ? semanticResults.map((item) => (
-                        <ProductCard key={item.productId} semanticItem={item} />
-                    ))
-                    : products.map((item) => (
-                        <ProductCard key={item.id} product={item} />
-                    ))}
-              </div>
+              <ErrorBoundary>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {isSemanticView
+                          ? semanticResults.map((item) => (
+                              <ProductCard key={item.productId} semanticItem={item} />
+                          ))
+                          : products.map((item) => (
+                              <ProductCard key={item.id} product={item} />
+                          ))}
+                  </div>
+              </ErrorBoundary>
           )}
 
           {!loading && (isSemanticView ? semanticResults.length === 0 : products.length === 0) && (

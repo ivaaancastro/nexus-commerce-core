@@ -3,6 +3,8 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
+import ProductDetailSkeleton from "@/components/ProductDetailSkeleton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { api } from "@/lib/api";
 import { Product, Sku, PriceBreakdown, StockInfo, Order } from "@/types/commerce";
 import { useRouter, useParams } from "next/navigation";
@@ -109,14 +111,7 @@ export default function ProductDetailPage() {
     };
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-neutral-50 flex flex-col">
-                <Header />
-                <div className="flex-1 flex items-center justify-center text-xs uppercase tracking-widest text-neutral-400">
-                    Cargando ficha editorial...
-                </div>
-            </div>
-        );
+        return <ProductDetailSkeleton />;
     }
 
     if (!product) {
@@ -136,10 +131,11 @@ export default function ProductDetailPage() {
     }
 
     return (
-        <div className="min-h-screen bg-neutral-50 flex flex-col font-sans">
-            <Header />
+        <ErrorBoundary>
+            <div className="min-h-screen bg-neutral-50 flex flex-col font-sans">
+                <Header />
 
-            <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12">
+                <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12">
                 <div className="mb-6">
                     <Link
                         href="/"
@@ -272,6 +268,7 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
             </main>
-        </div>
+            </div>
+        </ErrorBoundary>
     );
 }
