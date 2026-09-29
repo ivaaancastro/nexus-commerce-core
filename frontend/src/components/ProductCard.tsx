@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Product, SemanticSearchResult } from "@/types/commerce";
 
 interface ProductCardProps {
@@ -11,6 +12,9 @@ export default function ProductCard({ product, semanticItem }: ProductCardProps)
     const family = product?.family || semanticItem?.family || "CATÁLOGO";
     const description = product?.description || semanticItem?.description;
     const similarity = semanticItem?.similarityScore;
+
+    // Codificamos la referencia para soportar barras en la URL (ej: 0432/021 -> 0432%2F021)
+    const productHref = `/products/${encodeURIComponent(reference)}`;
 
     return (
         <article className="group flex flex-col justify-between border border-neutral-200 bg-white p-6 hover:border-black transition-all duration-300">
@@ -61,9 +65,12 @@ export default function ProductCard({ product, semanticItem }: ProductCardProps)
                     </div>
                 )}
 
-                <button className="w-full mt-6 bg-neutral-100 group-hover:bg-neutral-900 group-hover:text-white text-neutral-900 text-xs uppercase tracking-widest py-2.5 transition-colors duration-200">
+                <Link
+                    href={productHref}
+                    className="block text-center w-full mt-6 bg-neutral-100 group-hover:bg-neutral-900 group-hover:text-white text-neutral-900 text-xs uppercase tracking-widest py-2.5 transition-colors duration-200"
+                >
                     Ver Detalle
-                </button>
+                </Link>
             </div>
         </article>
     );
