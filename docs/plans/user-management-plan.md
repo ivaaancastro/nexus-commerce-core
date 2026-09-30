@@ -9,12 +9,14 @@
 ## 1. Objetivos
 
 Implementar un sistema completo de gestión de usuarios que permita:
-- Registro y autenticación con email + contraseña
-- Sesiones persistentes con JWT
-- Perfil de usuario con datos personales
-- Múltiples direcciones de entrega
+- Registro con email + contraseña + datos personales
+- Confirmación de email con código de 6 dígitos
+- Login con email + contraseña + Google (social)
+- Recuperación de contraseña por email con código
+- Perfil con medidas (altura, peso) para recomendación de tallas
+- Máximo 2 direcciones de entrega (una principal)
+- Migración del carrito de localStorage a cuenta
 - Historial de pedidos por usuario
-- Migración del carrito de localStorage a base de datos
 
 ---
 
@@ -27,13 +29,14 @@ Implementar un sistema completo de gestión de usuarios que permita:
 | JWT (jjwt) | Tokens de sesión |
 | BCrypt | Hash de contraseñas |
 | Spring Data JPA | Persistencia de usuarios |
+| Spring Mail | Emails de confirmación y recuperación |
 
 ### Frontend
 | Tecnología | Uso |
 |:---|:---|
 | React Context | Estado de autenticación |
 | API Client | Llamadas protegidas |
-| Form Hook | Gestión de formularios |
+| React Hook Form | Gestión de formularios |
 
 ---
 
@@ -62,7 +65,26 @@ public class User {
     private String lastName;
 
     @Column(length = 20)
-    private String phone;
+    private String phone; // Opcional
+
+    @Column(nullable = false)
+    private LocalDate birthDate; // Obligatorio
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Gender gender; // Obligatorio
+
+    @Column(precision = 5, scale = 2)
+    private Double height; // cm, para recomendación de tallas
+
+    @Column(precision = 5, scale = 2)
+    private Double weight; // kg, para recomendación de tallas
+
+    @Column(nullable = false)
+    private boolean emailVerified;
+
+    @Column(length = 6)
+    private String verificationCode;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Address> addresses = new ArrayList<>();
@@ -75,6 +97,10 @@ public class User {
 
     @UpdateTimestamp
     private Instant updatedAt;
+}
+
+public enum Gender {
+    MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY
 }
 ```
 
@@ -130,7 +156,12 @@ private User user;
 | Método | Endpoint | Descripción |
 |:---|:---|:---|
 | `POST` | `/api/v1/auth/register` | Registro de usuario |
-| `POST` | `/api/v1/auth/login` | Login (devuelve JWT) |
+| `POST` | `/api/v1/auth/verify-email` | Verificar email con código |
+| `POST` | `/api/v1/auth/resend-verification` | Reenviar código de verificación |
+| `POST` | `/api/v1/auth/login` | Login con email + contraseña |
+| `POST` | `/api/v1/auth/google` | Login con Google |
+| `POST` | `/api/v1/auth/forgot-password` | Solicitar recuperación |
+| `POST` | `/api/v1/auth/reset-password` | Resetear contraseña con código |
 | `POST` | `/api/v1/auth/refresh` | Refresh token |
 | `GET` | `/api/v1/auth/me` | Usuario actual |
 
@@ -139,14 +170,14 @@ private User user;
 | Método | Endpoint | Descripción |
 |:---|:---|:---|
 | `GET` | `/api/v1/users/me` | Obtener perfil |
-| `PUT` | `/api/v1/users/me` | Actualizar perfil |
+| `PUT` | `/api/v1/users/me` | Actualizar perfil (incluye altura, peso) |
 | `DELETE` | `/api/v1/users/me` | Eliminar cuenta |
 
 ### 4.3. Direcciones
 
 | Método | Endpoint | Descripción |
 |:---|:---|:---|
-| `GET` | `/api/v1/users/me/addresses` | Listar direcciones |
+| `GET` | `/api/v1/users/me/addresses` | Listar direcciones (máx 2) |
 | `POST` | `/api/v1/users/me/addresses` | Añadir dirección |
 | `PUT` | `/api/v1/users/me/addresses/{id}` | Actualizar dirección |
 | `DELETE` | `/api/v1/users/me/addresses/{id}` | Eliminar dirección |
@@ -165,32 +196,57 @@ private User user;
 ### 5.1. Registro
 
 ```
-1. Usuario envía: { email, password, firstName, lastName }
+1. Usuario envía: { email, password, firstName, lastName, birthDate, gender, phone? }
 2. Backend valida datos
 3. Backend verifica que email no existe
 4. Hash de contraseña con BCrypt
-5. Guardar usuario en BD
-6. Generar JWT token
-7. Devolver: { token, user }
+5. Generar código de verificación (6 dígitos)
+6. Guardar usuario en BD (emailVerified = false)
+7. Enviar email con código de verificación
+8. Devolver: { message: "Email de verificación enviado" }
 ```
 
-### 5.2. Login
+### 5.2. Verificación de Email
+
+```
+1. Usuario envía: { email, code }
+2. Backend verifica código
+3. Actualizar emailVerified = true
+4. Generar JWT token
+5. Devolver: { token, user }
+```
+
+### 5.3. Login
 
 ```
 1. Usuario envía: { email, password }
 2. Backend busca usuario por email
 3. Verifica contraseña con BCrypt
+4. Verifica emailVerified
+5. Generar JWT token
+6. Devolver: { token, user }
+```
+
+### 5.4. Login con Google
+
+```
+1. Usuario envía: { googleToken }
+2. Backend verifica token con Google
+3. Busca o crea usuario por email
 4. Generar JWT token
 5. Devolver: { token, user }
 ```
 
-### 6.3. Requests Autenticados
+### 5.5. Recuperación de Contraseña
 
 ```
-Client → API: Authorization: Bearer <token>
-Backend: Filtro JWT valida token
-Backend: Carga usuario del token
-Controller: Usa usuario autenticado
+1. Usuario envía: { email }
+2. Generar código de 6 dígitos
+3. Guardar código en BD con expiración (15 min)
+4. Enviar email con código
+5. Usuario envía: { email, code, newPassword }
+6. Verificar código y expiración
+7. Actualizar contraseña
 ```
 
 ---
@@ -199,16 +255,26 @@ Controller: Usa usuario autenticado
 
 ### 6.1. Contraseñas
 - Hash con BCrypt (factor de costo 12)
+- Mínimo 8 caracteres, mayúsculas, números
 - Nunca almacenar contraseña en texto plano
-- Validación de fortaleza (mínimo 8 caracteres, mayúsculas, números)
 
 ### 6.2. JWT
-- Expiración: 24 horas (access token)
+- Access token: 24 horas
 - Refresh token: 7 días
 - Algoritmo: HS256
 - Secret: Variable de entorno `JWT_SECRET`
 
-### 6.3. Protección de Endpoints
+### 6.3. Códigos de Verificación
+- 6 dígitos numéricos
+- Expiración: 15 minutos
+- Un solo uso
+- Máximo 3 intentos
+
+### 6.4. Roles
+- Solo `USER` por ahora
+- `ADMIN` se añade después con panel de gestión
+
+### 6.5. Protección de Endpoints
 - `/api/v1/auth/**` — Público
 - `/api/v1/users/**` — Autenticado
 - `/api/v1/orders/**` — Autenticado
@@ -229,26 +295,16 @@ interface AuthContextType {
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
+    verifyEmail: (email: string, code: string) => Promise<void>;
+    loginWithGoogle: (googleToken: string) => Promise<void>;
     logout: () => void;
     updateProfile: (data: ProfileData) => Promise<void>;
+    forgotPassword: (email: string) => Promise<void>;
+    resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
 }
 ```
 
-### 7.2. Protección de Rutas
-
-```typescript
-// Componente de ruta protegida
-function ProtectedRoute({ children }: { children: ReactNode }) {
-    const { isAuthenticated, isLoading } = useAuth();
-    
-    if (isLoading) return <Loading />;
-    if (!isAuthenticated) return <Navigate to="/login" />;
-    
-    return children;
-}
-```
-
-### 7.3. Migración del Carrito
+### 7.2. Migración del Carrito
 
 ```typescript
 // Al iniciar sesión, migrar carrito de localStorage a BD
@@ -258,11 +314,32 @@ async function migrateCart(userId: string, localCart: CartItem[]) {
 }
 ```
 
+### 7.3. Recomendación de Tallas
+
+```typescript
+// Con altura y peso, recomendar talla
+function recommendSize(height: number, weight: number, product: Product): string {
+    // Lógica de recomendación basada en medidas
+    // Similar a Zara
+}
+```
+
 ---
 
-## 8. Archivos a Crear/Modificar
+## 8. Estructura de Ramas
 
-### Backend
+```
+feat/user-management (rama padre)
+├── feat/user-auth         → Tarea 5.1 (Registro + Login + Google)
+├── feat/user-profile      → Tarea 5.2 (Perfil + Medidas + Direcciones)
+└── feat/user-orders       → Tarea 5.3 (Historial de pedidos)
+```
+
+---
+
+## 9. Archivos a Crear/Modificar
+
+### Backend — Auth
 | Archivo | Propósito |
 |:---|:---|
 | `entity/User.java` | Entidad de usuario |
@@ -271,6 +348,7 @@ async function migrateCart(userId: string, localCart: CartItem[]) {
 | `repository/AddressRepository.java` | Repositorio de direcciones |
 | `service/AuthService.java` | Lógica de autenticación |
 | `service/UserService.java` | Lógica de usuarios |
+| `service/EmailService.java` | Envío de emails |
 | `controller/AuthController.java` | Endpoints de auth |
 | `controller/UserController.java` | Endpoints de usuarios |
 | `security/JwtService.java` | Generación/validación de JWT |
@@ -282,102 +360,81 @@ async function migrateCart(userId: string, localCart: CartItem[]) {
 | `dto/UserResponse.java` | DTO de usuario |
 | `dto/AddressRequest.java` | DTO de dirección |
 
-### Frontend
+### Frontend — Auth
 | Archivo | Propósito |
 |:---|:---|
 | `context/AuthContext.tsx` | Estado de autenticación |
 | `components/LoginForm.tsx` | Formulario de login |
 | `components/RegisterForm.tsx` | Formulario de registro |
+| `components/VerifyEmailForm.tsx` | Formulario de verificación |
+| `components/ForgotPasswordForm.tsx` | Formulario de recuperación |
 | `components/ProtectedRoute.tsx` | Ruta protegida |
 | `app/login/page.tsx` | Página de login |
 | `app/register/page.tsx` | Página de registro |
+| `app/verify-email/page.tsx` | Página de verificación |
+| `app/forgot-password/page.tsx` | Página de recuperación |
 | `app/profile/page.tsx` | Página de perfil |
 | `app/addresses/page.tsx` | Página de direcciones |
 | `app/orders/page.tsx` | Página de historial |
 
 ---
 
-## 9. Orden de Implementación
+## 10. Orden de Implementación
 
-### Paso 1: Backend — Entidades y Repositorios
-1. Crear `User.java` y `Address.java`
-2. Crear `UserRepository.java` y `AddressRepository.java`
-3. Añadir relación `user_id` a `Order.java`
-4. Migración Flyway `V6__users_schema.sql`
+### Tarea 5.1 — Registro y Login (`feat/user-auth`)
 
-### Paso 2: Backend — Seguridad
-1. Añadir dependencias: `spring-security`, `jjwt`
-2. Crear `JwtService.java`
-3. Crear `JwtAuthenticationFilter.java`
-4. Crear `SecurityConfig.java`
+1. **Backend**: Entidades `User`, `Address` + repositorios
+2. **Backend**: Seguridad (JWT, SecurityConfig, filtros)
+3. **Backend**: `AuthService` + `AuthController`
+4. **Backend**: Verificación de email con código
+5. **Backend**: Login con Google
+6. **Backend**: Recuperación de contraseña
+7. **Frontend**: `AuthContext` + páginas de login/register/verify
+8. **Tests**: Tests de auth
 
-### Paso 3: Backend — Auth API
-1. Crear `AuthService.java`
-2. Crear `AuthController.java`
-3. Crear DTOs: `RegisterRequest`, `LoginRequest`, `AuthResponse`
+### Tarea 5.2 — Perfil y Direcciones (`feat/user-profile`)
 
-### Paso 4: Backend — Users API
-1. Crear `UserService.java`
-2. Crear `UserController.java`
-3. Crear DTOs: `UserResponse`, `AddressRequest`
+1. **Backend`: `UserService` + `UserController`
+2. **Backend**: CRUD de direcciones (máx 2)
+3. **Frontend**: Página de perfil con medidas
+4. **Frontend**: Página de direcciones
+5. **Tests**: Tests de perfil y direcciones
 
-### Paso 5: Frontend — Auth Context
-1. Crear `AuthContext.tsx`
-2. Añadir métodos de login/register/logout
-3. Integrar en `layout.tsx`
+### Tarea 5.3 — Historial de Pedidos (`feat/user-orders`)
 
-### Paso 6: Frontend — Páginas de Auth
-1. Crear `app/login/page.tsx`
-2. Crear `app/register/page.tsx`
-3. Crear `components/ProtectedRoute.tsx`
-
-### Paso 7: Frontend — Perfil y Direcciones
-1. Crear `app/profile/page.tsx`
-2. Crear `app/addresses/page.tsx`
-3. Crear formularios de perfil y direcciones
-
-### Paso 8: Tests
-1. Tests de `AuthService`
-2. Tests de `UserService`
-3. Tests de integración de auth
-4. Tests de frontend de login/register
+1. **Backend**: Relación `Order` ↔ `User`
+2. **Backend**: Endpoints de historial
+3. **Frontend**: Página de historial de pedidos
+4. **Tests**: Tests de historial
 
 ---
 
-## 10. Criterios de Aceptación
+## 11. Criterios de Aceptación
 
-- [ ] Registro con email + contraseña funciona
-- [ ] Login devuelve JWT válido
-- [ ] Requests con token válido son autenticados
-- [ ] Requests sin token son rechazados (401)
-- [ ] Contraseñas se hashean con BCrypt
-- [ ] Perfil de usuario se puede actualizar
-- [ ] Direcciones CRUD funciona
-- [ ] Historial de pedidos por usuario funciona
-- [ ] Carrito migra de localStorage a BD al iniciar sesión
+- [ ] Registro con email + contraseña + datos personales funciona
+- [ ] Verificación de email con código de 6 dígitos
+- [ ] Login con email + contraseña funciona
+- [ ] Login con Google funciona
+- [ ] Recuperación de contraseña por email funciona
+- [ ] Perfil con altura, peso, fecha de nacimiento, género
+- [ ] Recomendación de tallas basada en medidas
+- [ ] Máximo 2 direcciones, una principal
+- [ ] Migración del carrito de localStorage a BD
+- [ ] Carrito compartido entre dispositivos
+- [ ] Historial de pedidos por usuario
 - [ ] Tests pasando (backend + frontend)
-
----
-
-## 11. Riesgos y Mitigaciones
-
-| Riesgo | Mitigación |
-|:---|:---|
-| JWT secret expuesto | Usar variable de entorno, nunca en código |
-| Contraseñas débiles | Validación de fortaleza en registro |
-| SQL Injection | Usar JPA (parametrizado) |
-| CSRF | JWT en header (no cookie) |
-| Token robado | Expiración corta + refresh token |
 
 ---
 
 ## 12. Estimación
 
-- **Backend**: 4-5 horas
-- **Frontend**: 3-4 horas
-- **Tests**: 2 horas
-- **Total**: 9-11 horas
+| Tarea | Estimación |
+|:---|:---|
+| **5.1** — Auth | 5-6 horas |
+| **5.2** — Perfil + Direcciones | 3-4 horas |
+| **5.3** — Historial | 2-3 horas |
+| **Total** | 10-13 horas |
 
 ---
 
-*Documento creado en modo plan. Pendiente de aprobación para pasar a modo ejecución.*
+*Documento actualizado con respuestas del usuario. Pendiente de aprobación para pasar a modo ejecución.*
