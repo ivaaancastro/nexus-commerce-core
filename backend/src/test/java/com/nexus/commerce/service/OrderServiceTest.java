@@ -6,6 +6,7 @@ import com.nexus.commerce.entity.OrderStatus;
 import com.nexus.commerce.entity.Sku;
 import com.nexus.commerce.repository.OrderRepository;
 import com.nexus.commerce.repository.SkuRepository;
+import com.nexus.commerce.service.WarehouseSelectionService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,9 @@ class OrderServiceTest {
     @Mock
     private PricingService pricingService;
 
+    @Mock
+    private WarehouseSelectionService warehouseSelectionService;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -48,9 +52,12 @@ class OrderServiceTest {
         String idempotencyKey = "key-12345";
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 2)
-        ));
+        ), "ES", 40.4168, -3.7038);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+
+        when(warehouseSelectionService.selectOptimalWarehouse(any(), any(), any(), any()))
+                .thenReturn("WH-MAD-01");
 
         when(inventoryService.reserveStock(any(ReserveStockRequest.class))).thenReturn(
                 new StockReservationResponse(1L, "WH-MAD-01", 2, 8, "RESERVED")
@@ -109,7 +116,7 @@ class OrderServiceTest {
 
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 2)
-        ));
+        ), "ES", 40.4168, -3.7038);
 
         // WHEN
         OrderResponse response = orderService.processCheckout(idempotencyKey, request);
@@ -127,9 +134,11 @@ class OrderServiceTest {
         String idempotencyKey = "key-error";
         CheckoutRequest request = new CheckoutRequest("US", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ));
+        ), "ES", 40.4168, -3.7038);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(warehouseSelectionService.selectOptimalWarehouse(any(), any(), any(), any()))
+                .thenReturn("WH-MAD-01");
         when(pricingService.calculatePrice(1L, "US")).thenReturn(Optional.empty());
 
         // WHEN & THEN

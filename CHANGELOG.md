@@ -17,6 +17,7 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - **Drawer lateral del carrito** con animación suave, controles de cantidad y acceso a página completa (`/cart`).
 - **Checkout multilínea** con selección automática de almacén óptimo por distancia geográfica (Haversine).
 - **Página de confirmación de pedido** estilo Zara con resumen y acceso al recibo.
+- **Página de recibo** `/receipt/[orderNumber]` con descarga PDF funcional.
 
 ### Changed
 - Migración de la lectura de parámetros dinámicos en PDP y Recibo hacia el hook síncrono `useParams` de Next.js.
