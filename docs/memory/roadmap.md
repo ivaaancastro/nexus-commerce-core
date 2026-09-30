@@ -97,7 +97,7 @@
 **Objetivo**: Implementar registro, login y gestión de sesiones de usuarios para personalizar la experiencia y habilitar futuras funcionalidades (historial de pedidos, wishlist, direcciones de entrega).
 
 ### Tarea 5.1 — Registro y Login de Usuarios
-- **Estado**: PENDIENTE
+- **Estado**: EN CURSO
 - **Por qué**: Permitir a los clientes crear cuentas, iniciar sesión y mantener su carrito persistente entre sesiones.
 - **Alcance**:
   - Registro con email + contraseña (con validación)
@@ -105,6 +105,14 @@
   - Hash de contraseñas con BCrypt
   - JWT tokens para autenticación
   - Persistencia del carrito por usuario (migrar de localStorage a BD)
+- **Implementación**:
+  - `User.java`, `Address.java`, `Gender.java` — Entidades
+  - `UserRepository.java`, `AddressRepository.java` — Repositorios
+  - `JwtService.java`, `JwtAuthenticationFilter.java`, `SecurityConfig.java` — Seguridad
+  - `AuthService.java`, `EmailService.java` — Lógica de auth
+  - `AuthController.java` — Endpoints de auth
+  - `V6__users_schema.sql`, `V7__orders_user_id.sql`, `V8__users_measurements_fix.sql` — Migraciones
+  - Tests: 38 tests backend pasando
 
 ### Tarea 5.2 — Perfil de Usuario y Direcciones
 - **Estado**: PENDIENTE
