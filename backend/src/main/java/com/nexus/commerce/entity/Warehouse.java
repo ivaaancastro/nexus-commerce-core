@@ -27,4 +27,10 @@ public class Warehouse {
 
     @Column(name = "warehouse_type", nullable = false, length = 20)
     private String warehouseType;
+
+    @Column(name = "latitude")
+    private Double latitude;
+
+    @Column(name = "longitude")
+    private Double longitude;
 }
