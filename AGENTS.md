@@ -2,8 +2,6 @@
 
 > **Este archivo es la fuente de verdad para cualquier agente de IA o desarrollador que trabaje en el proyecto.**
 > Contiene convenciones, patrones, reglas críticas y contexto arquitectónico. Léelo antes de escribir código.
->
-> **REGLA PARA AGENTES IA**: Leer este archivo al inicio de CADA respuesta para mantener coherencia con las convenciones del proyecto.
 
 ---
 
@@ -60,7 +58,9 @@ nexus-commerce-core/
 │   │   └── __tests__/          # Tests de componentes
 │   └── vitest.config.ts
 ├── docs/
-│   └── adr/                    # Architecture Decision Records
+│   ├── adr/                    # Architecture Decision Records
+│   └── memory/                 # Roadmap y notas de contexto
+├── .github/workflows/          # CI/CD con GitHub Actions
 ├── docker-compose.yml          # PostgreSQL 16 + pgvector
 ├── CHANGELOG.md                # Keep a Changelog (es-ES)
 └── README.md                   # Documentación principal
@@ -198,17 +198,10 @@ Controller → Service → Repository → DB
 - Deben reflejar exactamente los DTOs del backend.
 - Usar `interface` para objetos, `type` para uniones.
 
-### 6.4. Estilo Editorial Zara
-- **Tipografía**: `font-light` (300) para textos largos, `font-medium` (500) para títulos.
-- **Transformación**: `uppercase` en títulos, botones y etiquetas.
-- **Espaciado**: `tracking-widest` (0.1em) para títulos, `tracking-wide` (0.025em) para botones.
-- **Paleta**: `neutral-*` como base (50-900), acentos en `neutral-900`.
-- **Bordes**: `border-neutral-200` para separadores sutiles, `border-neutral-900` para elementos activos.
-- **Transiciones**: `transition-all duration-300` para hover states.
-- **Botones**: Fondo `neutral-900` con texto `white`, hover a `black`.
-- **Notificaciones**: Toast con fondo `neutral-900`, texto `white`, `text-xs uppercase tracking-widest`.
-- **Iconos**: Estilo lineal, `stroke-width` 1.5, tamaño `w-5 h-5` o `w-4 h-4`.
-- **Espaciado vertical**: `py-12` para secciones, `py-6` para subsecciones, `gap-6` para grids.
+### 6.4. Estilos
+- Tailwind CSS utility-first.
+- Paleta editorial: `neutral-*` como base, acentos en `neutral-900`.
+- Tipografía: `font-light`, `uppercase`, `tracking-widest` para estética editorial.
 
 ### 6.5. Componentes
 - Componentes reutilizables en `src/components/`.
@@ -247,7 +240,26 @@ Controller → Service → Repository → DB
 - Las ramas se nombran con prefijo descriptivo: `feat/`, `fix/`, `docs/`, `refactor/`, `test/`.
 - Antes de cerrar una rama: documentar en `/docs` y crear tests necesarios.
 
-### 8.2. Nombramiento de Ramas
+### 8.2. Flujo de Trabajo: GitHub Flow con Pull Requests
+
+```
+1. git checkout main && git pull
+2. git checkout -b feat/nueva-funcionalidad
+3. Desarrollar + commits en la rama
+4. git push -u origin feat/nueva-funcionalidad
+5. Crear Pull Request en GitHub
+6. Code review (auto-review si es necesario)
+7. Merge a main desde GitHub (botón "Merge pull request")
+8. Borrar rama local y remota
+```
+
+### 8.3. Reglas para Commits y Pushs
+- **SIEMPRE preguntar al usuario antes de hacer commit o push.**
+- Los commits siguen el formato convencional: `tipo(alcance): descripción en español`.
+- No hacer push directamente a `main`.
+- No hacer force push a ramas compartidas.
+
+### 8.4. Nombramiento de Ramas
 ```
 feat/order-payment-integration
 fix/stock-race-condition
@@ -256,7 +268,7 @@ refactor/pricing-service-extraction
 test/order-checkout-e2e
 ```
 
-### 8.3. Convención de Commits
+### 8.5. Convención de Commits
 Formato: `tipo(alcance): descripción en español`
 
 ```
@@ -269,7 +281,7 @@ refactor(pricing): extract tax calculation to dedicated service
 
 Tipos válidos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
 
-### 8.4. Cierre de Rama
+### 8.6. Cierre de Rama
 Antes de considerar una rama lista para merge:
 1. Tests pasando (`./mvnw test` en backend, `npx vitest` en frontend).
 2. Cobertura mantenida o incrementada.
@@ -286,6 +298,7 @@ Antes de considerar una rama lista para merge:
 | `README.md` | Visión general, setup, API pública |
 | `CHANGELOG.md` | Registro de cambios (Keep a Changelog es-ES) |
 | `docs/adr/*.md` | Decisiones arquitectónicas |
+| `docs/memory/roadmap.md` | Roadmap y notas de contexto |
 | `AGENTS.md` | Contexto para agentes IA y desarrolladores |
 
 ### 9.2. ADRs (Architecture Decision Records)
