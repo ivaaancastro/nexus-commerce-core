@@ -26,8 +26,17 @@
 **Objetivo**: Pasar de la compra unitaria directa ("Comprar ya") a la gestión completa de una cesta de la compra con múltiples prendas.
 
 ### Tarea 2.1 — Estado Global de la Bolsa (CartContext / Store ligero)
-- **Estado**: PENDIENTE
+- **Estado**: COMPLETADA
 - **Por qué**: Permitir al cliente añadir varias prendas o tallas distintas, gestionar cantidades y persistir la bolsa en localStorage para que no se pierda al navegar.
+- **Implementación**:
+  - `CartContext.tsx` — Estado global con React Context + useReducer
+  - `useLocalStorage.ts` — Hook de persistencia en localStorage
+  - `CartIcon.tsx` — Icono de carrito con badge en el header
+  - `AddToCartButton.tsx` — Botón "Añadir a la bolsa" con confirmación visual
+  - `Toast.tsx` — Notificación temporal
+  - Integración en `layout.tsx`, `Header.tsx` y PDP
+  - Reemplaza botón "Comprar Ahora" por "Añadir a la bolsa" (modelo Zara)
+  - Tests: 24 tests pasando (Vitest + React Testing Library)
 
 ### Tarea 2.2 — Cajón Lateral de la Bolsa (Slide-Over Cart Drawer)
 - **Estado**: PENDIENTE

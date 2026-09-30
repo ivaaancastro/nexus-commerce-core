@@ -5,6 +5,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import ProductDetailSkeleton from "@/components/ProductDetailSkeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import AddToCartButton from "@/components/AddToCartButton";
 import { api } from "@/lib/api";
 import { Product, Sku, PriceBreakdown, StockInfo, Order } from "@/types/commerce";
 import { useRouter, useParams } from "next/navigation";
@@ -247,22 +248,23 @@ export default function ProductDetailPage() {
 
                         {/* Acción de Compra Idempotente */}
                         <div>
-                            <button
-                                onClick={handleCheckout}
-                                disabled={checkoutLoading || !stock?.inStock || !stock?.breakdown.some(w => w.netAvailable > 0)}
-                                className="w-full bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest py-4 transition-all disabled:opacity-40 disabled:hover:bg-neutral-900"
-                            >
-                                {checkoutLoading
-                                    ? "Procesando transacción..."
-                                    : stock?.inStock
-                                        ? "Comprar Ahora"
-                                        : "Agotado"}
-                            </button>
+                            <AddToCartButton
+                                productId={product.id}
+                                referenceCode={product.referenceCode}
+                                name={product.name}
+                                family={product.family}
+                                skuId={selectedSku!.id}
+                                size={selectedSku!.size}
+                                color={selectedSku!.color}
+                                unitPrice={pricing?.finalPrice ?? 0}
+                                currency={pricing?.currency ?? "EUR"}
+                                disabled={!stock?.inStock || !stock?.breakdown.some(w => w.netAvailable > 0)}
+                            />
 
                             <div className="mt-4 text-center">
-                <span className="text-[10px] uppercase tracking-wider text-neutral-400 block">
-                  Transacción protegida con Idempotency-Key
-                </span>
+                                <span className="text-[10px] uppercase tracking-wider text-neutral-400 block">
+                                  Envío gratuito en pedidos superiores a 50€
+                                </span>
                             </div>
                         </div>
                     </div>

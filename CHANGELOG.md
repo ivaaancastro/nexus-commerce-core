@@ -12,6 +12,8 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - Componentes **Skeleton** con animación de pulso sutil para el grid del catálogo (`ProductCardSkeleton`) y la ficha de producto (`ProductDetailSkeleton`), evitando layout shifts (CLS).
 - **ErrorBoundary** con fallback editorial elegante y botón de reintento para capturar errores de renderizado sin mostrar pantallas en blanco.
 - Utility `cn()` para combinación inteligente de clases Tailwind (clsx + tailwind-merge).
+- **Carrito de compra** con estado global (`CartContext`), persistencia en `localStorage`, icono con badge en header y botón "Añadir a la bolsa" (modelo Zara).
+- Confirmación visual temporal (toast) al añadir items al carrito.
 
 ### Changed
 - Migración de la lectura de parámetros dinámicos en PDP y Recibo hacia el hook síncrono `useParams` de Next.js.

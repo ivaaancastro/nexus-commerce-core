@@ -88,3 +88,28 @@ export interface Order {
     createdAt: string;
     items: OrderItem[];
 }
+
+export interface CartItem {
+    productId: number;
+    referenceCode: string;
+    name: string;
+    family: string;
+    skuId: number;
+    size: string;
+    color: string;
+    quantity: number;
+    unitPrice: number;
+    currency: string;
+    imageUrl?: string;
+}
+
+export interface CartState {
+    items: CartItem[];
+}
+
+export type CartAction =
+    | { type: "ADD_ITEM"; payload: CartItem }
+    | { type: "REMOVE_ITEM"; payload: { skuId: number; size: string } }
+    | { type: "UPDATE_QUANTITY"; payload: { skuId: number; size: string; quantity: number } }
+    | { type: "CLEAR_CART" }
+    | { type: "HYDRATE"; payload: CartItem[] };
