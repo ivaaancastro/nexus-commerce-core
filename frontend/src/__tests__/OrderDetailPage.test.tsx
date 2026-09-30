@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useParams } from "next/navigation";
 import OrderDetailPage from "@/app/orders/[orderNumber]/page";
+import { CartProvider } from "@/context/CartContext";
 import { api } from "@/lib/api";
 import { Order } from "@/types/commerce";
 
@@ -51,7 +52,11 @@ describe("OrderDetailPage Component", () => {
         vi.mocked(useParams).mockReturnValue({ orderNumber: "ORD-TEST-99" });
         vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
 
-        render(<OrderDetailPage />);
+        render(
+            <CartProvider>
+                <OrderDetailPage />
+            </CartProvider>
+        );
 
         await waitFor(() => {
             expect(screen.getByText("ORD-TEST-99")).toBeInTheDocument();
@@ -69,7 +74,11 @@ describe("OrderDetailPage Component", () => {
         vi.mocked(useParams).mockReturnValue({ orderNumber: "ORD-INEXISTENTE" });
         vi.mocked(api.getOrder).mockRejectedValue(new Error("Order not found"));
 
-        render(<OrderDetailPage />);
+        render(
+            <CartProvider>
+                <OrderDetailPage />
+            </CartProvider>
+        );
 
         await waitFor(() => {
             expect(screen.getByText("Registro No Encontrado")).toBeInTheDocument();
