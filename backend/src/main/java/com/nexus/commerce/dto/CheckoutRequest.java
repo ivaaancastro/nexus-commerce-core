@@ -12,5 +12,9 @@ public record CheckoutRequest(
 
         @NotEmpty(message = "El pedido debe contener al menos un artículo")
         @Valid
-        List<CheckoutItemRequest> items
+        List<CheckoutItemRequest> items,
+
+        String destinationCountryCode,
+        Double destinationLatitude,
+        Double destinationLongitude
 ) {}
