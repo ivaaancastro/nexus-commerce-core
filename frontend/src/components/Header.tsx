@@ -34,18 +34,18 @@ export default function Header() {
                     {isAuthenticated ? (
                         <div className="flex items-center space-x-4">
                             <Link href="/profile" className="hover:text-black transition-colors">
-                                {user?.firstName}
+                                Cuenta
                             </Link>
                             <button
                                 onClick={logout}
                                 className="text-neutral-400 hover:text-black transition-colors"
                             >
-                                Salir
+                                Cerrar sesión
                             </button>
                         </div>
                     ) : (
                         <Link href="/login" className="hover:text-black transition-colors">
-                            Entrar
+                            Iniciar sesión
                         </Link>
                     )}
 

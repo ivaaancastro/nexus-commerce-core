@@ -11,6 +11,7 @@ interface AuthContextType {
     login: (data: LoginData) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     verifyEmail: (email: string, code: string) => Promise<void>;
+    resendVerificationCode: (email: string) => Promise<void>;
     logout: () => void;
     forgotPassword: (email: string) => Promise<void>;
     resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
@@ -49,6 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await api.verifyEmail(email, code);
     };
 
+    const resendVerificationCode = async (email: string) => {
+        await api.resendVerificationCode(email);
+    };
+
     const logout = () => {
         localStorage.removeItem("nexus-auth-token");
         localStorage.removeItem("nexus-refresh-token");
@@ -72,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 login,
                 register,
                 verifyEmail,
+                resendVerificationCode,
                 logout,
                 forgotPassword,
                 resetPassword,

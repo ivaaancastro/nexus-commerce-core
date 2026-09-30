@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
+import { getFriendlyErrorMessage } from "@/lib/errors";
 
 export default function RegisterPage() {
     const { register } = useAuth();
@@ -21,6 +22,7 @@ export default function RegisterPage() {
         weight: "",
     });
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -28,10 +30,34 @@ export default function RegisterPage() {
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
+    const validateForm = (): string | null => {
+        if (!formData.firstName.trim()) return "El nombre es obligatorio";
+        if (!formData.lastName.trim()) return "El apellido es obligatorio";
+        if (!formData.email.trim()) return "El email es obligatorio";
+        if (!formData.password || formData.password.length < 8) return "La contraseña debe tener al menos 8 caracteres";
+        if (!formData.birthDate) return "La fecha de nacimiento es obligatoria";
+
+        const birthDate = new Date(formData.birthDate);
+        const today = new Date();
+        if (birthDate > today) return "La fecha de nacimiento no puede ser futura";
+        if (birthDate.getFullYear() < 1900) return "Introduce una fecha de nacimiento válida";
+
+        if (!formData.gender) return "El género es obligatorio";
+
+        return null;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+
+        const validationError = validateForm();
+        if (validationError) {
+            setError(validationError);
+            setLoading(false);
+            return;
+        }
 
         try {
             await register({
@@ -45,12 +71,45 @@ export default function RegisterPage() {
                 height: formData.height ? parseFloat(formData.height) : undefined,
                 weight: formData.weight ? parseFloat(formData.weight) : undefined,
             });
-            router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`);
+            setSuccess(true);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Error al registrarse");
+            setError(getFriendlyErrorMessage(err));
+        } finally {
             setLoading(false);
         }
     };
+
+    if (success) {
+        return (
+            <div className="min-h-screen bg-neutral-50 flex flex-col font-sans">
+                <Header />
+                <main className="flex-1 flex items-center justify-center px-6">
+                    <div className="w-full max-w-md">
+                        <div className="bg-white border border-neutral-200 p-8 text-center">
+                            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h1 className="text-lg font-medium uppercase tracking-wider text-neutral-900 mb-2">
+                                ¡Cuenta creada!
+                            </h1>
+                            <p className="text-sm text-neutral-600 mb-6">
+                                Hemos enviado un código de verificación a <strong>{formData.email}</strong>.
+                                Introduce el código para activar tu cuenta.
+                            </p>
+                            <Link
+                                href={`/verify-email?email=${encodeURIComponent(formData.email)}`}
+                                className="inline-block w-full bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest py-3 transition-colors"
+                            >
+                                Verificar email
+                            </Link>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-neutral-50 flex flex-col font-sans">
@@ -80,7 +139,7 @@ export default function RegisterPage() {
                                         value={formData.firstName}
                                         onChange={handleChange}
                                         required
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                     />
                                 </div>
                                 <div>
@@ -93,7 +152,7 @@ export default function RegisterPage() {
                                         value={formData.lastName}
                                         onChange={handleChange}
                                         required
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                     />
                                 </div>
                             </div>
@@ -108,7 +167,7 @@ export default function RegisterPage() {
                                     value={formData.email}
                                     onChange={handleChange}
                                     required
-                                    className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                 />
                             </div>
 
@@ -123,7 +182,7 @@ export default function RegisterPage() {
                                     onChange={handleChange}
                                     required
                                     minLength={8}
-                                    className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                 />
                             </div>
 
@@ -136,7 +195,7 @@ export default function RegisterPage() {
                                     name="phone"
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                 />
                             </div>
 
@@ -150,7 +209,8 @@ export default function RegisterPage() {
                                     value={formData.birthDate}
                                     onChange={handleChange}
                                     required
-                                    className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                    max={new Date().toISOString().split("T")[0]}
+                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                 />
                             </div>
 
@@ -163,7 +223,7 @@ export default function RegisterPage() {
                                     value={formData.gender}
                                     onChange={handleChange}
                                     required
-                                    className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                 >
                                     <option value="">Seleccionar</option>
                                     <option value="MALE">Masculino</option>
@@ -184,7 +244,7 @@ export default function RegisterPage() {
                                         value={formData.height}
                                         onChange={handleChange}
                                         placeholder="175"
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                     />
                                 </div>
                                 <div>
@@ -197,7 +257,7 @@ export default function RegisterPage() {
                                         value={formData.weight}
                                         onChange={handleChange}
                                         placeholder="70"
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                     />
                                 </div>
                             </div>

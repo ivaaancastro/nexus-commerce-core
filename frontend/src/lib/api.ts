@@ -103,6 +103,14 @@ export const api = {
         await handleResponse(res);
     },
 
+    resendVerificationCode: async (email: string): Promise<void> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/auth/resend-verification?email=${encodeURIComponent(email)}`,
+            { method: "POST" }
+        );
+        await handleResponse(res);
+    },
+
     forgotPassword: async (email: string): Promise<void> => {
         const res = await fetch(
             `${BASE_URL}/api/v1/auth/forgot-password?email=${encodeURIComponent(email)}`,
