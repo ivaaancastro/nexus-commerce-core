@@ -1,9 +1,15 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CartProvider } from "@/context/CartContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import CartDrawer from "@/components/CartDrawer";
 import { CartItem } from "@/types/commerce";
+
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({
+        push: vi.fn(),
+    }),
+}));
 
 const mockItem: CartItem = {
     productId: 1,
@@ -33,16 +39,17 @@ describe("CartDrawer", () => {
         localStorage.clear();
     });
 
-    it("debe estar cerrado por defecto", () => {
+    it("debe estar cerrado por defecto (translate-x-full)", () => {
         render(<TestComponent />);
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        const dialog = screen.getByRole("dialog");
+        expect(dialog).toHaveClass("translate-x-full");
     });
 
     it("debe mostrar mensaje de carrito vacío cuando no hay items", () => {
         localStorage.setItem("nexus-cart", JSON.stringify([]));
         render(<TestComponent />);
-        // El drawer no está abierto, así que no se ve el contenido
-        expect(screen.queryByText(/tu bolsa está vacía/i)).not.toBeInTheDocument();
+        // El drawer existe pero está oculto
+        expect(screen.getByText(/tu bolsa está vacía/i)).toBeInTheDocument();
     });
 
     it("debe renderizar el drawer cuando está abierto", () => {
