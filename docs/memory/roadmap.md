@@ -92,8 +92,40 @@
 
 ---
 
+## Fase 5: Gestión de Usuarios y Autenticación (P0 — Crítica)
+
+**Objetivo**: Implementar registro, login y gestión de sesiones de usuarios para personalizar la experiencia y habilitar futuras funcionalidades (historial de pedidos, wishlist, direcciones de entrega).
+
+### Tarea 5.1 — Registro y Login de Usuarios
+- **Estado**: PENDIENTE
+- **Por qué**: Permitir a los clientes crear cuentas, iniciar sesión y mantener su carrito persistente entre sesiones.
+- **Alcance**:
+  - Registro con email + contraseña (con validación)
+  - Login con email + contraseña
+  - Hash de contraseñas con BCrypt
+  - JWT tokens para autenticación
+  - Persistencia del carrito por usuario (migrar de localStorage a BD)
+
+### Tarea 5.2 — Perfil de Usuario y Direcciones
+- **Estado**: PENDIENTE
+- **Por qué**: Los usuarios necesitan gestionar sus datos personales y direcciones de entrega.
+- **Alcance**:
+  - CRUD de perfil (nombre, email, teléfono)
+  - Gestión de direcciones de entrega (múltiples)
+  - Selección de dirección por defecto
+
+### Tarea 5.3 — Historial de Pedidos
+- **Estado**: PENDIENTE
+- **Por qué**: Los usuarios necesitan ver sus pedidos anteriores y su estado.
+- **Alcance**:
+  - Lista de pedidos del usuario
+  - Detalle de pedido con tracking
+  - Notificaciones de estado
+
+---
+
 ## Notas de Contexto
 
-- **Rama actual**: `feat/ui-resilience-skeletons`
-- **Prioridad actual**: FASE 1 (Resiliencia UI) → FASE 2 (Carrito) → FASE 3 (Editorial) → FASE 4 (Calidad)
+- **Rama actual**: `feat/user-management`
+- **Prioridad actual**: FASE 5 (Usuarios) → FASE 3 (Editorial) → FASE 4 (Calidad)
 - **Convenciones**: Ver `AGENTS.md` en la raíz del proyecto
