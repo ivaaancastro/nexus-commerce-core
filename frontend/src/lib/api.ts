@@ -6,6 +6,7 @@ import {
     CheckoutRequest,
     Order,
 } from "@/types/commerce";
+import { RegisterData, LoginData, AuthResponse, User } from "@/types/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -15,6 +16,11 @@ async function handleResponse<T>(res: Response): Promise<T> {
         throw new Error(`API Error [${res.status}]: ${errorText || res.statusText}`);
     }
     return res.json();
+}
+
+function getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem("nexus-auth-token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export const api = {
@@ -68,5 +74,55 @@ export const api = {
             cache: "no-store",
         });
         return handleResponse<Order>(res);
+    },
+
+    // Autenticación
+    register: async (data: RegisterData): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        await handleResponse(res);
+    },
+
+    login: async (data: LoginData): Promise<AuthResponse> => {
+        const res = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<AuthResponse>(res);
+    },
+
+    verifyEmail: async (email: string, code: string): Promise<void> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/auth/verify-email?email=${encodeURIComponent(email)}&code=${code}`,
+            { method: "POST" }
+        );
+        await handleResponse(res);
+    },
+
+    forgotPassword: async (email: string): Promise<void> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/auth/forgot-password?email=${encodeURIComponent(email)}`,
+            { method: "POST" }
+        );
+        await handleResponse(res);
+    },
+
+    resetPassword: async (email: string, code: string, newPassword: string): Promise<void> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/auth/reset-password?email=${encodeURIComponent(email)}&code=${code}&newPassword=${encodeURIComponent(newPassword)}`,
+            { method: "POST" }
+        );
+        await handleResponse(res);
+    },
+
+    getCurrentUser: async (): Promise<User> => {
+        const res = await fetch(`${BASE_URL}/api/v1/auth/me`, {
+            headers: getAuthHeaders(),
+        });
+        return handleResponse<User>(res);
     },
 };
