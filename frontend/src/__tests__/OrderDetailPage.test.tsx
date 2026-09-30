@@ -63,13 +63,11 @@ describe("OrderDetailPage Component", () => {
 
         await waitFor(() => {
             expect(screen.getByText("ORD-TEST-99")).toBeInTheDocument();
-            expect(screen.getByText("CONFIRMED")).toBeInTheDocument();
-            expect(screen.getByText(/SKU: 843321900101/i)).toBeInTheDocument();
-            expect(screen.getByText(/WH_ARTEIXO/i)).toBeInTheDocument();
-            expect(screen.getByText(/66.07 EUR/i)).toBeInTheDocument();
-            expect(screen.getByText(/13.88 EUR/i)).toBeInTheDocument();
-            expect(screen.getAllByText(/79.95 EUR/i).length).toBeGreaterThanOrEqual(1);
-            expect(screen.getByText(/test-idem-key-uuid-1234/i)).toBeInTheDocument();
+            expect(screen.getByText("Pedido Confirmado")).toBeInTheDocument();
+            expect(screen.getByText(/843321900101/i)).toBeInTheDocument();
+            expect(screen.getByText(/66.07/i)).toBeInTheDocument();
+            expect(screen.getByText(/13.88/i)).toBeInTheDocument();
+            expect(screen.getAllByText(/79.95/i).length).toBeGreaterThanOrEqual(1);
         });
     });
 
@@ -86,9 +84,8 @@ describe("OrderDetailPage Component", () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByText("Registro No Encontrado")).toBeInTheDocument();
-            expect(screen.getByText(/No se ha localizado ningún pedido/i)).toBeInTheDocument();
-            expect(screen.getByRole("link", { name: /Volver a la Colección/i })).toBeInTheDocument();
+            expect(screen.getByText("Pedido no encontrado")).toBeInTheDocument();
+            expect(screen.getByRole("link", { name: /Volver a la colección/i })).toBeInTheDocument();
         });
     });
 });

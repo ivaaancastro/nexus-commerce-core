@@ -61,6 +61,9 @@ export interface CheckoutItemRequest {
 export interface CheckoutRequest {
     marketCode: string;
     items: CheckoutItemRequest[];
+    destinationCountryCode?: string;
+    destinationLatitude?: number;
+    destinationLongitude?: number;
 }
 
 export interface OrderItem {
