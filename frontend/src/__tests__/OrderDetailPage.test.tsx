@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { useParams } from "next/navigation";
 import OrderDetailPage from "@/app/orders/[orderNumber]/page";
 import { CartProvider } from "@/context/CartContext";
+import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { api } from "@/lib/api";
 import { Order } from "@/types/commerce";
 
@@ -54,7 +55,9 @@ describe("OrderDetailPage Component", () => {
 
         render(
             <CartProvider>
-                <OrderDetailPage />
+                <CartDrawerProvider>
+                    <OrderDetailPage />
+                </CartDrawerProvider>
             </CartProvider>
         );
 
@@ -76,7 +79,9 @@ describe("OrderDetailPage Component", () => {
 
         render(
             <CartProvider>
-                <OrderDetailPage />
+                <CartDrawerProvider>
+                    <OrderDetailPage />
+                </CartDrawerProvider>
             </CartProvider>
         );
 
