@@ -5,6 +5,7 @@ import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
 import com.nexus.commerce.entity.Sku;
+import com.nexus.commerce.exception.InsufficientStockException;
 import com.nexus.commerce.repository.OrderRepository;
 import com.nexus.commerce.repository.SkuRepository;
 import lombok.RequiredArgsConstructor;
