@@ -2,6 +2,8 @@
 
 > **Este archivo es la fuente de verdad para cualquier agente de IA o desarrollador que trabaje en el proyecto.**
 > Contiene convenciones, patrones, reglas críticas y contexto arquitectónico. Léelo antes de escribir código.
+>
+> **REGLA PARA AGENTES IA**: Leer este archivo al inicio de CADA respuesta para mantener coherencia con las convenciones del proyecto.
 
 ---
 
@@ -196,10 +198,17 @@ Controller → Service → Repository → DB
 - Deben reflejar exactamente los DTOs del backend.
 - Usar `interface` para objetos, `type` para uniones.
 
-### 6.4. Estilos
-- Tailwind CSS utility-first.
-- Paleta editorial: `neutral-*` como base, acentos en `neutral-900`.
-- Tipografía: `font-light`, `uppercase`, `tracking-widest` para estética editorial.
+### 6.4. Estilo Editorial Zara
+- **Tipografía**: `font-light` (300) para textos largos, `font-medium` (500) para títulos.
+- **Transformación**: `uppercase` en títulos, botones y etiquetas.
+- **Espaciado**: `tracking-widest` (0.1em) para títulos, `tracking-wide` (0.025em) para botones.
+- **Paleta**: `neutral-*` como base (50-900), acentos en `neutral-900`.
+- **Bordes**: `border-neutral-200` para separadores sutiles, `border-neutral-900` para elementos activos.
+- **Transiciones**: `transition-all duration-300` para hover states.
+- **Botones**: Fondo `neutral-900` con texto `white`, hover a `black`.
+- **Notificaciones**: Toast con fondo `neutral-900`, texto `white`, `text-xs uppercase tracking-widest`.
+- **Iconos**: Estilo lineal, `stroke-width` 1.5, tamaño `w-5 h-5` o `w-4 h-4`.
+- **Espaciado vertical**: `py-12` para secciones, `py-6` para subsecciones, `gap-6` para grids.
 
 ### 6.5. Componentes
 - Componentes reutilizables en `src/components/`.
