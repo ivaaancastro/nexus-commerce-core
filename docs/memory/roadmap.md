@@ -51,8 +51,15 @@
   - Tests: 27 tests pasando (Vitest + React Testing Library)
 
 ### Tarea 2.3 — Adaptación del Checkout a Multilínea
-- **Estado**: PENDIENTE
-- **Por qué**: Conectar el botón de tramitación del carrito con el payload completo de CheckoutRequest (array de items con sus respectivos almacenes) y disparo de Idempotency-Key único para todo el carrito.
+- **Estado**: COMPLETADA
+- **Por qué**: Conectar el botón de tramitación del carrito con el payload completo de CheckoutRequest (array de items con sus respectivos almacenes) y disparo de Idempotencia-Key único para todo el carrito.
+- **Implementación**:
+  - Backend: `WarehouseSelectionService` con algoritmo de selección de almacén por distancia (Haversine)
+  - Backend: Coordenadas geográficas en `Warehouse` (latitude, longitude)
+  - Backend: `CheckoutRequest` extendido con coordenadas de destino
+  - Frontend: Checkout multilínea desde `/cart` con Idempotencia-Key única
+  - Frontend: Página de confirmación `/orders/[orderNumber]` estilo Zara
+  - Tests: 27 tests pasando (Vitest + React Testing Library)
 
 ---
 

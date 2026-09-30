@@ -28,6 +28,7 @@ public class OrderService {
     private final SkuRepository skuRepository;
     private final InventoryService inventoryService;
     private final PricingService pricingService;
+    private final WarehouseSelectionService warehouseSelectionService;
 
     @Transactional
     public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request) {
@@ -51,10 +52,23 @@ public class OrderService {
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CheckoutItemRequest itemRequest : request.items()) {
-            // 2. Reserva atómica de inventario (bloqueo pesimista en DB)
+            // 2. Selección automática de almacén óptimo (más cercano al destino con stock)
+            String optimalWarehouse = warehouseSelectionService.selectOptimalWarehouse(
+                    itemRequest.skuId(),
+                    request.destinationCountryCode(),
+                    request.destinationLatitude(),
+                    request.destinationLongitude()
+            );
+
+            if (optimalWarehouse == null) {
+                throw new InsufficientStockException(
+                        "No hay stock disponible para el SKU " + itemRequest.skuId());
+            }
+
+            // 3. Reserva atómica de inventario (bloqueo pesimista en DB)
             inventoryService.reserveStock(new ReserveStockRequest(
                     itemRequest.skuId(),
-                    itemRequest.warehouseCode(),
+                    optimalWarehouse,
                     itemRequest.quantity()
             ));
 
@@ -76,7 +90,7 @@ public class OrderService {
 
             OrderItem orderItem = OrderItem.builder()
                     .sku(sku)
-                    .warehouseCode(itemRequest.warehouseCode())
+                    .warehouseCode(optimalWarehouse)
                     .quantity(itemRequest.quantity())
                     .unitPrice(priceResponse.finalPrice())
                     .taxRate(priceResponse.taxRate())
