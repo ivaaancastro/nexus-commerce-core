@@ -59,7 +59,8 @@
   - Backend: `CheckoutRequest` extendido con coordenadas de destino
   - Frontend: Checkout multilínea desde `/cart` con Idempotencia-Key única
   - Frontend: Página de confirmación `/orders/[orderNumber]` estilo Zara
-  - Tests: 27 tests pasando (Vitest + React Testing Library)
+  - Frontend: Página de recibo `/receipt/[orderNumber]` con descarga PDF
+  - Tests: 31 tests backend + 27 tests frontend pasando
 
 ---
 
