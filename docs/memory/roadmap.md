@@ -39,8 +39,16 @@
   - Tests: 24 tests pasando (Vitest + React Testing Library)
 
 ### Tarea 2.2 — Cajón Lateral de la Bolsa (Slide-Over Cart Drawer)
-- **Estado**: PENDIENTE
+- **Estado**: COMPLETADA
 - **Por qué**: Estándar absoluto en moda de alta gama. Al hacer clic en "Añadir a la bolsa", se despliega un panel lateral derecho suave sin abandonar la página actual, mostrando el subtotal acumulado y el cálculo estimado de impuestos.
+- **Implementación**:
+  - `CartDrawerContext.tsx` — Estado abierto/cerrado del drawer
+  - `CartDrawer.tsx` — Overlay lateral con animación slide-in/slide-out
+  - `CartItemRow.tsx` — Fila de item con controles de cantidad (+/-) y eliminar
+  - `app/cart/page.tsx` — Página completa del carrito
+  - Integración en `Header.tsx` (abre drawer) y `layout.tsx` (providers)
+  - Cerrar con clic fuera, tecla Escape o botón X
+  - Tests: 27 tests pasando (Vitest + React Testing Library)
 
 ### Tarea 2.3 — Adaptación del Checkout a Multilínea
 - **Estado**: PENDIENTE

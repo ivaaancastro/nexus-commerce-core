@@ -1,6 +1,9 @@
 import CartIcon from "@/components/CartIcon";
+import { useCartDrawer } from "@/context/CartDrawerContext";
 
 export default function Header() {
+    const { openDrawer } = useCartDrawer();
+
     return (
         <header className="border-b border-neutral-200 bg-white sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -22,7 +25,9 @@ export default function Header() {
                     </span>
                     <div className="h-4 w-px bg-neutral-200" />
                     <span className="text-neutral-400">ES / EUR</span>
-                    <CartIcon />
+                    <div onClick={openDrawer} className="cursor-pointer">
+                        <CartIcon />
+                    </div>
                 </div>
             </div>
         </header>

@@ -14,6 +14,7 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - Utility `cn()` para combinación inteligente de clases Tailwind (clsx + tailwind-merge).
 - **Carrito de compra** con estado global (`CartContext`), persistencia en `localStorage`, icono con badge en header y botón "Añadir a la bolsa" (modelo Zara).
 - Confirmación visual temporal (toast) al añadir items al carrito.
+- **Drawer lateral del carrito** con animación suave, controles de cantidad y acceso a página completa (`/cart`).
 
 ### Changed
 - Migración de la lectura de parámetros dinámicos en PDP y Recibo hacia el hook síncrono `useParams` de Next.js.
