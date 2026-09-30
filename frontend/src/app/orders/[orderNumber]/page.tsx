@@ -128,7 +128,7 @@ export default function OrderConfirmationPage() {
                             Hemos enviado la confirmación a tu correo electrónico.
                         </p>
                         <Link
-                            href={`/orders/${encodeURIComponent(order.orderNumber)}`}
+                            href={`/receipt/${encodeURIComponent(order.orderNumber)}`}
                             className="inline-block bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest py-3 px-8 transition-colors"
                         >
                             Ver recibo
