@@ -7,11 +7,22 @@ import { api } from "@/lib/api";
 import { Order } from "@/types/commerce";
 import { useParams } from "next/navigation";
 
+const printStyles = `
+@media print {
+    header, nav, footer, .no-print { display: none !important; }
+    body { background: white !important; }
+    main { max-width: 100% !important; padding: 0 !important; }
+    .bg-white { border: none !important; box-shadow: none !important; }
+    a { text-decoration: none !important; color: black !important; }
+    button { display: none !important; }
+}
+`;
+
 /**
- * Página de confirmación de pedido.
- * Muestra el resumen del pedido y acceso al recibo.
+ * Página de recibo del pedido.
+ * Muestra el detalle completo del pedido con desglose fiscal.
  */
-export default function OrderConfirmationPage() {
+export default function ReceiptPage() {
     const params = useParams();
     const orderNumber = params?.orderNumber
         ? decodeURIComponent(params.orderNumber as string)
@@ -28,7 +39,7 @@ export default function OrderConfirmationPage() {
                 const data = await api.getOrder(orderNumber);
                 setOrder(data);
             } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : "Error al cargar el pedido");
+                setError(err instanceof Error ? err.message : "Error al cargar el recibo");
             } finally {
                 setLoading(false);
             }
@@ -41,7 +52,7 @@ export default function OrderConfirmationPage() {
             <div className="min-h-screen bg-neutral-50 flex flex-col">
                 <Header />
                 <div className="flex-1 flex items-center justify-center text-xs uppercase tracking-widest text-neutral-400">
-                    Cargando confirmación...
+                    Cargando recibo...
                 </div>
             </div>
         );
@@ -53,7 +64,7 @@ export default function OrderConfirmationPage() {
                 <Header />
                 <div className="flex-1 flex flex-col items-center justify-center">
                     <p className="text-sm uppercase tracking-wider text-neutral-600 mb-4">
-                        Pedido no encontrado
+                        Recibo no encontrado
                     </p>
                     <Link
                         href="/"
@@ -68,35 +79,47 @@ export default function OrderConfirmationPage() {
 
     return (
         <div className="min-h-screen bg-neutral-50 flex flex-col font-sans">
+            <style>{printStyles}</style>
             <Header />
 
             <main className="flex-1 max-w-2xl w-full mx-auto px-6 py-12">
                 <div className="bg-white border border-neutral-200 p-8">
                     <div className="text-center mb-8">
                         <span className="text-[10px] uppercase tracking-widest text-neutral-400 block mb-2">
-                            Pedido Confirmado
+                            Recibo de Compra
                         </span>
                         <h1 className="text-2xl font-light uppercase tracking-wide text-neutral-900 mb-2">
-                            Gracias por tu compra
+                            Pedido {order.orderNumber}
                         </h1>
                         <p className="text-xs text-neutral-600">
-                            Número de pedido: <span className="font-mono">{order.orderNumber}</span>
+                            Estado: <span className="font-medium uppercase">{order.status}</span>
+                        </p>
+                        <p className="text-xs text-neutral-600 mt-1">
+                            Fecha: {new Date(order.createdAt).toLocaleDateString("es-ES")}
                         </p>
                     </div>
 
                     <div className="border-t border-neutral-100 pt-6 mb-6">
                         <h2 className="text-xs font-medium uppercase tracking-widest text-neutral-900 mb-4">
-                            Resumen del pedido
+                            Artículos
                         </h2>
                         <div className="space-y-3">
                             {order.items.map((item) => (
                                 <div key={item.id} className="flex justify-between text-xs">
-                                    <span className="text-neutral-600">
-                                        {item.skuCode} × {item.quantity}
-                                    </span>
-                                    <span className="text-neutral-900">
-                                        {item.totalAmount.toFixed(2)} {order.currency}
-                                    </span>
+                                    <div>
+                                        <p className="text-neutral-900">{item.skuCode}</p>
+                                        <p className="text-neutral-500">
+                                            {item.warehouseCode} × {item.quantity}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-neutral-900">
+                                            {item.totalAmount.toFixed(2)} {order.currency}
+                                        </p>
+                                        <p className="text-neutral-500">
+                                            IVA {item.taxRate}%: {item.taxAmount.toFixed(2)} {order.currency}
+                                        </p>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -123,26 +146,22 @@ export default function OrderConfirmationPage() {
                         </div>
                     </div>
 
-                    <div className="mt-8 text-center">
-                        <p className="text-xs text-neutral-600 mb-4">
-                            Hemos enviado la confirmación a tu correo electrónico.
-                        </p>
-                        <Link
-                            href={`/receipt/${encodeURIComponent(order.orderNumber)}`}
+                    <div className="mt-8 text-center space-y-4">
+                        <button
+                            onClick={() => window.print()}
                             className="inline-block bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest py-3 px-8 transition-colors"
                         >
-                            Ver recibo
-                        </Link>
+                            Descargar PDF
+                        </button>
+                        <div>
+                            <Link
+                                href="/"
+                                className="text-xs uppercase tracking-wider text-neutral-600 hover:text-black underline transition-colors"
+                            >
+                                Volver a la colección
+                            </Link>
+                        </div>
                     </div>
-                </div>
-
-                <div className="mt-6 text-center">
-                    <Link
-                        href="/"
-                        className="text-xs uppercase tracking-wider text-neutral-600 hover:text-black underline transition-colors"
-                    >
-                        Volver a la colección
-                    </Link>
                 </div>
             </main>
         </div>
