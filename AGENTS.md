@@ -3,7 +3,7 @@
 > **Este archivo es la fuente de verdad para cualquier agente de IA o desarrollador que trabaje en el proyecto.**
 > Contiene convenciones, patrones, reglas críticas y contexto arquitectónico. Léelo antes de escribir código.
 >
-> **REGLA PARA AGENTES IA**: Leer este archivo al inicio de CADA respuesta para mantener coherencia con las convenciones del proyecto.
+> **REGLA PARA AGENTES IA**: Leer este archivo Y `MEMORY.md` al inicio de CADA respuesta para mantener coherencia con las convenciones del proyecto y el contexto actual.
 
 ---
 
