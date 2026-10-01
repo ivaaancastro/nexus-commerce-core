@@ -147,6 +147,75 @@ Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
 
 ---
 
+## 6. Workflow: Spec-Driven Development
+
+Este proyecto sigue **SDD** (Spec-Driven Development). La spec es la fuente de verdad; el código la implementa.
+
+### 6.1. Principio rector
+
+> **Ninguna línea de código se escribe sin una spec aprobada.**
+
+El orden importa: primero se entiende y se documenta **qué** se va a construir y **por qué**; después se construye.
+
+### 6.2. Ciclo de vida de una feature
+
+```
+PLAN ──────► SPEC ──────► ⛔ APROBACIÓN ──────► TASKS
+objetivos    requisitos    del usuario          checklist
+decisiones   API           (punto de bloqueo)
+                                 │
+                                 ▼
+                               CODE
+                        implementación
+                                 │
+                                 ▼
+                          /spec-check
+                        código vs spec
+                                 │
+                                 ▼
+                          /spec-close
+                       tests + docs + PR
+```
+
+### 6.3. Artefactos y su propósito
+
+| Artefacto | Responde a | Momento |
+|:---|:---|:---|
+| `plan.md` | ¿Por qué y cómo lo haremos? | Inicio |
+| `spec.md` | ¿Qué debe hacer exactamente? | Antes de codificar |
+| `tasks.md` | ¿Qué pasos concretos quedan? | Antes de codificar |
+| `ADR` | ¿Por qué esta decisión técnica? | Cuando hay decisión arquitectónica |
+
+### 6.4. Reglas inviolables
+
+| # | Regla |
+|:--|:---|
+| 1 | No se escribe código sin `spec.md` aprobado explícitamente por el usuario |
+| 2 | La aprobación es un punto de bloqueo real, no un formality |
+| 3 | Si el alcance cambia durante la implementación, se actualiza `spec.md` primero |
+| 4 | Cada tarea completada se marca en `tasks.md` en el momento |
+| 5 | Ningún merge sin `/spec-check` en verde y tests pasando |
+| 6 | Toda decisión que altere arquitectura o stack requiere un ADR |
+| 7 | Esta constitution solo se modifica junto con un ADR |
+
+### 6.5. Criterios de "feature terminado"
+
+Una feature está completa cuando:
+
+- [ ] Todos los requisitos de `spec.md` están implementados
+- [ ] `/spec-check` no reporta requisitos pendientes
+- [ ] Tests pasan (backend >90% cobertura, frontend verde)
+- [ ] `tasks.md` tiene todas las tareas marcadas
+- [ ] `CHANGELOG.md` actualizado
+- [ ] ADR creado si hubo decisión arquitectónica
+- [ ] PR creado y revisado
+
+### 6.6. Trazabilidad
+
+Cada cambio en el código debe poder rastrearse hasta un requisito de una spec. Si no está en ninguna spec, no debería existir.
+
+---
+
 ## 7. Estructura del Proyecto
 
 ```
