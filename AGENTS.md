@@ -9,11 +9,10 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `docs/sdd-workflow` |
+| **Rama activa** | `feat/user-management` |
 | **Fase** | 5 — Gestión de Usuarios |
-| **Tarea** | 5.1 — Registro y Login (verificada end-to-end) |
-| **Tarea siguiente** | 5.2 — Perfil y Direcciones |
-| **Pendiente** | Mergear PR #8 (`feat/user-auth` → `feat/user-management`) |
+| **Tarea** | 5.2 — Perfil y Direcciones (spec pendiente de aprobación) |
+| **Pendiente** | Mergear PR de sincronización SDD, luego PR #7 (`→ main`) |
 | **Actualizado** | 2026-10-01 |
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
