@@ -16,5 +16,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Optional<Product> findByReferenceCode(String referenceCode);
 
     @EntityGraph(attributePaths = {"skus"})
+    Optional<Product> findWithSkusById(Long id);
+
+    @EntityGraph(attributePaths = {"skus"})
     List<Product> findAll();
 }

@@ -10,10 +10,10 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/user-auth` |
+| **Rama actual** | `feat/user-profile` |
 | **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
-| **Tarea actual** | Tarea 5.1 — Registro y Login de Usuarios |
-| **Estado** | EN CURSO |
+| **Tarea actual** | Tarea 5.2 — Perfil y Direcciones |
+| **Estado** | COMPLETADA — commit `0cf6116`, PR #10 (84 backend + 44 frontend) |
 | **Última actualización** | 2026-10-01 |
 
 ---
@@ -41,20 +41,26 @@
 - [x] Tarea 2.3 — Checkout Multilínea con selección automática de almacén
 
 ### Fase 5 — Gestión de Usuarios (EN CURSO)
-- [ ] Tarea 5.1 — Registro y Login (EN CURSO)
+- [x] Tarea 5.1 — Registro y Login
   - [x] Backend: Entidades, repositorios, seguridad JWT, AuthService, AuthController
   - [x] Frontend: AuthContext, páginas login/register/verify-email/forgot-password
   - [x] Tests: 38 backend + 27 frontend
   - [x] Email: Mailtrap configurado
-  - [ ] Pendiente: Verificar flujo completo de registro → verificación → login
+  - [x] Flujo completo verificado end-to-end: registro → email → código → login con JWT
+- [x] Tarea 5.2 — Perfil de Usuario y Direcciones
+  - [x] Backend: `UserService`, `AddressService`, `SizeRecommendationService`, `UserController`
+  - [x] Frontend: `/profile`, `/addresses`, `ProtectedRoute`
+  - [x] Tests: 84 backend + 44 frontend
+  - [x] Specs: `specs/user-profile/` completa (plan, spec, tasks)
+  - [x] Commit `0cf6116` + PR #10 — CI 2/2 green (backend 84, frontend 44)
+  - [x] Cobertura: UserController 100%, UserService 100%, AddressService 98,6%, SizeRecommendationService 88,6%
 
 ---
 
 ## Tareas Pendiente
 
 ### Fase 5 — Gestión de Usuarios
-- [ ] Tarea 5.2 — Perfil de Usuario y Direcciones
-- [ ] Tarea 5.3 — Historial de Pedidos
+- [ ] Tarea 5.3 — Historial de Pedidos (`specs/user-orders/spec.md` pendiente de aprobación)
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
@@ -101,6 +107,8 @@
 - **Proyecto**: Nexus Commerce Core
 - **Inicio**: 2026-09-25
 - **Convenciones**: Ver `AGENTS.md` en la raíz del proyecto
+- **Repo movido a `~/nexus-commerce-core`** (2026-10-01): estaba en `~/Documents/proyects/`, carpeta sincronizada con iCloud Drive. El file provider (`fileproviderd`) restauraba duplicados `" 2.*"` ya borrados y llegó a romper compilación y builds. Verificado tras el movimiento: sin `com.apple.file-provider-domain-id`, 0 duplicados. **Al escanear duplicados usa un patrón que cubra ficheros sin extensión** (`LOG 2`), p. ej. `find . -not -path "./.git/*" -not -path "*/node_modules/*" -type f -regex '.* [0-9][0-9]*\(\.[^./]*\)\?$'` — el patrón `* [0-9]*.*` exige un punto y pasa por alto esos ficheros.
+- **`backend/target/` y `frontend/.next/`**: si el build falla con `Unexpected file in persistence directory`, hay un duplicado en la caché → `rm -rf backend/target frontend/.next`.
 
 ---
 
