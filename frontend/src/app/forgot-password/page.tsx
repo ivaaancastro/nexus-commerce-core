@@ -66,15 +66,16 @@ export default function ForgotPasswordPage() {
                         {step === "request" ? (
                             <form onSubmit={handleRequest} className="space-y-4">
                                 <div>
-                                    <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                    <label htmlFor="email" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                         Email
                                     </label>
                                     <input
+                                        id="email"
                                         type="email"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         required
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                     />
                                 </div>
 
@@ -89,31 +90,33 @@ export default function ForgotPasswordPage() {
                         ) : (
                             <form onSubmit={handleReset} className="space-y-4">
                                 <div>
-                                    <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                    <label htmlFor="code" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                         Código de recuperación
                                     </label>
                                     <input
+                                        id="code"
                                         type="text"
                                         value={code}
                                         onChange={(e) => setCode(e.target.value)}
                                         required
                                         maxLength={6}
                                         placeholder="123456"
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-center tracking-widest focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 text-center tracking-widest focus:outline-none focus:border-neutral-400"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                    <label htmlFor="newPassword" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                         Nueva contraseña
                                     </label>
                                     <input
+                                        id="newPassword"
                                         type="password"
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         required
                                         minLength={8}
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                     />
                                 </div>
 

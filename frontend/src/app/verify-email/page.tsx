@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
+import { getFriendlyErrorMessage } from "@/lib/errors";
 
 function VerifyEmailForm() {
     const { verifyEmail } = useAuth();
@@ -26,7 +27,7 @@ function VerifyEmailForm() {
             await verifyEmail(email, code);
             router.push("/login");
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Error al verificar email");
+            setError(getFriendlyErrorMessage(err));
         } finally {
             setLoading(false);
         }
@@ -50,30 +51,32 @@ function VerifyEmailForm() {
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="email" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Email
                                 </label>
                                 <input
+                                    id="email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="w-full border border-neutral-200 px-3 py-2 text-sm focus:outline-none focus:border-neutral-400"
+                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:outline-none focus:border-neutral-400"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="code" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Código de verificación
                                 </label>
                                 <input
+                                    id="code"
                                     type="text"
                                     value={code}
                                     onChange={(e) => setCode(e.target.value)}
                                     required
                                     maxLength={6}
                                     placeholder="123456"
-                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-center tracking-widest focus:outline-none focus:border-neutral-400"
+                                    className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 text-center tracking-widest focus:outline-none focus:border-neutral-400"
                                 />
                             </div>
 

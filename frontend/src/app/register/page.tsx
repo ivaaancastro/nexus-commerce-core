@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
 import { getFriendlyErrorMessage } from "@/lib/errors";
 
 export default function RegisterPage() {
     const { register } = useAuth();
-    const router = useRouter();
     const [formData, setFormData] = useState({
         email: "",
         password: "",
@@ -130,10 +128,11 @@ export default function RegisterPage() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                    <label htmlFor="firstName" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                         Nombre
                                     </label>
                                     <input
+                                        id="firstName"
                                         type="text"
                                         name="firstName"
                                         value={formData.firstName}
@@ -143,10 +142,11 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                    <label htmlFor="lastName" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                         Apellido
                                     </label>
                                     <input
+                                        id="lastName"
                                         type="text"
                                         name="lastName"
                                         value={formData.lastName}
@@ -158,10 +158,11 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="email" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Email
                                 </label>
                                 <input
+                                    id="email"
                                     type="email"
                                     name="email"
                                     value={formData.email}
@@ -172,10 +173,11 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="password" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Contraseña
                                 </label>
                                 <input
+                                    id="password"
                                     type="password"
                                     name="password"
                                     value={formData.password}
@@ -187,10 +189,11 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="phone" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Teléfono (opcional)
                                 </label>
                                 <input
+                                    id="phone"
                                     type="tel"
                                     name="phone"
                                     value={formData.phone}
@@ -200,10 +203,11 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="birthDate" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Fecha de nacimiento
                                 </label>
                                 <input
+                                    id="birthDate"
                                     type="date"
                                     name="birthDate"
                                     value={formData.birthDate}
@@ -215,10 +219,11 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="gender" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Género
                                 </label>
                                 <select
+                                    id="gender"
                                     name="gender"
                                     value={formData.gender}
                                     onChange={handleChange}
@@ -235,10 +240,11 @@ export default function RegisterPage() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                    <label htmlFor="height" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                         Altura (cm)
                                     </label>
                                     <input
+                                        id="height"
                                         type="number"
                                         name="height"
                                         value={formData.height}
@@ -248,10 +254,11 @@ export default function RegisterPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                    <label htmlFor="weight" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                         Peso (kg)
                                     </label>
                                     <input
+                                        id="weight"
                                         type="number"
                                         name="weight"
                                         value={formData.weight}
