@@ -14,7 +14,7 @@
 | **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
 | **Tarea actual** | Tarea 5.1 — Registro y Login de Usuarios |
 | **Estado** | EN CURSO |
-| **Última actualización** | 2026-09-30 |
+| **Última actualización** | 2026-10-01 |
 
 ---
 
@@ -50,7 +50,7 @@
 
 ---
 
-## Tareas Pendientes
+## Tareas Pendiente
 
 ### Fase 5 — Gestión de Usuarios
 - [ ] Tarea 5.2 — Perfil de Usuario y Direcciones
@@ -82,31 +82,15 @@
 
 ---
 
-## Convenciones del Proyecto
-
-### Commits
-Formato: `tipo(alcance): descripción en español`
-Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
-
-### Ramas
-- `feat/nueva-funcionalidad`
-- `fix/descripcion-bug`
-- `docs/descripcion-cambios`
-
-### Tests
-- Backend: JUnit 5 + Mockito + AssertJ, >90% cobertura
-- Frontend: Vitest + React Testing Library
-
----
-
-## Archivos de Referencia
+## Estructura de Documentación
 
 | Archivo | Contenido |
 |:---|:---|
 | `AGENTS.md` | Convenciones completas para agentes IA |
-| `docs/memory/roadmap.md` | Roadmap detallado de todas las fases |
-| `docs/plans/user-management-plan.md` | Plan de implementación de usuarios |
+| `MEMORY.md` | Este archivo — estado actual del proyecto |
+| `docs/constitution.md` | Visión, principios, arquitectura, stack |
 | `docs/adr/` | Architecture Decision Records |
+| `specs/` | Planes y especificaciones por feat |
 | `CHANGELOG.md` | Registro de cambios |
 
 ---
@@ -120,4 +104,4 @@ Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
 
 ---
 
-*Última actualización: 2026-09-30 por agente IA*
+*Última actualización: 2026-10-01 por agente IA*
