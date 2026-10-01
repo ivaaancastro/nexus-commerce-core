@@ -9,11 +9,11 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `feat/user-profile` |
+| **Rama activa** | `feat/user-orders` |
 | **Fase** | 5 — Gestión de Usuarios |
-| **Tarea** | 5.2 — Perfil y Direcciones ✅ COMPLETADA (commit `0cf6116`, PR #10) |
-| **Tarea siguiente** | 5.3 — Historial de Pedidos (`specs/user-orders/`, spec pendiente de aprobación) |
-| **Pendiente** | Aprobar `specs/user-orders/spec.md` (Tarea 5.3) |
+| **Tarea** | 5.3 — Historial de Pedidos (specs ✅ aprobadas, en implementación) |
+| **Tarea siguiente** | 5.4 — Devoluciones (`specs/product-returns/`, spec ✅ aprobada) |
+| **Pendiente** | Completar Tarea 5.3 → commit + PR |
 | **Actualizado** | 2026-10-01 |
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
