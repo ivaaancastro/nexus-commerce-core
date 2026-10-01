@@ -11,9 +11,9 @@
 |:---|:---|
 | **Rama activa** | `feat/user-profile` |
 | **Fase** | 5 — Gestión de Usuarios |
-| **Tarea** | 5.2 — Perfil y Direcciones (implementada, pendiente de cierre) |
+| **Tarea** | 5.2 — Perfil y Direcciones ✅ COMPLETADA (commit `0cf6116`, PR #10) |
 | **Tarea siguiente** | 5.3 — Historial de Pedidos (`specs/user-orders/`, spec pendiente de aprobación) |
-| **Pendiente** | Commit + PR de `feat/user-profile` (esperando OK del usuario) |
+| **Pendiente** | Aprobar `specs/user-orders/spec.md` (Tarea 5.3) |
 | **Actualizado** | 2026-10-01 |
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.

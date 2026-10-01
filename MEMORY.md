@@ -13,7 +13,7 @@
 | **Rama actual** | `feat/user-profile` |
 | **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
 | **Tarea actual** | Tarea 5.2 — Perfil y Direcciones |
-| **Estado** | IMPLEMENTADA — pendiente de commit/PR |
+| **Estado** | COMPLETADA — commit `0cf6116`, PR #10 (84 backend + 44 frontend) |
 | **Última actualización** | 2026-10-01 |
 
 ---
@@ -52,7 +52,8 @@
   - [x] Frontend: `/profile`, `/addresses`, `ProtectedRoute`
   - [x] Tests: 84 backend + 44 frontend
   - [x] Specs: `specs/user-profile/` completa (plan, spec, tasks)
-  - [ ] Pendiente: commit + PR
+  - [x] Commit `0cf6116` + PR #10 — CI 2/2 green (backend 84, frontend 44)
+  - [x] Cobertura: UserController 100%, UserService 100%, AddressService 98,6%, SizeRecommendationService 88,6%
 
 ---
 
@@ -106,6 +107,8 @@
 - **Proyecto**: Nexus Commerce Core
 - **Inicio**: 2026-09-25
 - **Convenciones**: Ver `AGENTS.md` en la raíz del proyecto
+- **Repo movido a `~/nexus-commerce-core`** (2026-10-01): estaba en `~/Documents/proyects/`, carpeta sincronizada con iCloud Drive. El file provider (`fileproviderd`) restauraba duplicados `" 2.*"` ya borrados y llegó a romper compilación y builds. Verificado tras el movimiento: sin `com.apple.file-provider-domain-id`, 0 duplicados. **Al escanear duplicados usa un patrón que cubra ficheros sin extensión** (`LOG 2`), p. ej. `find . -not -path "./.git/*" -not -path "*/node_modules/*" -type f -regex '.* [0-9][0-9]*\(\.[^./]*\)\?$'` — el patrón `* [0-9]*.*` exige un punto y pasa por alto esos ficheros.
+- **`backend/target/` y `frontend/.next/`**: si el build falla con `Unexpected file in persistence directory`, hay un duplicado en la caché → `rm -rf backend/target frontend/.next`.
 
 ---
 
