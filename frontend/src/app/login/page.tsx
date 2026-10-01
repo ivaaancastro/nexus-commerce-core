@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
-import { getFriendlyErrorMessage } from "@/lib/errors";
+import { getFriendlyErrorMessage, isUnverifiedEmailError } from "@/lib/errors";
 
 export default function LoginPage() {
     const { login, resendVerificationCode } = useAuth();
@@ -19,6 +19,7 @@ export default function LoginPage() {
     const [resendSuccess, setResendSuccess] = useState(false);
     const [resendError, setResendError] = useState<string | null>(null);
     const [resendLoading, setResendLoading] = useState(false);
+    const [showVerify, setShowVerify] = useState(false);
 
     const validateForm = (): string | null => {
         if (!email.trim()) return "El email es obligatorio";
@@ -32,6 +33,7 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setShowVerify(false);
 
         const validationError = validateForm();
         if (validationError) {
@@ -45,6 +47,7 @@ export default function LoginPage() {
             router.push("/");
         } catch (err: unknown) {
             setError(getFriendlyErrorMessage(err));
+            setShowVerify(isUnverifiedEmailError(err));
         } finally {
             setLoading(false);
         }
@@ -85,15 +88,24 @@ export default function LoginPage() {
                         {error && (
                             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs">
                                 {error}
+                                {showVerify && (
+                                    <Link
+                                        href={`/verify-email?email=${encodeURIComponent(email)}`}
+                                        className="mt-3 inline-block bg-neutral-900 text-white text-[11px] uppercase tracking-widest px-4 py-2 hover:bg-black transition-colors"
+                                    >
+                                        Verificar ahora
+                                    </Link>
+                                )}
                             </div>
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="email" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Email
                                 </label>
                                 <input
+                                    id="email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
@@ -103,10 +115,11 @@ export default function LoginPage() {
                             </div>
 
                             <div>
-                                <label className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
+                                <label htmlFor="password" className="block text-[11px] uppercase tracking-wider text-neutral-500 mb-1">
                                     Contraseña
                                 </label>
                                 <input
+                                    id="password"
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
@@ -172,6 +185,15 @@ export default function LoginPage() {
                                     )}
                                 </div>
                             )}
+
+                            <div>
+                                <Link
+                                    href="/verify-email"
+                                    className="text-xs text-neutral-500 hover:text-black underline"
+                                >
+                                    ¿Ya tienes un código? Verifica tu cuenta
+                                </Link>
+                            </div>
 
                             <div className="pt-2 border-t border-neutral-100">
                                 <Link

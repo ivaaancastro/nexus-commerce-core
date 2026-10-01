@@ -6,6 +6,9 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- Propiedad `app.base-url` (default `http://localhost:3000`) para construir los enlaces absolutos que viajan dentro de los emails transaccionales.
+- Helper `isUnverifiedEmailError()` en `frontend/src/lib/errors.ts` para detectar el error de cuenta sin verificar y ofrecerle salida.
+- **16 tests nuevos**: 84 backend → **90**, 44 frontend → **54**. `EmailService` con cobertura del **100 %** de líneas y ramas.
 - **Perfil de usuario** `/profile` con edición de datos personales, validación en cliente y confirmación de guardado. El email se muestra en solo lectura.
 - **Gestión de direcciones** `/addresses` con alta, edición, borrado con confirmación en línea, badge "Principal" y límite de 2 direcciones.
 - **Protección de rutas** mediante el componente `ProtectedRoute`, que redirige a `/login` y muestra un estado de carga mientras se resuelve el token.
@@ -36,6 +39,14 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - `refresh()` en la página de direcciones recarga mediante clave de estado en lugar de una llamada directa dentro del efecto, cumpliendo `react-hooks/set-state-in-effect`.
 
 ### Fixed
+- **Acceso al código de verificación de email**: la pantalla `/verify-email` existía pero no tenía puntos de entrada alcanzables. El email llegaba sin enlace y `/login` solo permitía llegar tras un reenvío exitoso, dejando al usuario atrapado en el bucle *login → "revisa tu bandeja" → email sin enlace → login sin botón*. Ahora:
+  - Los emails de verificación y de recuperación incluyen enlace absoluto con el email ya precargado (`EmailService` + nueva propiedad `app.base-url`).
+  - `/login` muestra un enlace directo *«¿Ya tienes un código? Verifica tu cuenta»*.
+  - `/login` muestra un botón *«Verificar ahora»* cuando el fallo es *email no verificado*, precargando el email introducido.
+- `/verify-email` traducía los errores con `err.message` en crudo; ahora usa `getFriendlyErrorMessage()` (regla #9 de `AGENTS.md`).
+- Los dos inputs de `/verify-email` no llevaban `text-neutral-900`, dejando el texto casi invisible (regla #7 de `AGENTS.md`). Igual que los 3 inputs de `/forgot-password`.
+- Los 16 `label` de `/login`, `/register`, `/verify-email` y `/forgot-password` no estaban asociados a su control (`htmlFor`/`id`), por lo que pulsar el texto no enfocaba el campo y los lectores de pantalla no los anunciaban.
+- Código muerto en `/register`: `useRouter` se importaba y declaraba sin usarse.
 - Limpieza reactiva de estado en `ProductDetailPage` al cambiar de talla para evitar el arrastre de inventario de otros SKUs.
 - Tratamiento editorial y silencioso del estado "Agotado" sin exponer errores técnicos JSON 400 al usuario.
 - Label del campo email en `/profile` sin asociación `htmlFor`/`id`, inaccesible para lectores de pantalla.
