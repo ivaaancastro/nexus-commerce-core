@@ -1,7 +1,85 @@
 # AGENTS.md — Nexus Commerce Core
 
-> **Este archivo es la fuente de verdad para cualquier agente de IA o desarrollador que trabaje en el proyecto.**
-> Contiene convenciones, patrones, reglas críticas y contexto arquitectónico. Léelo antes de escribir código.
+> **Este archivo se carga automáticamente en cada sesión y se refresca si lo editas.**
+> Contiene las convenciones, reglas críticas y el estado actual del proyecto.
+
+---
+
+## ⚡ ESTADO ACTUAL (leer primero)
+
+| Campo | Valor |
+|:---|:---|
+| **Rama activa** | `feat/user-management` |
+| **Fase** | 5 — Gestión de Usuarios |
+| **Tarea** | 5.2 — Perfil y Direcciones (spec pendiente de aprobación) |
+| **Pendiente** | Mergear PR de sincronización SDD, luego PR #7 (`→ main`) |
+| **Actualizado** | 2026-10-01 |
+
+> **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
+> Léelo al iniciar sesión para contexto completo.
+
+---
+
+## 🔴 FLUJO OBLIGATORIO: Spec-Driven Development
+
+**Este proyecto usa SDD. No se escribe código sin spec aprobada.**
+
+### Ciclo de feature
+
+```
+1. PLAN      → specs/<feature>/plan.md      (objetivos, decisiones, estimación)
+2. SPEC      → specs/<feature>/spec.md      (requisitos, API, modelo de datos)
+3. APROBAR   → pedir aprobación al usuario  ⛔ PUNTO DE BLOQUEO
+4. TASKS     → specs/<feature>/tasks.md     (checklist de implementación)
+5. CODE      → implementar guiado por tasks.md
+6. VERIFICAR → /spec-check <feature>        (código vs spec)
+7. CLOSE     → /spec-close <feature>        (tests + docs + PR)
+```
+
+### Reglas inviolables
+
+| # | Regla |
+|:--|:---|
+| 1 | **NUNCA** escribir código sin `spec.md` aprobado por el usuario |
+| 2 | **SIEMPRE** pedir aprobación explícita antes de implementar |
+| 3 | **SIEMPRE** actualizar `spec.md` si el alcance cambia durante la implementación |
+| 4 | **SIEMPRE** marcar `tasks.md` al completar cada tarea |
+| 5 | **NUNCA** mergear sin pasar `/spec-check` y tests en verde |
+| 6 | **SIEMPRE** crear ADR si la feature cambia arquitectura o stack |
+
+### Documentos SDD del proyecto
+
+| Documento | Propósito | Modificable |
+|:---|:---|:---:|
+| `docs/constitution.md` | Principios que limitan toda spec | Solo con ADR |
+| `specs/<feature>/spec.md` | Requisitos funcionales y técnicos | Sí, con aprobación |
+| `specs/<feature>/plan.md` | Decisiones de diseño | Sí, con aprobación |
+| `specs/<feature>/tasks.md` | Checklist de trabajo | Sí, siempre |
+| `docs/adr/NNNN-*.md` | Decisiones arquitectónicas | Nunca se editan |
+
+---
+
+## 🧠 REGLAS QUE NUNCA DEBO OLVIDAR
+
+### Git
+1. **NUNCA** hacer commit o push sin preguntar antes al usuario
+2. **NUNCA** hacer commit o push directo a `main` — siempre rama + PR
+3. **SIEMPRE** una rama por feature: `feat/`, `fix/`, `docs/`
+
+### Backend
+4. **SIEMPRE** `BigDecimal` con `HALF_UP` para dinero — jamás `double`/`float`
+5. **SIEMPRE** `@Transactional` en métodos que escriben
+6. **NUNCA** exponer entidades JPA — solo `record` DTOs
+
+### Frontend
+7. **SIEMPRE** `text-neutral-900` en inputs — el texto placeholder es demasiado claro
+8. **SIEMPRE** manejar respuestas API vacías (204 / body vacío) sin llamar a `res.json()`
+9. **SIEMPRE** traducir errores técnicos a mensajes amigables con `getFriendlyErrorMessage()`
+10. **SIEMPRE** validar fechas de nacimiento (no futuras, no anteriores a 1900)
+
+### Proceso
+11. **SIEMPRE** leer `AGENTS.md` antes de cada respuesta y verificar contra estas reglas
+12. **SIEMPRE** seguir el ciclo SDD de arriba antes de escribir código
 
 ---
 
@@ -30,6 +108,7 @@
 - **Inventario**: Visión omnicanal de existencias con múltiples almacenes y control de reservas atómicas
 - **Pedidos**: Checkout transaccional con snapshots financieros inmutables
 - **Búsqueda**: Híbrida semántica (embeddings vectoriales) + exacta por referencia
+- **Usuarios**: Registro, verificación por email, JWT, perfil con medidas y direcciones
 
 ---
 
@@ -45,6 +124,7 @@ nexus-commerce-core/
 │   │   ├── entity/             # Entidades JPA (nunca exponer directamente)
 │   │   ├── exception/          # Manejador global de errores
 │   │   ├── repository/         # Spring Data JPA
+│   │   ├── security/           # JWT, filtros, Spring Security
 │   │   └── service/            # Lógica de dominio transaccional
 │   ├── src/main/resources/
 │   │   └── db/migration/       # Flyway migrations (V1, V2, V3...)
@@ -53,15 +133,26 @@ nexus-commerce-core/
 │   ├── src/
 │   │   ├── app/                # App Router (páginas)
 │   │   ├── components/         # Componentes UI reutilizables
+│   │   ├── context/            # Estado global (Cart, Auth, Drawer)
+│   │   ├── hooks/              # Hooks reutilizables
 │   │   ├── lib/                # API client, utilidades
 │   │   ├── types/              # Tipos TypeScript compartidos
 │   │   └── __tests__/          # Tests de componentes
 │   └── vitest.config.ts
 ├── docs/
-│   ├── adr/                    # Architecture Decision Records
-│   └── memory/                 # Roadmap y notas de contexto
+│   ├── constitution.md          # Principios y workflow del proyecto
+│   └── adr/                     # Architecture Decision Records
+├── specs/                       # Specs SDD por feature
+│   └── <feature>/
+│       ├── plan.md
+│       ├── spec.md
+│       └── tasks.md
+├── .agents/skills/             # Agent skills instaladas
+├── .opencode/commands/         # Comandos personalizados
 ├── .github/workflows/          # CI/CD con GitHub Actions
 ├── docker-compose.yml          # PostgreSQL 16 + pgvector
+├── AGENTS.md                   # Este archivo
+├── MEMORY.md                   # Estado persistente del proyecto
 ├── CHANGELOG.md                # Keep a Changelog (es-ES)
 └── README.md                   # Documentación principal
 ```
@@ -76,10 +167,13 @@ nexus-commerce-core/
 | Java | 21 LTS | Lenguaje principal |
 | Spring Boot | 3.4.3 | Framework base |
 | Spring Data JPA | — | Persistencia ORM |
+| Spring Security | — | Autenticación y autorización |
+| JWT (jjwt) | 0.12.6 | Tokens de sesión |
 | PostgreSQL | 16 | Base de datos relacional |
 | pgvector | — | Búsqueda vectorial semántica |
 | Flyway | — | Migraciones de esquema |
 | Spring AI | 1.0.0-M6 | Enriquecimiento LLM (gpt-4o-mini) |
+| Spring Mail | — | Verificación de email y recuperación |
 | Lombok | — | Reducción de boilerplate |
 | JaCoCo | 0.8.12 | Cobertura de código |
 | springdoc-openapi | 2.8.5 | Documentación OpenAPI 3 |
@@ -92,6 +186,12 @@ nexus-commerce-core/
 | Tailwind CSS | Estilos utility-first |
 | Vitest | Test runner |
 | React Testing Library | Tests de componentes |
+
+### Servicios
+| Servicio | Uso |
+|:---|:---|
+| Mailtrap | Email transaccional en desarrollo |
+| OrbStack | Docker para PostgreSQL local |
 
 ---
 
@@ -123,6 +223,12 @@ Estas reglas son **inviolables**. Cualquier implementación debe respetarlas:
 - Excepciones de dominio se traducen centralizadamente en `GlobalExceptionHandler`.
 - Errores estructurados con `timestamp`, `status`, `error`, `message`.
 - Códigos HTTP semánticos: `400` (validación), `404` (no encontrado), `409` (conflicto de stock).
+
+### 4.6. Autenticación
+- Contraseñas hasheadas con BCrypt (coste 12). Nunca en texto plano.
+- JWT access token 24h, refresh token 7d.
+- Email debe verificarse antes de permitir login.
+- Códigos de verificación: 6 dígitos numéricos, expiración 15 minutos.
 
 ---
 
@@ -179,6 +285,11 @@ Controller → Service → Repository → DB
 - El `GlobalExceptionHandler` las traduce a respuestas HTTP estructuradas.
 - No capturar excepciones genéricas en los servicios.
 
+### 5.6. Configuración
+- Las variables sensibles van en `.env` (nunca versionado).
+- `application.properties` importa el `.env` con `spring.config.import=optional:file:.env[.properties]`.
+- Usar `${VARIABLE:valor-por-defecto}` para fallbacks en desarrollo.
+
 ---
 
 ## 6. Convenciones de Frontend
@@ -190,20 +301,32 @@ Controller → Service → Repository → DB
 
 ### 6.2. API Client
 - Toda la comunicación con el backend pasa por `src/lib/api.ts`.
-- Usar `handleResponse<T>()` para manejo tipado de errores.
+- **CRÍTICO**: `handleResponse()` debe tolerar respuestas vacías (204 o body vacío) sin llamar a `res.json()`.
 - La `Idempotency-Key` se genera en cliente con `crypto.randomUUID()`.
 
 ### 6.3. Tipos
-- Los tipos de dominio viven en `src/types/commerce.ts`.
+- Los tipos de dominio viven en `src/types/commerce.ts` y `src/types/auth.ts`.
 - Deben reflejar exactamente los DTOs del backend.
 - Usar `interface` para objetos, `type` para uniones.
 
-### 6.4. Estilos
-- Tailwind CSS utility-first.
-- Paleta editorial: `neutral-*` como base, acentos en `neutral-900`.
-- Tipografía: `font-light`, `uppercase`, `tracking-widest` para estética editorial.
+### 6.4. Estilo Editorial Zara
+- **Tipografía**: `font-light` (300) para textos largos, `font-medium` (500) para títulos.
+- **Transformación**: `uppercase` en títulos, botones y etiquetas.
+- **Espaciado**: `tracking-widest` (0.1em) para títulos, `tracking-wide` (0.025em) para botones.
+- **Paleta**: `neutral-*` como base (50-900), acentos en `neutral-900`.
+- **Bordes**: `border-neutral-200` para separadores sutiles, `border-neutral-900` para elementos activos.
+- **Transiciones**: `transition-all duration-300` para hover states.
+- **Botones**: Fondo `neutral-900` con texto `white`, hover a `black`.
+- **Notificaciones**: Toast con fondo `neutral-900`, texto `white`, `text-xs uppercase tracking-widest`.
+- **Iconos**: Estilo lineal, `stroke-width` 1.5, tamaño `w-5 h-5` o `w-4 h-4`.
+- **Espaciado vertical**: `py-12` para secciones, `py-6` para subsecciones, `gap-6` para grids.
 
-### 6.5. Componentes
+### 6.5. Formularios
+- **SIEMPRE** añadir `text-neutral-900` a los inputs — sin esto el texto escrito es casi invisible.
+- Validar en cliente antes de llamar al backend (fechas, emails, contraseñas).
+- Traducir siempre errores técnicos con `getFriendlyErrorMessage()`.
+
+### 6.6. Componentes
 - Componentes reutilizables en `src/components/`.
 - Props tipadas con `interface`.
 - Prefijo `Header`, `ProductCard`, `SemanticSearchBar`.
@@ -286,7 +409,8 @@ Antes de considerar una rama lista para merge:
 1. Tests pasando (`./mvnw test` en backend, `npx vitest` en frontend).
 2. Cobertura mantenida o incrementada.
 3. Documentación actualizada (CHANGELOG.md, ADRs si aplica).
-4. Código revisado y limpio (sin TODOs, sin código muerto).
+4. `/spec-check <feature>` en verde.
+5. Código revisado y limpio (sin TODOs, sin código muerto).
 
 ---
 
@@ -297,17 +421,24 @@ Antes de considerar una rama lista para merge:
 |:---|:---|
 | `README.md` | Visión general, setup, API pública |
 | `CHANGELOG.md` | Registro de cambios (Keep a Changelog es-ES) |
+| `docs/constitution.md` | Principios y workflow del proyecto |
 | `docs/adr/*.md` | Decisiones arquitectónicas |
-| `docs/memory/roadmap.md` | Roadmap y notas de contexto |
-| `AGENTS.md` | Contexto para agentes IA y desarrolladores |
+| `specs/*/` | Specs SDD por feature |
+| `MEMORY.md` | Estado actual del proyecto |
+| `AGENTS.md` | Este archivo — convenciones para agentes IA |
 
-### 9.2. ADRs (Architecture Decision Records)
+### 9.2. Specs SDD
+- Toda feature **DEBE** tener `specs/<feature>/` con `plan.md`, `spec.md` y `tasks.md`.
+- La spec se escribe **antes** del código y se actualiza si el alcance cambia.
+- Ningún código sin spec aprobada.
+
+### 9.3. ADRs (Architecture Decision Records)
 - Toda decisión arquitectónica significativa **DEBE** documentarse como ADR.
 - Formato: Contexto → Decisión → Alternativas → Consecuencias.
 - Se numeran secuencialmente: `0001-`, `0002-`, etc.
 - Se registran en `docs/adr/README.md`.
 
-### 9.3. OpenAPI
+### 9.4. OpenAPI
 - La documentación de la API se genera automáticamente con springdoc-openapi.
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - Especificación: `http://localhost:8080/v3/api-docs`
@@ -316,6 +447,13 @@ Antes de considerar una rama lista para merge:
 ---
 
 ## 10. Comandos de Desarrollo
+
+### Comandos Personalizados
+| Comando | Uso |
+|:---|:---|
+| `/new-feature <nombre>` | Crear rama + estructura de spec |
+| `/spec-check <feature>` | Verificar código vs spec |
+| `/spec-close <feature>` | Cerrar feature: tests + docs + PR |
 
 ### Backend
 ```bash
@@ -356,19 +494,33 @@ docker compose up -d
 docker compose down
 ```
 
+### Git
+```bash
+# Crear PR
+gh pr create --base <destino> --head <rama> --title "tipo(scope): descripción"
+
+# Ver PRs
+gh pr list
+
+# Ver checks de un PR
+gh pr checks <número>
+```
+
 ---
 
 ## Resumen de Verificación Antes de Cerrar una Rama
 
+- [ ] Spec aprobada por el usuario antes de implementar
 - [ ] Tests pasando (backend y frontend)
 - [ ] Cobertura >= 90% (backend)
+- [ ] `/spec-check <feature>` en verde
 - [ ] Sin errores de compilación ni warnings críticos
 - [ ] CHANGELOG.md actualizado
 - [ ] ADR creado si hay decisión arquitectónica
+- [ ] `tasks.md` con todas las tareas marcadas
 - [ ] Código sin TODOs ni comentarios de depuración
 - [ ] Commits con formato convencional
-- [ ] Rama actualizada con main (rebase o merge)
 
 ---
 
-*Última actualización: 2026-09-29*
+*Última actualización: 2026-10-01*
