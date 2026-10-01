@@ -33,3 +33,42 @@ export interface AuthResponse {
     refreshToken: string;
     user: User;
 }
+
+export interface Address {
+    id: number;
+    fullName: string;
+    street: string;
+    city: string;
+    postalCode: string;
+    countryCode: string;
+    defaultAddress: boolean;
+}
+
+export interface AddressData {
+    fullName: string;
+    street: string;
+    city: string;
+    postalCode: string;
+    countryCode: string;
+    defaultAddress: boolean;
+}
+
+/**
+ * Campos editables del perfil. El email no aparece: es el identificador
+ * de la cuenta y no puede modificarse desde el formulario.
+ */
+export interface ProfileUpdateData {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    birthDate?: string;
+    gender?: User["gender"];
+    height?: number;
+    weight?: number;
+}
+
+export interface SizeRecommendation {
+    recommendedSize: string;
+    reason: string;
+    confidence: "Alta" | "Media" | "Baja";
+}

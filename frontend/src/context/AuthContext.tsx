@@ -15,6 +15,8 @@ interface AuthContextType {
     logout: () => void;
     forgotPassword: (email: string) => Promise<void>;
     resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+    /** Recarga el usuario desde el backend tras editar el perfil. */
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,6 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await api.resetPassword(email, code, newPassword);
     };
 
+    const refreshUser = async () => {
+        const updated = await api.getProfile();
+        setUser(updated);
+    };
+
     return (
         <AuthContext.Provider
             value={{
@@ -81,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 logout,
                 forgotPassword,
                 resetPassword,
+                refreshUser,
             }}
         >
             {children}
