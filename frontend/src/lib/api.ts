@@ -15,7 +15,19 @@ async function handleResponse<T>(res: Response): Promise<T> {
         const errorText = await res.text();
         throw new Error(`API Error [${res.status}]: ${errorText || res.statusText}`);
     }
-    return res.json();
+
+    // Endpoints como register, verifyEmail o resetPassword devuelven 200/204 sin cuerpo.
+    // res.json() lanzaría una excepción al no haber JSON que parsear.
+    if (res.status === 204) {
+        return undefined as T;
+    }
+
+    const text = await res.text();
+    if (!text) {
+        return undefined as T;
+    }
+
+    return JSON.parse(text) as T;
 }
 
 function getAuthHeaders(): HeadersInit {
