@@ -52,7 +52,7 @@ class OrderControllerTest {
     void shouldReturn201OnSuccessfulCheckout() throws Exception {
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ));
+        ), "ES", 40.4168, -3.7038);
 
         OrderResponse response = new OrderResponse(
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
