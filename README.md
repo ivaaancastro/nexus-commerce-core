@@ -68,6 +68,18 @@ flowchart TD
 
 ## 3. Catálogo de APIs REST
 
+> Los endpoints marcados con 🔒 requieren cabecera `Authorization: Bearer {access token}`.
+
+### Autenticación y Sesión
+* `POST /api/v1/auth/register` $\rightarrow$ Crea la cuenta y envía un código de verificación de 6 dígitos al email (`200` sin cuerpo). La contraseña se almacena con BCrypt.
+* `POST /api/v1/auth/verify-email?email={email}&code={code}` $\rightarrow$ Verifica el email. **Obligatorio antes del login.** El código caduca en 15 minutos.
+* `POST /api/v1/auth/resend-verification?email={email}` $\rightarrow$ Reenvía el código de verificación.
+* `POST /api/v1/auth/login` $\rightarrow$ Devuelve `AuthResponse` (access token de 24 h + refresh token de 7 d). Devuelve `401` si las credenciales son inválidas o el email no está verificado.
+* `POST /api/v1/auth/forgot-password?email={email}` $\rightarrow$ Envía un código de recuperación por email.
+* `POST /api/v1/auth/reset-password?email={email}&code={code}&newPassword={password}` $\rightarrow$ Restablece la contraseña con el código de recuperación.
+* `POST /api/v1/auth/refresh?refreshToken={token}` $\rightarrow$ Emite un nuevo access token a partir del refresh token.
+* 🔒 `GET /api/v1/auth/me` $\rightarrow$ Devuelve el perfil del usuario asociado al token (`401` sin token).
+
 ### Catálogo de Productos
 * `GET /api/v1/products` $\rightarrow$ Lista todos los productos y sus variantes SKU.
 * `GET /api/v1/products/search?reference={ref}` $\rightarrow$ Búsqueda exacta por código comercial (ej: `0432/021`).
@@ -87,6 +99,15 @@ flowchart TD
 ### Pedidos y Checkout
 * `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID). Reserva existencias, congela precios y genera la orden (`201 Created`).
 * `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido confirmado.
+
+### Perfil y Direcciones
+* 🔒 `GET /api/v1/users/me` $\rightarrow$ Devuelve el perfil completo, incluidas las medidas (`height`, `weight`) usadas para recomendar tallas.
+* 🔒 `PUT /api/v1/users/me` $\rightarrow$ Actualiza el perfil. Es una **actualización parcial**: los campos `null` conservan su valor. El **email no es modificable**. Valida altura (100–250 cm), peso (30–250 kg) y fecha de nacimiento (no futura, no anterior a 1900).
+* 🔒 `GET /api/v1/users/me/addresses` $\rightarrow$ Lista las direcciones del usuario, la principal primero. Máximo **2** direcciones.
+* 🔒 `POST /api/v1/users/me/addresses` $\rightarrow$ Añade una dirección (`201` con `Location`). La primera nace como principal; la tercera responde `400` con mensaje explicativo.
+* 🔒 `PUT /api/v1/users/me/addresses/{id}` $\rightarrow$ Actualiza una dirección. Si se marca como principal, se desmarca automáticamente la anterior. Responde `404` si la dirección no pertenece al usuario (nunca `403`, para no filtrar su existencia).
+* 🔒 `DELETE /api/v1/users/me/addresses/{id}` $\rightarrow$ Elimina la dirección (`204`). Si era la principal, la restante se promueve automáticamente.
+* 🔒 `POST /api/v1/users/me/size-recommendation` $\rightarrow$ Body `{ "productId": n }`. Devuelve `{ recommendedSize, reason, confidence }` a partir de las medidas del perfil y las tallas disponibles del producto. `confidence` es `Alta`, `Media` o `Baja` según la fiabilidad de la tabla de referencia. Devuelve `400` si el usuario no tiene medidas guardadas.
 
 ### Documentación Interactiva y Contratos (OpenAPI 3 / Swagger)
 * **Swagger UI:** `http://localhost:8080/swagger-ui.html` (consola de ejecución y pruebas de endpoints).

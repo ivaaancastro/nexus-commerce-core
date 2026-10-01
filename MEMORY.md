@@ -10,10 +10,10 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/user-auth` |
+| **Rama actual** | `feat/user-profile` |
 | **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
-| **Tarea actual** | Tarea 5.1 — Registro y Login de Usuarios |
-| **Estado** | EN CURSO |
+| **Tarea actual** | Tarea 5.2 — Perfil y Direcciones |
+| **Estado** | IMPLEMENTADA — pendiente de commit/PR |
 | **Última actualización** | 2026-10-01 |
 
 ---
@@ -41,20 +41,25 @@
 - [x] Tarea 2.3 — Checkout Multilínea con selección automática de almacén
 
 ### Fase 5 — Gestión de Usuarios (EN CURSO)
-- [ ] Tarea 5.1 — Registro y Login (EN CURSO)
+- [x] Tarea 5.1 — Registro y Login
   - [x] Backend: Entidades, repositorios, seguridad JWT, AuthService, AuthController
   - [x] Frontend: AuthContext, páginas login/register/verify-email/forgot-password
   - [x] Tests: 38 backend + 27 frontend
   - [x] Email: Mailtrap configurado
-  - [ ] Pendiente: Verificar flujo completo de registro → verificación → login
+  - [x] Flujo completo verificado end-to-end: registro → email → código → login con JWT
+- [x] Tarea 5.2 — Perfil de Usuario y Direcciones
+  - [x] Backend: `UserService`, `AddressService`, `SizeRecommendationService`, `UserController`
+  - [x] Frontend: `/profile`, `/addresses`, `ProtectedRoute`
+  - [x] Tests: 84 backend + 44 frontend
+  - [x] Specs: `specs/user-profile/` completa (plan, spec, tasks)
+  - [ ] Pendiente: commit + PR
 
 ---
 
 ## Tareas Pendiente
 
 ### Fase 5 — Gestión de Usuarios
-- [ ] Tarea 5.2 — Perfil de Usuario y Direcciones
-- [ ] Tarea 5.3 — Historial de Pedidos
+- [ ] Tarea 5.3 — Historial de Pedidos (`specs/user-orders/spec.md` pendiente de aprobación)
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
