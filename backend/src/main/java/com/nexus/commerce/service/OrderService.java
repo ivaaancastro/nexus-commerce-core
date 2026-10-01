@@ -5,11 +5,16 @@ import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
 import com.nexus.commerce.entity.Sku;
+import com.nexus.commerce.entity.User;
 import com.nexus.commerce.exception.InsufficientStockException;
+import com.nexus.commerce.exception.ResourceNotFoundException;
 import com.nexus.commerce.repository.OrderRepository;
 import com.nexus.commerce.repository.SkuRepository;
+import com.nexus.commerce.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,12 +32,13 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final SkuRepository skuRepository;
+    private final UserRepository userRepository;
     private final InventoryService inventoryService;
     private final PricingService pricingService;
     private final WarehouseSelectionService warehouseSelectionService;
 
     @Transactional
-    public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request) {
+    public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request, String userEmail) {
         // 1. Control de Idempotencia: si ya fue procesada, devolvemos la existente
         Optional<Order> existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
@@ -116,6 +122,7 @@ public class OrderService {
                 .subtotalAmount(subtotalAccumulator)
                 .taxAmount(taxAccumulator)
                 .totalAmount(totalAccumulator)
+                .user(resolveUser(userEmail))
                 .build();
 
         for (OrderItem item : orderItems) {
@@ -132,6 +139,73 @@ public class OrderService {
     public Optional<OrderResponse> getOrderByNumber(String orderNumber) {
         return orderRepository.findByOrderNumber(orderNumber)
                 .map(this::mapToOrderResponse);
+    }
+
+    /**
+     * Historial paginado del usuario, del más reciente al más antiguo.
+     * La propiedad se comprueba en la consulta: sin usuario no hay filas.
+     */
+    @Transactional(readOnly = true)
+    public OrderPageResponse listOrders(String email, int page, int size) {
+        User user = requireUser(email);
+
+        Page<Order> result = orderRepository.findByUserIdOrderByCreatedAtDesc(
+                user.getId(), PageRequest.of(page, size));
+
+        List<OrderSummaryResponse> summaries = result.getContent().stream()
+                .map(order -> new OrderSummaryResponse(
+                        order.getId(),
+                        order.getOrderNumber(),
+                        order.getStatus(),
+                        order.getCurrency(),
+                        order.getTotalAmount(),
+                        order.getCreatedAt(),
+                        order.getItems().size()
+                ))
+                .toList();
+
+        return new OrderPageResponse(
+                summaries,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
+    }
+
+    /**
+     * Detalle de un pedido propiedad del usuario.
+     * Devuelve vacío tanto si no existe como si es de otro usuario → 404.
+     */
+    @Transactional(readOnly = true)
+    public Optional<OrderResponse> getOrderForUser(String email, String orderNumber) {
+        return userRepository.findByEmail(email)
+                .flatMap(user -> orderRepository.findByUserIdAndOrderNumber(user.getId(), orderNumber))
+                .map(this::mapToOrderResponse);
+    }
+
+    /**
+     * Asocia el usuario al pedido. Un checkout sin sesión (o con un email que ya
+     * no exista) queda con user_id nulo, tal como prevé la spec.
+     */
+    private User resolveUser(String email) {
+        if (email == null) {
+            return null;
+        }
+        return userRepository.findByEmail(email)
+                .map(user -> {
+                    log.info("Pedido asociado al usuario {}", user.getId());
+                    return user;
+                })
+                .orElseGet(() -> {
+                    log.warn("No se encontró usuario para '{}'; el pedido quedará sin asociar", email);
+                    return null;
+                });
+    }
+
+    private User requireUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
     private OrderResponse mapToOrderResponse(Order order) {
