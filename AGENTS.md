@@ -1,9 +1,36 @@
 # AGENTS.md — Nexus Commerce Core
 
-> **Este archivo es la fuente de verdad para cualquier agente de IA o desarrollador que trabaje en el proyecto.**
-> Contiene convenciones, patrones, reglas críticas y contexto arquitectónico. Léelo antes de escribir código.
->
-> **REGLA PARA AGENTES IA**: Leer este archivo al inicio de CADA respuesta para mantener coherencia con las convenciones del proyecto.
+> **Este archivo se carga automáticamente en cada sesión y se refresca si lo editas.**
+> Contiene las convenciones, reglas críticas y el estado actual del proyecto.
+
+---
+
+## ⚡ ESTADO ACTUAL (leer primero)
+
+| Campo | Valor |
+|:---|:---|
+| **Rama activa** | `feat/user-auth` |
+| **Fase** | 5 — Gestión de Usuarios |
+| **Tarea** | 5.1 — Registro y Login |
+| **Estado** | Verificada end-to-end (registro → verificación → login) |
+| **Actualizado** | 2026-10-01 |
+
+**Siguiente paso**: crear PR de `feat/user-auth` → `feat/user-management`, luego empezar Tarea 5.2 (Perfil y Direcciones).
+
+> **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
+> Léelo al iniciar sesión para contexto completo.
+
+---
+
+## 🔑 REGLAS QUE NUNCA DEBO OLVIDAR
+
+1. **NUNCA** hacer commit o push sin preguntar antes al usuario
+2. **NUNCA** hacer commit o push directo a `main` — siempre rama + PR
+3. **SIEMPRE** `BigDecimal` para dinero — jamás `double` o `float`
+4. **SIEMPRE** validar fechas de nacimiento (no futuras, no anteriores a 1900)
+5. **SIEMPRE** usar `text-neutral-900` en inputs — texto placeholder es demasiado claro
+6. **SIEMPRE** manejar respuestas API vacías (204 / body vacío) sin `res.json()`
+7. **SIEMPRE** leer `AGENTS.md` antes de cada respuesta y verificar contra estas reglas
 
 ---
 
