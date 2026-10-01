@@ -31,14 +31,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String token = authHeader.substring(7);
-        final String email = jwtService.extractEmail(token);
 
-        if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            Long userId = jwtService.extractUserId(token);
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    email, null, Collections.emptyList());
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+        // Un token malformado o expirado no debe tumbar la petición con un 500:
+        // lo descartamos y seguimos sin autenticar, y el entry point responde 401.
+        try {
+            final String email = jwtService.extractEmail(token);
+
+            if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                Long userId = jwtService.extractUserId(token);
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        email, null, Collections.emptyList());
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        } catch (Exception ex) {
+            logger.debug("Token descartado: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
