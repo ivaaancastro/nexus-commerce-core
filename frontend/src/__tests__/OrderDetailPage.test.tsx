@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import OrderDetailPage from "@/app/orders/[orderNumber]/page";
 import { CartProvider } from "@/context/CartContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
+import { AuthProvider } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { Order } from "@/types/commerce";
 
@@ -54,11 +55,13 @@ describe("OrderDetailPage Component", () => {
         vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
 
         render(
-            <CartProvider>
-                <CartDrawerProvider>
-                    <OrderDetailPage />
-                </CartDrawerProvider>
-            </CartProvider>
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
         );
 
         await waitFor(() => {
@@ -78,11 +81,13 @@ describe("OrderDetailPage Component", () => {
         vi.mocked(api.getOrder).mockRejectedValue(new Error("Order not found"));
 
         render(
-            <CartProvider>
-                <CartDrawerProvider>
-                    <OrderDetailPage />
-                </CartDrawerProvider>
-            </CartProvider>
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
         );
 
         await waitFor(() => {
