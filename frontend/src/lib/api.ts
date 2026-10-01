@@ -6,7 +6,7 @@ import {
     CheckoutRequest,
     Order,
 } from "@/types/commerce";
-import { RegisterData, LoginData, AuthResponse, User } from "@/types/auth";
+import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation } from "@/types/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -144,5 +144,69 @@ export const api = {
             headers: getAuthHeaders(),
         });
         return handleResponse<User>(res);
+    },
+
+    // ── Perfil ──────────────────────────────────────────────────────────────
+
+    getProfile: async (): Promise<User> => {
+        const res = await fetch(`${BASE_URL}/api/v1/users/me`, {
+            headers: getAuthHeaders(),
+        });
+        return handleResponse<User>(res);
+    },
+
+    updateProfile: async (data: ProfileUpdateData): Promise<User> => {
+        const res = await fetch(`${BASE_URL}/api/v1/users/me`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<User>(res);
+    },
+
+    // ── Direcciones ─────────────────────────────────────────────────────────
+
+    getAddresses: async (): Promise<Address[]> => {
+        const res = await fetch(`${BASE_URL}/api/v1/users/me/addresses`, {
+            headers: getAuthHeaders(),
+        });
+        return handleResponse<Address[]>(res);
+    },
+
+    createAddress: async (data: AddressData): Promise<Address> => {
+        const res = await fetch(`${BASE_URL}/api/v1/users/me/addresses`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<Address>(res);
+    },
+
+    updateAddress: async (id: number, data: AddressData): Promise<Address> => {
+        const res = await fetch(`${BASE_URL}/api/v1/users/me/addresses/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<Address>(res);
+    },
+
+    deleteAddress: async (id: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/users/me/addresses/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        await handleResponse(res);
+    },
+
+    // ── Recomendación de talla ──────────────────────────────────────────────
+
+    recommendSize: async (productId: number): Promise<SizeRecommendation> => {
+        const res = await fetch(`${BASE_URL}/api/v1/users/me/size-recommendation`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ productId }),
+        });
+        return handleResponse<SizeRecommendation>(res);
     },
 };
