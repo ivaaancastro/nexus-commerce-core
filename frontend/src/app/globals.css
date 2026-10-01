@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/*
+ * La app es editorial y CLARA por diseño: todos los fondos están fijados en
+ * neutral-50 / white y los acentos en neutral-900.
+ *
+ * No debe haber bloque `prefers-color-scheme: dark`: el heredado de
+ * create-next-app cambiaba --foreground a #ededed mientras los fondos seguían
+ * claros, dejando invisible cualquier elemento sin color propio. Está cubierto
+ * por GlobalsCss.test.ts.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -10,13 +19,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

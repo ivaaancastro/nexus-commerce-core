@@ -60,7 +60,7 @@ class OrderControllerTest {
                 new BigDecimal("50.00"), Instant.now(), List.of()
         );
 
-        when(orderService.processCheckout(eq("idem-uuid-001"), any(CheckoutRequest.class)))
+        when(orderService.processCheckout(eq("idem-uuid-001"), any(CheckoutRequest.class), eq(null)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/api/v1/orders/checkout")

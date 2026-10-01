@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/orders/**").authenticated()
                 .anyRequest().permitAll()
             )
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(new JsonAuthenticationEntryPoint()))
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
