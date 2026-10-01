@@ -1,16 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import CartItemRow from "@/components/CartItemRow";
 import { useCart } from "@/context/CartContext";
+import { api } from "@/lib/api";
 
 /**
- * Página completa del carrito.
+ * Página completa del carrito con checkout multilínea.
  * Accesible desde el drawer lateral con botón "Ver carrito completo".
  */
 export default function CartPage() {
     const { items, subtotal, taxEstimate, currency, totalItems, clearCart } = useCart();
+    const router = useRouter();
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleCheckout = async () => {
+        setIsProcessing(true);
+        setError(null);
+
+        try {
+            const idempotencyKey = crypto.randomUUID();
+
+            const order = await api.checkout(
+                {
+                    marketCode: "ES",
+                    items: items.map((item) => ({
+                        skuId: item.skuId,
+                        warehouseCode: "AUTO",
+                        quantity: item.quantity,
+                    })),
+                    destinationCountryCode: "ES",
+                    destinationLatitude: 40.4168,
+                    destinationLongitude: -3.7038,
+                },
+                idempotencyKey
+            );
+
+            clearCart();
+            router.push(`/orders/${encodeURIComponent(order.orderNumber)}`);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Error al procesar el checkout");
+            setIsProcessing(false);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-neutral-50 flex flex-col font-sans">
@@ -85,6 +121,20 @@ export default function CartPage() {
                                         </span>
                                     </div>
                                 </div>
+
+                                {error && (
+                                    <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs">
+                                        {error}
+                                    </div>
+                                )}
+
+                                <button
+                                    onClick={handleCheckout}
+                                    disabled={isProcessing}
+                                    className="w-full bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest py-4 transition-colors disabled:opacity-40 disabled:hover:bg-neutral-900 mt-6"
+                                >
+                                    {isProcessing ? "Procesando..." : "Tramitar pedido"}
+                                </button>
 
                                 <p className="text-[10px] text-neutral-400 mt-4 leading-relaxed">
                                     Impuestos calculados al 21% IVA (mercado ES). El cálculo final se realizará en el checkout.
