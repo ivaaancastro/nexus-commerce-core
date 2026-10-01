@@ -1,4 +1,13 @@
 /**
+ * Detecta si el error indica que la cuenta todavía no ha verificado su email.
+ * Permite ofrecer un acceso directo a /verify-email desde el propio login,
+ * en lugar de dejar al usuario atrapado en el mensaje «revisa tu bandeja».
+ */
+export function isUnverifiedEmailError(error: unknown): boolean {
+    return error instanceof Error && error.message.includes("Email no verificado");
+}
+
+/**
  * Traduce errores técnicos del backend a mensajes amigables para el usuario.
  */
 export function getFriendlyErrorMessage(error: unknown): string {

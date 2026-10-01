@@ -7,6 +7,9 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -17,6 +20,10 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    /** URL base del frontend para los enlaces que viajan en los emails. */
+    @Value("${app.base-url:http://localhost:3000}")
+    private String baseUrl;
+
     public void sendVerificationEmail(String to, String code) {
         if (isMailConfigured()) {
             try {
@@ -25,6 +32,7 @@ public class EmailService {
                 message.setTo(to);
                 message.setSubject("Verifica tu email - Nexus Core");
                 message.setText("Tu código de verificación es: " + code + "\n\n" +
+                        "Introdúcelo aquí: " + buildLink("/verify-email", to) + "\n\n" +
                         "Este código expira en 15 minutos.");
                 mailSender.send(message);
                 log.info("Email de verificación enviado a: {}", to);
@@ -35,6 +43,7 @@ public class EmailService {
             log.info("=== MODO DESARROLLO - Email de verificación ===");
             log.info("Para: {}", to);
             log.info("Código de verificación: {}", code);
+            log.info("Enlace: {}", buildLink("/verify-email", to));
             log.info("==============================================");
         }
     }
@@ -47,6 +56,7 @@ public class EmailService {
                 message.setTo(to);
                 message.setSubject("Recuperación de contraseña - Nexus Core");
                 message.setText("Tu código de recuperación es: " + code + "\n\n" +
+                        "Introdúcelo aquí: " + buildLink("/forgot-password", to) + "\n\n" +
                         "Este código expira en 15 minutos.");
                 mailSender.send(message);
                 log.info("Email de recuperación enviado a: {}", to);
@@ -57,8 +67,17 @@ public class EmailService {
             log.info("=== MODO DESARROLLO - Recuperación de contraseña ===");
             log.info("Para: {}", to);
             log.info("Código de recuperación: {}", code);
+            log.info("Enlace: {}", buildLink("/forgot-password", to));
             log.info("==================================================");
         }
+    }
+
+    /**
+     * Construye un enlace absoluto al frontend con el email ya precargado,
+     * para que el usuario no tenga que volver a escribirlo.
+     */
+    private String buildLink(String path, String email) {
+        return baseUrl + path + "?email=" + URLEncoder.encode(email, StandardCharsets.UTF_8);
     }
 
     private boolean isMailConfigured() {
