@@ -6,7 +6,19 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
-- **23 tests nuevos de frontend** para el fix de checkout: `Errors.test.ts` (12), `ApiAuthHeaders.test.ts` (7) y `CartPage.test.tsx` (4). 54 frontend → **77** en 12 archivos. `frontend/src/lib/errors.ts` no tenía ni un solo test.
+- **23 tests nuevos de frontend** para el fix de checkout: `Errors.test.ts` (12), `ApiAuthHeaders.test.ts` (7) y `CartPage.test.tsx` (4). `frontend/src/lib/errors.ts` no tenía ni un solo test. Con la Tarea 5.3, el frontend queda en **88 tests** en 15 ficheros.
+- **Historial de pedidos** (Tarea 5.3, spec `specs/user-orders/`):
+  - Endpoints `GET /api/v1/users/me/orders` (paginado) y `GET /api/v1/users/me/orders/{orderNumber}` en el nuevo `UserOrderController`.
+  - La propiedad del pedido se comprueba **en la propia consulta** (`findByUserIdAndOrderNumber`), de modo que «no existe» y «es de otro usuario» devuelven lo mismo: `404`.
+  - DTOs `OrderSummaryResponse` y `OrderPageResponse`.
+  - Estados `SHIPPED` y `DELIVERED` en el enum `OrderStatus` (sin migración: la columna es `VARCHAR(32)`).
+- **Página `/orders`** con tarjeta por pedido (número, fecha, artículos, total), badge de estado, enlace al recibo, estado vacío con acceso a la colección y paginación anterior/siguiente. Protegida con `ProtectedRoute`.
+- Componente `OrderStatusBadge` con etiquetas en español y paleta restringida a `neutral-*`.
+- Enlace **Pedidos** en el header para que el historial sea accesible.
+- Tipos `OrderSummary`, `OrderPage` y `OrderStatus` en `frontend/src/types/commerce.ts`, y métodos `getMyOrders` / `getMyOrder` en la capa de API.
+- `JsonAuthenticationEntryPoint`: `401` con el mismo cuerpo estructurado (`timestamp`, `status`, `error`, `message`) que `GlobalExceptionHandler`.
+- **Specs de la Tarea 5.4** (`specs/product-returns/`): plan, spec y tasks de las devoluciones de productos, aprobadas y pendientes de implementar.
+- **21 tests nuevos**: 90 backend → **106**, 54 frontend → **65**. Cobertura del proyecto **82,6 %**.
 - Propiedad `app.base-url` (default `http://localhost:3000`) para construir los enlaces absolutos que viajan dentro de los emails transaccionales.
 - Helper `isUnverifiedEmailError()` en `frontend/src/lib/errors.ts` para detectar el error de cuenta sin verificar y ofrecerle salida.
 - **16 tests nuevos**: 84 backend → **90**, 44 frontend → **54**. `EmailService` con cobertura del **100 %** de líneas y ramas.
@@ -34,6 +46,10 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - **Página de recibo** `/receipt/[orderNumber]` con descarga PDF funcional.
 
 ### Changed
+- El checkout asocia el pedido al usuario autenticado: `OrderController` pasa `Authentication.getName()` y `OrderService.resolveUser()` setea `Order.user`. Un checkout sin sesión sigue quedando con `user_id` nulo.
+- `Order.items` declara `@BatchSize(size = 20)`: el historial cuenta los artículos de una página completa con una sola consulta extra en lugar de una por pedido (N+1).
+- `OrderRepository.findByUserIdOrderByCreatedAtDesc` va deliberadamente **sin** `@EntityGraph`: hacer fetch de una colección junto a una paginación truncaría los items en el corte de página. El detalle sí lo lleva, al no paginar.
+- La cabecera del header muestra «Pedidos» y «Cuenta» por separado.
 - Migración de la lectura de parámetros dinámicos en PDP y Recibo hacia el hook síncrono `useParams` de Next.js.
 - Redirección automática desde la PDP hacia la URL persistente del pedido tras el checkout exitoso.
 - Los formularios de perfil y direcciones usan `noValidate` para que la validación custom (mensajes amigables en español) sea quien controla el envío, conservando `required`/`min`/`max` como pistas de accesibilidad.
@@ -46,6 +62,9 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - **9 páginas pintaban el error técnico en crudo** (`err.message` → `API Error [401]: {…}` con timestamps y campos internos), incumpliendo la regla #9 de `AGENTS.md`: home (catálogo y búsqueda semántica), carrito, ficha de producto (carga y checkout), `forgot-password` (2), recibo y confirmación de pedido. Todas pasan ya por `getFriendlyErrorMessage()`.
 - `getFriendlyErrorMessage()` no cubría los códigos HTTP del proyecto (AGENTS.md §4.5): añadidos `401`, `403`, `404` y `409`. El matching va **anclado al prefijo** `API Error [n]` —nunca al número suelto— porque `401.00` o `500.00` en un importe activaban el mensaje equivocado.
 - `getFriendlyErrorMessage()` aplicaba `includes("500")`: un `409` con un cuerpo que contuviera `500.00` devolvía *«Inténtalo de nuevo en unos minutos»*. Ahora también anclado; el mensaje visible no cambia, solo desaparece el falso positivo.
+- **Sin credencial se respondía `403` en lugar de `401`**: en una API sin login por formulario, Spring Security devolvía *prohibido* cuando en realidad faltaba la credencial. Ahora `SecurityConfig` declara `JsonAuthenticationEntryPoint`. Afectaba por igual a `/users/me`, `/users/me/addresses`, `/orders/...` y el nuevo historial.
+- **Un token inválido o malformado rompía la petición con `500`**: `JwtAuthenticationFilter` dejaba propagar `MalformedJwtException` desde `extractEmail()`. Ahora el token se descarta, la petición sigue sin autenticar y el entry point responde `401`. Test que lo reproduce: `JwtAuthenticationFilterTest#shouldIgnoreMalformedTokenInsteadOfFailing`.
+- **Textos invisibles en modo oscuro**: `globals.css` conservaba el bloque `@media (prefers-color-scheme: dark)` heredado de create-next-app, que cambiaba `--foreground` a `#ededed` mientras **todas** las páginas fijan fondos claros (`bg-neutral-50`, `bg-white`). Cualquier elemento sin color propio salía `rgb(237,237,237)` sobre blanco — le pasaba al logo «Nexus Core» en **todas** las páginas y a «Ver recibo» y «Reintentar» en `/orders`. Se elimina el bloque (la paleta clara es fija por diseño) y los tres elementos pasan a declarar color explícito. Guardia: `GlobalsCss.test.ts`.
 - **Acceso al código de verificación de email**: la pantalla `/verify-email` existía pero no tenía puntos de entrada alcanzables. El email llegaba sin enlace y `/login` solo permitía llegar tras un reenvío exitoso, dejando al usuario atrapado en el bucle *login → "revisa tu bandeja" → email sin enlace → login sin botón*. Ahora:
   - Los emails de verificación y de recuperación incluyen enlace absoluto con el email ya precargado (`EmailService` + nueva propiedad `app.base-url`).
   - `/login` muestra un enlace directo *«¿Ya tienes un código? Verifica tu cuenta»*.

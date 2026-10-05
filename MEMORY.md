@@ -10,10 +10,10 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/user-profile` |
+| **Rama actual** | `feat/user-orders` |
 | **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
-| **Tarea actual** | Tarea 5.2 — Perfil y Direcciones |
-| **Estado** | COMPLETADA — commit `0cf6116`, PR #10 (84 backend + 44 frontend) |
+| **Tarea actual** | Tarea 5.3 — Historial de Pedidos (implementada, pendiente commit + PR) |
+| **Estado** | Specs 5.3 y 5.4 ✅ aprobadas · 106 backend + 65 frontend · e2e verificado |
 | **Última actualización** | 2026-10-01 |
 
 ---
@@ -54,13 +54,31 @@
   - [x] Specs: `specs/user-profile/` completa (plan, spec, tasks)
   - [x] Commit `0cf6116` + PR #10 — CI 2/2 green (backend 84, frontend 44)
   - [x] Cobertura: UserController 100%, UserService 100%, AddressService 98,6%, SizeRecommendationService 88,6%
+  - [x] PR #11 — fix de puntos de entrada de verificación de email (`fix/verify-email-entry-points`)
+    - [x] Enlaces en ambos emails + `app.base-url`, enlace directo y botón contextual en `/login`
+    - [x] Reglas #7 y #9 corregidas, `htmlFor`/`id` en los 16 labels de auth
+    - [x] 90 backend + 54 frontend · `EmailService` 100% líneas y ramas
+- [x] Tarea 5.3 — Historial de Pedidos (implementada, pendiente commit + PR)
+  - [x] Specs: `specs/user-orders/` (plan, spec, tasks) ✅ aprobada el 2026-10-01
+  - [x] Backend: `UserOrderController`, `OrderSummaryResponse`, `OrderPageResponse`, `listOrders` / `getOrderForUser`
+  - [x] Asociación de usuario al checkout: `OrderController` pasa `Authentication`, `OrderService.resolveUser()` setea `Order.user`
+  - [x] `OrderStatus` gana `SHIPPED` y `DELIVERED` (sin migración: la columna es `VARCHAR(32)`)
+  - [x] Pertenencia comprobada en la consulta → «no existe» y «es de otro usuario» devuelven ambos `404`
+  - [x] Frontend: `/orders` con tarjetas, `OrderStatusBadge`, paginación, `ProtectedRoute`, enlace «Pedidos» en el header
+  - [x] Tests: 90 → **106** backend, 54 → **65** frontend · cobertura **82,6 %**
+  - [x] e2e verificado contra la BD: checkout deja `user_id`, historial ordenado, `404` ajeno, `401` sin token
+  - [x] Bugs preexistentes corregidos: `403`→`401` sin credencial, `500`→`401` con token malformado
+  - [x] `globals.css`: eliminado el bloque `prefers-color-scheme: dark` heredado de create-next-app (dejaba `--foreground: #ededed` sobre fondos claros → textos invisibles; afectaba al logo del header en todas las páginas)
+  - [x] Specs 5.4 (`specs/product-returns/`) escritas y aprobadas en paralelo
 
 ---
 
 ## Tareas Pendiente
 
 ### Fase 5 — Gestión de Usuarios
-- [ ] Tarea 5.3 — Historial de Pedidos (`specs/user-orders/spec.md` pendiente de aprobación)
+- [ ] Tarea 5.4 — Devoluciones de Productos (`specs/product-returns/spec.md` ✅ aprobada)
+  - Alcance acordado: registro contable del reembolso, sin mover dinero (no hay PSP), solo estado `REQUESTED`
+- [ ] Tarea 5.3 — **commit + PR** (implementación ya terminada y verificada)
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
