@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
+import { getFriendlyErrorMessage } from "@/lib/errors";
 import { Order } from "@/types/commerce";
 import { useParams } from "next/navigation";
 
@@ -28,7 +29,11 @@ export default function OrderConfirmationPage() {
                 const data = await api.getOrder(orderNumber);
                 setOrder(data);
             } catch (err: unknown) {
-                setError(err instanceof Error ? err.message : "Error al cargar el pedido");
+                setError(
+                    err instanceof Error
+                        ? getFriendlyErrorMessage(err)
+                        : "Error al cargar el pedido"
+                );
             } finally {
                 setLoading(false);
             }

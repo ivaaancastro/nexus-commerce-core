@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import CartItemRow from "@/components/CartItemRow";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
+import { getFriendlyErrorMessage } from "@/lib/errors";
 
 /**
  * Página completa del carrito con checkout multilínea.
@@ -14,13 +16,24 @@ import { api } from "@/lib/api";
  */
 export default function CartPage() {
     const { items, subtotal, taxEstimate, currency, totalItems, clearCart } = useCart();
+    const { isAuthenticated } = useAuth();
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [needsAuth, setNeedsAuth] = useState(false);
 
     const handleCheckout = async () => {
-        setIsProcessing(true);
         setError(null);
+        setNeedsAuth(false);
+
+        // /api/v1/orders/** exige sesión en el backend: si no la hay, ni se
+        // emite la petición (R2 de specs/checkout-auth).
+        if (!isAuthenticated) {
+            setNeedsAuth(true);
+            return;
+        }
+
+        setIsProcessing(true);
 
         try {
             const idempotencyKey = crypto.randomUUID();
@@ -43,7 +56,11 @@ export default function CartPage() {
             clearCart();
             router.push(`/orders/${encodeURIComponent(order.orderNumber)}`);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Error al procesar el checkout");
+            setError(
+                err instanceof Error
+                    ? getFriendlyErrorMessage(err)
+                    : "Error al procesar el checkout"
+            );
             setIsProcessing(false);
         }
     };
@@ -121,6 +138,20 @@ export default function CartPage() {
                                         </span>
                                     </div>
                                 </div>
+
+                                {needsAuth && (
+                                    <div className="mt-4 p-3 bg-neutral-100 border border-neutral-300 text-neutral-700 text-xs">
+                                        <span className="uppercase tracking-wider">
+                                            Inicia sesión para completar tu compra
+                                        </span>
+                                        <Link
+                                            href="/login"
+                                            className="block mt-2 font-medium uppercase tracking-widest text-neutral-900 underline"
+                                        >
+                                            Iniciar sesión
+                                        </Link>
+                                    </div>
+                                )}
 
                                 {error && (
                                     <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs">

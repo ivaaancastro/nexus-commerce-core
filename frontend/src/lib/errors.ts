@@ -8,6 +8,17 @@ export function isUnverifiedEmailError(error: unknown): boolean {
 }
 
 /**
+ * Detecta el código HTTP con el formato exacto que emite `handleResponse()`:
+ * `API Error [401]: {…}`.
+ *
+ * Se ancla al prefijo y nunca al número suelto, porque `401` o `500` también
+ * aparecen dentro de un importe (`401.00`) y producirían falsos positivos.
+ */
+function isHttpStatus(message: string, status: number): boolean {
+    return message.includes(`API Error [${status}]`);
+}
+
+/**
  * Traduce errores técnicos del backend a mensajes amigables para el usuario.
  */
 export function getFriendlyErrorMessage(error: unknown): string {
@@ -53,8 +64,22 @@ export function getFriendlyErrorMessage(error: unknown): string {
         return "La contraseña debe tener al menos 8 caracteres.";
     }
 
+    // Códigos HTTP del proyecto (AGENTS.md §4.5)
+    if (isHttpStatus(message, 401)) {
+        return "Tu sesión ha caducado. Inicia de nuevo para continuar.";
+    }
+    if (isHttpStatus(message, 403)) {
+        return "No tienes permiso para realizar esta acción.";
+    }
+    if (isHttpStatus(message, 404)) {
+        return "No encontramos lo que buscas.";
+    }
+    if (isHttpStatus(message, 409)) {
+        return "No queda stock suficiente para completar el pedido.";
+    }
+
     // Errores de servidor
-    if (message.includes("500") || message.includes("Internal Server Error")) {
+    if (isHttpStatus(message, 500) || message.includes("Internal Server Error")) {
         return "Algo salió mal. Inténtalo de nuevo en unos minutos.";
     }
 
