@@ -75,6 +75,9 @@ export const api = {
             headers: {
                 "Content-Type": "application/json",
                 "Idempotency-Key": idempotencyKey,
+                // /api/v1/orders/** es authenticated() en SecurityConfig: sin este
+                // header el backend rechaza la petición con 401.
+                ...getAuthHeaders(),
             },
             body: JSON.stringify(request),
         });
@@ -85,6 +88,7 @@ export const api = {
     getOrder: async (orderNumber: string): Promise<Order> => {
         const res = await fetch(`${BASE_URL}/api/v1/orders/${encodeURIComponent(orderNumber)}`, {
             cache: "no-store",
+            headers: getAuthHeaders(),
         });
         return handleResponse<Order>(res);
     },
