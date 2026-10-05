@@ -6,6 +6,7 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **23 tests nuevos de frontend** para el fix de checkout: `Errors.test.ts` (12), `ApiAuthHeaders.test.ts` (7) y `CartPage.test.tsx` (4). 54 frontend → **77** en 12 archivos. `frontend/src/lib/errors.ts` no tenía ni un solo test.
 - Propiedad `app.base-url` (default `http://localhost:3000`) para construir los enlaces absolutos que viajan dentro de los emails transaccionales.
 - Helper `isUnverifiedEmailError()` en `frontend/src/lib/errors.ts` para detectar el error de cuenta sin verificar y ofrecerle salida.
 - **16 tests nuevos**: 84 backend → **90**, 44 frontend → **54**. `EmailService` con cobertura del **100 %** de líneas y ramas.
@@ -39,6 +40,12 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - `refresh()` en la página de direcciones recarga mediante clave de estado en lugar de una llamada directa dentro del efecto, cumpliendo `react-hooks/set-state-in-effect`.
 
 ### Fixed
+- **Código muerto en la ficha de producto**: `ProductDetailPage` declaraba `handleCheckout` y `checkoutLoading` que ningún botón ejecutaba —la PDP nunca tuvo «Comprar ahora», solo «Añadir a la bolsa»— junto con imports y tipos residuales (`use`, `Order`, `PageProps`, `useRouter`, `useAuth`). Se eliminan; 5 warnings de ESLint de ese fichero pasan a 0 y el componente pierde 55 líneas que no podían ejecutarse.
+- **El checkout siempre devolvía `401` con la sesión iniciada**: `api.checkout()` y `api.getOrder()` montaban sus cabeceras a mano sin incluir `getAuthHeaders()`, y como `/api/v1/orders/**` es `authenticated()` en `SecurityConfig`, el backend rechazaba la petición. El fallo era **anterior a la Tarea 5.3** (se reproducía igual en `main`, donde respondía `403`); la Tarea 5.3 solo cambió el código al correcto `401`. Ahora ambas llamadas envían `Authorization`, y el recibo y la confirmación de pedido vuelven a ser consultables.
+- **Guard de sesión antes de comprar**: pulsar «Tramitar pedido» sin sesión no emite ninguna petición al backend; muestra *«Inicia sesión para completar tu compra»* con enlace a `/login` en el carrito y en la ficha de producto.
+- **9 páginas pintaban el error técnico en crudo** (`err.message` → `API Error [401]: {…}` con timestamps y campos internos), incumpliendo la regla #9 de `AGENTS.md`: home (catálogo y búsqueda semántica), carrito, ficha de producto (carga y checkout), `forgot-password` (2), recibo y confirmación de pedido. Todas pasan ya por `getFriendlyErrorMessage()`.
+- `getFriendlyErrorMessage()` no cubría los códigos HTTP del proyecto (AGENTS.md §4.5): añadidos `401`, `403`, `404` y `409`. El matching va **anclado al prefijo** `API Error [n]` —nunca al número suelto— porque `401.00` o `500.00` en un importe activaban el mensaje equivocado.
+- `getFriendlyErrorMessage()` aplicaba `includes("500")`: un `409` con un cuerpo que contuviera `500.00` devolvía *«Inténtalo de nuevo en unos minutos»*. Ahora también anclado; el mensaje visible no cambia, solo desaparece el falso positivo.
 - **Acceso al código de verificación de email**: la pantalla `/verify-email` existía pero no tenía puntos de entrada alcanzables. El email llegaba sin enlace y `/login` solo permitía llegar tras un reenvío exitoso, dejando al usuario atrapado en el bucle *login → "revisa tu bandeja" → email sin enlace → login sin botón*. Ahora:
   - Los emails de verificación y de recuperación incluyen enlace absoluto con el email ya precargado (`EmailService` + nueva propiedad `app.base-url`).
   - `/login` muestra un enlace directo *«¿Ya tienes un código? Verifica tu cuenta»*.
