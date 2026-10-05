@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
+import { getFriendlyErrorMessage } from "@/lib/errors";
 
 export default function ForgotPasswordPage() {
     const { forgotPassword, resetPassword } = useAuth();
@@ -23,7 +24,11 @@ export default function ForgotPasswordPage() {
             await forgotPassword(email);
             setStep("reset");
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Error al solicitar recuperación");
+            setError(
+                err instanceof Error
+                    ? getFriendlyErrorMessage(err)
+                    : "Error al solicitar recuperación"
+            );
         } finally {
             setLoading(false);
         }
@@ -41,7 +46,11 @@ export default function ForgotPasswordPage() {
             setCode("");
             setNewPassword("");
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Error al resetear contraseña");
+            setError(
+                err instanceof Error
+                    ? getFriendlyErrorMessage(err)
+                    : "Error al resetear contraseña"
+            );
         } finally {
             setLoading(false);
         }
