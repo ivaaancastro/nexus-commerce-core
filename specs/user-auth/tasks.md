@@ -71,7 +71,7 @@
 
 - [x] `specs/user-auth/spec.md` §1.4 + criterios + tests (F1-F9)
 - [x] `CHANGELOG.md` — entrada `fix(auth)`
-- [ ] `MEMORY.md` / `AGENTS.md` — estado tras el merge
+- [x] `MEMORY.md` / `AGENTS.md` — estado tras el merge
 
 ---
 

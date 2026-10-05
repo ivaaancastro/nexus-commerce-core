@@ -7,13 +7,16 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
     const { openDrawer } = useCartDrawer();
-    const { user, isAuthenticated, logout } = useAuth();
+    const { isAuthenticated, logout } = useAuth();
 
     return (
         <header className="border-b border-neutral-200 bg-white sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                 <div className="flex items-center space-x-8">
-                    <Link href="/" className="text-xl font-semibold tracking-widest uppercase">
+                    <Link
+                        href="/"
+                        className="text-xl font-semibold tracking-widest uppercase text-neutral-900"
+                    >
                         Nexus Core
                     </Link>
                     <span className="text-xs tracking-wider text-neutral-400 uppercase hidden sm:inline">
@@ -33,6 +36,9 @@ export default function Header() {
 
                     {isAuthenticated ? (
                         <div className="flex items-center space-x-4">
+                            <Link href="/orders" className="hover:text-black transition-colors">
+                                Pedidos
+                            </Link>
                             <Link href="/profile" className="hover:text-black transition-colors">
                                 Cuenta
                             </Link>
