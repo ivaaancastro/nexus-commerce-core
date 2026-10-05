@@ -37,7 +37,16 @@ El usuario puede solicitar la devolución de una línea indicando un motivo.
 
 Cada devolución guarda el importe que se devolvería.
 
-**Criterio**: `refundAmount = unitPrice × quantity + taxAmount` de la línea. `BigDecimal` con `RoundingMode.HALF_UP` y escala 2 (**regla #4**). Se calcula y persiste en el momento de la solicitud.
+**Criterio**: `refundAmount = unitPrice × quantity` de la línea. `BigDecimal` con `RoundingMode.HALF_UP` y escala 2 (**regla #4**). Se calcula y persiste en el momento de la solicitud.
+
+> **Fórmula corregida el 2026-10-05, aprobada por el usuario.** La original era
+> `unitPrice × quantity + taxAmount` y **sumaba el IVA dos veces**: `unit_price`
+> guarda el PVP **con IVA ya incluido** (en el checkout,
+> `unitPrice = finalPrice()` y `subtotal += unitPrice×qty − taxAmount`), así que
+> `unitPrice × quantity` ya es el bruto pagado — es el `totalAmount` de la línea.
+> Para la línea de 79,95 EUR (66,07 + 13,88) la fórmula vieja declaraba
+> **93,83 EUR**, es decir, devolver 13,88 EUR que nunca se cobraron de más.
+> Regresión cubierta por `ReturnServiceTest.shouldNotAddTaxAgain()`.
 
 > ⚠️ **No mueve dinero.** El proyecto no tiene pasarela de pago. Este campo es un registro contable; el reembolso real queda fuera de alcance hasta existir un PSP.
 
@@ -160,17 +169,17 @@ CREATE INDEX idx_returns_user ON product_returns(user_id);
 
 ## 4. Criterios de Aceptación
 
-- [ ] Solo las líneas de pedidos `DELIVERED` con menos de 30 días son devolvibles
-- [ ] Al pasar los 30 días la línea deja de ser devolvible
-- [ ] Una línea ya devuelta no vuelve a ofrecerse
-- [ ] El importe usa `BigDecimal` con `HALF_UP` y escala 2
-- [ ] La solicitud persiste con estado `REQUESTED`
-- [ ] Pedido de otro usuario → `404`
-- [ ] Línea no elegible → `409`
-- [ ] Motivo vacío → `400`
-- [ ] La UI explica el motivo de no elegibilidad
-- [ ] Ningún movimiento de dinero real
-- [ ] Tests pasando (backend y frontend)
+- [x] Solo las líneas de pedidos `DELIVERED` con menos de 30 días son devolvibles
+- [x] Al pasar los 30 días la línea deja de ser devolvible
+- [x] Una línea ya devuelta no vuelve a ofrecerse
+- [x] El importe usa `BigDecimal` con `HALF_UP` y escala 2
+- [x] La solicitud persiste con estado `REQUESTED`
+- [x] Pedido de otro usuario → `404`
+- [x] Línea no elegible → `409`
+- [x] Motivo vacío → `400`
+- [x] La UI explica el motivo de no elegibilidad
+- [x] Ningún movimiento de dinero real
+- [x] Tests pasando (backend y frontend)
 
 ---
 
@@ -187,6 +196,14 @@ CREATE INDEX idx_returns_user ON product_returns(user_id);
 | Plazo de 30 días superado | `409 Conflict` |
 | Línea ya devuelta | `409 Conflict` |
 | Motivo vacío o > 500 caracteres | `400 Bad Request` |
+
+> **Ampliación durante la implementación** (2026-10-05, **aprobada por el usuario
+> el 2026-10-05**): el `409` de devoluciones añade `"code": "RETURN_NOT_ALLOWED"`
+> al cuerpo. El backend ya usaba `409` para *stock insuficiente*, y
+> `getFriendlyErrorMessage()` traducía todo `409` a «No queda stock suficiente…»,
+> lo que habría mostrado un mensaje falso al usuario. El `code` es el
+> discriminador explícito: si está, se muestra el `message` del backend (ya
+> redactado para el usuario); si no, se mantiene la traducción de stock.
 
 ---
 
@@ -219,4 +236,4 @@ CREATE INDEX idx_returns_user ON product_returns(user_id);
 
 ---
 
-*Spec pendiente de aprobación. No implementar hasta tener el OK del usuario.*
+*Spec aprobada por el usuario el 2026-10-01. La Tarea 5.4 puede implementarse.*

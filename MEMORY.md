@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/user-orders` |
+| **Rama actual** | `feat/product-returns` |
 | **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
-| **Tarea actual** | Tarea 5.3 — Historial de Pedidos (implementada, pendiente commit + PR) |
-| **Estado** | Specs 5.3 y 5.4 ✅ aprobadas · 106 backend + 65 frontend · e2e verificado |
-| **Última actualización** | 2026-10-01 |
+| **Tarea actual** | Tarea 5.4 — Devoluciones (implementada, pendiente commit + PR) |
+| **Estado** | 5.3 (PR #12) y fix de checkout (PR #13) mergeadas · **134 backend + 100 frontend** · CI green en `main` |
+| **Última actualización** | 2026-10-05 |
 
 ---
 
@@ -58,7 +58,7 @@
     - [x] Enlaces en ambos emails + `app.base-url`, enlace directo y botón contextual en `/login`
     - [x] Reglas #7 y #9 corregidas, `htmlFor`/`id` en los 16 labels de auth
     - [x] 90 backend + 54 frontend · `EmailService` 100% líneas y ramas
-- [x] Tarea 5.3 — Historial de Pedidos (implementada, pendiente commit + PR)
+- [x] Tarea 5.3 — Historial de Pedidos — **PR #12 mergeado en `main`** (`cd9ca74`, 2026-10-05)
   - [x] Specs: `specs/user-orders/` (plan, spec, tasks) ✅ aprobada el 2026-10-01
   - [x] Backend: `UserOrderController`, `OrderSummaryResponse`, `OrderPageResponse`, `listOrders` / `getOrderForUser`
   - [x] Asociación de usuario al checkout: `OrderController` pasa `Authentication`, `OrderService.resolveUser()` setea `Order.user`
@@ -70,15 +70,34 @@
   - [x] Bugs preexistentes corregidos: `403`→`401` sin credencial, `500`→`401` con token malformado
   - [x] `globals.css`: eliminado el bloque `prefers-color-scheme: dark` heredado de create-next-app (dejaba `--foreground: #ededed` sobre fondos claros → textos invisibles; afectaba al logo del header en todas las páginas)
   - [x] Specs 5.4 (`specs/product-returns/`) escritas y aprobadas en paralelo
+- [x] Fix de checkout 401 (`specs/checkout-auth/`) — **PR #13 mergeado en `main`** (`8704dff`, 2026-10-05)
+  - [x] **Decisión: el checkout requiere sesión** — sin `permitAll` en `/api/v1/orders/checkout`; el carrito no emite la petición y muestra «Inicia sesión para completar tu compra»
+  - [x] `api.checkout()` / `api.getOrder()` no enviaban `Authorization` (bug preexistente desde su creación)
+  - [x] 9 páginas pintaban `err.message` crudo → traducidas con `getFriendlyErrorMessage()`
+  - [x] `getFriendlyErrorMessage()` anclado al prefijo `API Error [n]` con `isHttpStatus()`, y reglas nuevas para `401/403/404/409`
+  - [x] Código muerto de checkout en la PDP eliminado (`handleCheckout`, `checkoutLoading`, imports residuales)
+  - [x] Tests: backend 106 · frontend 88
+- [x] Tarea 5.4 — Devoluciones de Productos (`specs/product-returns/`) — **implementada, pendiente commit + PR**
+  - [x] Specs: `specs/product-returns/` (plan, spec, tasks) ✅ aprobada el 2026-10-01
+  - [x] Backend: migración `V9__product_returns.sql`, `ProductReturn`, `ReturnStatus`, `ReturnEligibilityService` (con `Clock` inyectable), `ReturnService`, `ReturnNotAllowedException` → `409`, endpoints `POST/GET …/{orderNumber}/returns`
+  - [x] `OrderItemResponse` gana `returnEligible` + `returnIneligibleReason`
+  - [x] Orden de elegibilidad `NOT_DELIVERED → ALREADY_RETURNED → EXPIRED`: el checkout (pedido `PENDING`) sale sin consultar la BD y una línea ya devuelta no muestra «plazo agotado»
+  - [x] `refundAmount = unitPrice × quantity`, `BigDecimal` + `HALF_UP` escala 2 — **registro contable, no mueve dinero** (no hay PSP)
+  - [x] **Bug de la spec corregido** (aprobado el 2026-10-05): la fórmula original sumaba `taxAmount`, pero `unit_price` ya es bruto con IVA incluido → declaraba 93,83 EUR por una línea pagada a 79,95 EUR. Test de regresión `shouldNotAddTaxAgain()`
+  - [x] Carrera sobre el `UNIQUE (order_item_id)` → `DataIntegrityViolationException` → `409`, nunca `500`
+  - [x] **Ampliación de spec** (anotada en §5): el `409` de devoluciones añade `code: RETURN_NOT_ALLOWED`, porque `getFriendlyErrorMessage()` traducía *todo* `409` a «No queda stock suficiente…»
+  - [x] Frontend: sección «Devoluciones» en `/orders/[orderNumber]` con botón «Devolver», motivo legible (R8), formulario `noValidate`, estado `Solicitada` + importe y toast. Solo con sesión
+  - [x] Tests: 106 → **134** backend, 88 → **100** frontend
+  - [x] Docs: `CHANGELOG.md`, `README.md` §3 (añadidos también los endpoints de la 5.3, que faltaban), puntero en `specs/user-orders/spec.md`
 
 ---
 
 ## Tareas Pendiente
 
 ### Fase 5 — Gestión de Usuarios
-- [ ] Tarea 5.4 — Devoluciones de Productos (`specs/product-returns/spec.md` ✅ aprobada)
+- [ ] Tarea 5.4 — **commit + PR** (implementación y documentación ya terminadas y verificadas)
   - Alcance acordado: registro contable del reembolso, sin mover dinero (no hay PSP), solo estado `REQUESTED`
-- [ ] Tarea 5.3 — **commit + PR** (implementación ya terminada y verificada)
+  - Pendiente: `AGENTS.md` + `MEMORY.md` no deben quedar desactualizados otra vez (los dos bloques se han quedado atrás tras la 5.3)
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
@@ -130,4 +149,4 @@
 
 ---
 
-*Última actualización: 2026-10-01 por agente IA*
+*Última actualización: 2026-10-05 por agente IA — Tarea 5.4 implementada en `feat/product-returns`.*
