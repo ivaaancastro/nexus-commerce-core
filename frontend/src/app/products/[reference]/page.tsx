@@ -1,21 +1,17 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Header from "@/components/Header";
 import ProductDetailSkeleton from "@/components/ProductDetailSkeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AddToCartButton from "@/components/AddToCartButton";
 import { api } from "@/lib/api";
-import { Product, Sku, PriceBreakdown, StockInfo, Order } from "@/types/commerce";
-import { useRouter, useParams } from "next/navigation";
-
-interface PageProps {
-    params: Promise<{ reference: string }>;
-}
+import { getFriendlyErrorMessage } from "@/lib/errors";
+import { Product, Sku, PriceBreakdown, StockInfo } from "@/types/commerce";
+import { useParams } from "next/navigation";
 
 export default function ProductDetailPage() {
-    const router = useRouter();
     const params = useParams();
     const referenceCode = params?.reference
         ? decodeURIComponent(params.reference as string)
@@ -27,7 +23,6 @@ export default function ProductDetailPage() {
     const [stock, setStock] = useState<StockInfo | null>(null);
 
     const [loading, setLoading] = useState(true);
-    const [checkoutLoading, setCheckoutLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     useEffect(() => {
@@ -40,7 +35,11 @@ export default function ProductDetailPage() {
                     setSelectedSku(data.skus[0]);
                 }
             } catch (err: unknown) {
-                setErrorMessage(err instanceof Error ? err.message : "Error al cargar la prenda");
+                setErrorMessage(
+                    err instanceof Error
+                        ? getFriendlyErrorMessage(err)
+                        : "Error al cargar la prenda"
+                );
             } finally {
                 setLoading(false);
             }
@@ -71,45 +70,6 @@ export default function ProductDetailPage() {
         }
         loadSkuData();
     }, [selectedSku]);
-    const handleCheckout = async () => {
-        if (!selectedSku || !stock || stock.breakdown.length === 0) return;
-
-        const targetWarehouse = stock.breakdown.find((w) => w.netAvailable > 0);
-        if (!targetWarehouse) {
-            setErrorMessage("No hay stock disponible en ningún almacén para esta talla.");
-            return;
-        }
-
-        try {
-            setCheckoutLoading(true);
-            setErrorMessage(null);
-
-            // Clave de Idempotencia generada en cliente (UUID estándar RFC 4122)
-            const idempotencyKey = crypto.randomUUID();
-
-            const order = await api.checkout(
-                {
-                    marketCode: "ES",
-                    items: [
-                        {
-                            skuId: selectedSku.id,
-                            warehouseCode: targetWarehouse.warehouseCode,
-                            quantity: 1,
-                        },
-                    ],
-                },
-                idempotencyKey
-            );
-
-            // Redirección inmediata a la página de recibo
-            router.push(`/orders/${encodeURIComponent(order.orderNumber)}`);
-
-        } catch (err: unknown) {
-            setErrorMessage(err instanceof Error ? err.message : "Error al procesar el checkout");
-        } finally {
-            setCheckoutLoading(false);
-        }
-    };
 
     if (loading) {
         return <ProductDetailSkeleton />;

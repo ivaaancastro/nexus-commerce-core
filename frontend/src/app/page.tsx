@@ -7,6 +7,7 @@ import ProductCard from "@/components/ProductCard";
 import ProductCardSkeleton from "@/components/ProductCardSkeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { api } from "@/lib/api";
+import { getFriendlyErrorMessage } from "@/lib/errors";
 import { Product, SemanticSearchResult } from "@/types/commerce";
 
 export default function HomePage() {
@@ -30,7 +31,11 @@ export default function HomePage() {
       setSemanticResults([]);
       setActiveQuery("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error al conectar con el backend");
+      setError(
+        err instanceof Error
+          ? getFriendlyErrorMessage(err)
+          : "Error al conectar con el backend"
+      );
     } finally {
       setLoading(false);
     }
@@ -44,7 +49,9 @@ export default function HomePage() {
       const results = await api.searchSemantic(query, 12);
       setSemanticResults(results);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Fallo en la búsqueda semántica");
+      setError(
+        err instanceof Error ? getFriendlyErrorMessage(err) : "Fallo en la búsqueda semántica"
+      );
     } finally {
       setLoading(false);
     }
