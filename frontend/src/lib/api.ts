@@ -5,6 +5,7 @@ import {
     StockInfo,
     CheckoutRequest,
     Order,
+    OrderPage,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation } from "@/types/auth";
 
@@ -85,6 +86,24 @@ export const api = {
         const res = await fetch(`${BASE_URL}/api/v1/orders/${encodeURIComponent(orderNumber)}`, {
             cache: "no-store",
         });
+        return handleResponse<Order>(res);
+    },
+
+    // ── Historial de pedidos (solo sesión) ──────────────────────────────────
+
+    getMyOrders: async (page: number = 0, size: number = 20): Promise<OrderPage> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/users/me/orders?page=${page}&size=${size}`,
+            { headers: getAuthHeaders(), cache: "no-store" }
+        );
+        return handleResponse<OrderPage>(res);
+    },
+
+    getMyOrder: async (orderNumber: string): Promise<Order> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/users/me/orders/${encodeURIComponent(orderNumber)}`,
+            { headers: getAuthHeaders(), cache: "no-store" }
+        );
         return handleResponse<Order>(res);
     },
 

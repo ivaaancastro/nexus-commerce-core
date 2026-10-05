@@ -1,8 +1,9 @@
 # Spec: Tarea 5.3 — Historial de Pedidos
 
-> **Estado**: PENDIENTE DE APROBACIÓN
+> **Estado**: ✅ APROBADA
 > **Fecha**: 2026-10-01
 > **Rama**: `feat/user-orders`
+> **Aprobada por el usuario**: 2026-10-01
 
 ---
 
@@ -57,6 +58,8 @@ El historial requiere autenticación.
 El historial debe paginar cuando hay muchos pedidos.
 
 **Criterio**: Paginación por páginas de 20 con navegación.
+
+> 📎 **Fuera de este alcance — Tarea 5.4**: la devolución de productos (ventana de 30 días, pedido `DELIVERED`, registro contable del reembolso) se trasladó a `specs/product-returns/spec.md` por volumen. Este task se mantiene como lectura de historial.
 
 ---
 
@@ -128,4 +131,4 @@ Cambio de comportamiento: `OrderService.processCheckout` debe asociar el usuario
 
 ---
 
-*Spec pendiente de aprobación. No implementar hasta tener el OK del usuario.*
+*Spec aprobada el 2026-10-01. Lista para implementar.*

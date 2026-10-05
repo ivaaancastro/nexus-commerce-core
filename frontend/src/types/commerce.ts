@@ -78,18 +78,53 @@ export interface OrderItem {
     totalAmount: number;
 }
 
+/**
+ * Estados del pedido. Refleja el enum `OrderStatus` del backend.
+ */
+export type OrderStatus =
+    | "PENDING"
+    | "CONFIRMED"
+    | "SHIPPED"
+    | "DELIVERED"
+    | "CANCELLED";
+
 export interface Order {
     id: number;
     orderNumber: string;
     idempotencyKey: string;
     marketCode: string;
     currency: string;
-    status: "PENDING" | "CONFIRMED" | "CANCELLED";
+    status: OrderStatus;
     subtotalAmount: number;
     taxAmount: number;
     totalAmount: number;
     createdAt: string;
     items: OrderItem[];
+}
+
+/**
+ * Fila del historial de pedidos. Corresponde a `OrderSummaryResponse`.
+ * No incluye las líneas: solo el número de artículos.
+ */
+export interface OrderSummary {
+    id: number;
+    orderNumber: string;
+    status: OrderStatus;
+    currency: string;
+    totalAmount: number;
+    createdAt: string;
+    itemCount: number;
+}
+
+/**
+ * Página del historial. Corresponde a `OrderPageResponse`.
+ */
+export interface OrderPage {
+    orders: OrderSummary[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
 }
 
 export interface CartItem {

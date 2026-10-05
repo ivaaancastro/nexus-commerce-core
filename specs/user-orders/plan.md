@@ -1,6 +1,6 @@
 # Plan: Tarea 5.3 — Historial de Pedidos
 
-> **Estado**: PENDIENTE  
+> **Estado**: ✅ APROBADO  
 > **Fecha**: 2026-10-01  
 > **Rama**: `feat/user-orders`
 
