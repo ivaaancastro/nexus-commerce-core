@@ -6,6 +6,19 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Devoluciones de productos** (Tarea 5.4, spec `specs/product-returns/`):
+  - Endpoints 🔒 `POST /api/v1/users/me/orders/{orderNumber}/returns` (`201 Created`) y `GET …/returns` en `UserOrderController`.
+  - `ReturnEligibilityService` con `Clock` inyectable (`ClockConfig`): R1 (menos de 30 días **desde la compra**, ventana estricta), R2 (solo pedidos `DELIVERED`) y R3 (una devolución por línea). Se evalúa en orden `NOT_DELIVERED → ALREADY_RETURNED → EXPIRED`, de modo que el checkout sale sin consultar la BD y una línea ya devuelta no muestra «plazo agotado».
+  - `ReturnService.createReturn` valida R1/R2/R3 **antes** de persistir y calcula `refundAmount = unitPrice × quantity` con `BigDecimal` + `HALF_UP` escala 2 (regla #4). **Es un registro contable: no mueve dinero** — el proyecto no tiene pasarela de pago.
+  - **Fórmula de R5 corregida** (aprobada por el usuario, 2026-10-05): la spec decía `unitPrice × quantity + taxAmount`, que **sumaba el IVA dos veces** — `unit_price` guarda el PVP con IVA ya incluido, así que para una línea de 79,95 EUR declaraba devolver 93,83 EUR. Regresión cubierta por `ReturnServiceTest.shouldNotAddTaxAgain()`.
+  - Migración `V9__product_returns.sql` con la restricción `uq_return_per_item` (última línea de defensa de R3) y `idx_returns_user`. Una carrera sobre el `UNIQUE` se traduce a `409`, no a `500`.
+  - Excepción `ReturnNotAllowedException` → `409 Conflict`, con `code: "RETURN_NOT_ALLOWED"` en el cuerpo.
+  - `OrderItemResponse` gana `returnEligible` y `returnIneligibleReason` (`NOT_DELIVERED` | `EXPIRED` | `ALREADY_RETURNED`), presente en el detalle y en el checkout (donde es siempre `false`, sin efecto práctico).
+  - Sección **Devoluciones** en `/orders/[orderNumber]`: botón «Devolver» habilitado por línea, motivo legible cuando no lo está («Plazo agotado — se compró el {fecha}», «Pedido aún no entregado», «Ya devuelto»), formulario con `noValidate` y validación propia, estado `Solicitada` con el importe reembolsado y toast de confirmación. La sección solo se renderiza con sesión.
+  - Tipo `ProductReturn`, `ReturnIneligibleReason`, `CreateReturnPayload` y `ReturnStatus` en `frontend/src/types/commerce.ts`, y métodos `getMyReturns` / `createReturn` en la capa de API.
+  - **28 tests nuevos de backend**: 106 → **134**. Nuevas suites `ReturnEligibilityServiceTest` (9) y `ReturnServiceTest` (11), más `UserOrderControllerTest` (+6) y `OrderServiceTest` (+2).
+- **12 tests nuevos de frontend** para las devoluciones: `OrderDetailPage.test.tsx` (+8, de 2 a 10) y `Errors.test.ts` (+4). El frontend queda en **100 tests** en 15 ficheros.
+- `getFriendlyErrorMessage()` distingue el `409` de devoluciones del `409` de stock mediante el campo `code`. El backend ya emitía `409` para ambos y la traducción única decía «No queda stock suficiente…», mensaje falso para quien intenta devolver. Detalle en §5 de la spec.
 - **23 tests nuevos de frontend** para el fix de checkout: `Errors.test.ts` (12), `ApiAuthHeaders.test.ts` (7) y `CartPage.test.tsx` (4). `frontend/src/lib/errors.ts` no tenía ni un solo test. Con la Tarea 5.3, el frontend queda en **88 tests** en 15 ficheros.
 - **Historial de pedidos** (Tarea 5.3, spec `specs/user-orders/`):
   - Endpoints `GET /api/v1/users/me/orders` (paginado) y `GET /api/v1/users/me/orders/{orderNumber}` en el nuevo `UserOrderController`.

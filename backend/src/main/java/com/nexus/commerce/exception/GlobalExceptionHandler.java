@@ -21,6 +21,22 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    /**
+     * 409 de devoluciones (Tarea 5.4). Lleva {@code code} para que el frontend
+     * pueda distinguirlo del 409 de stock: ambos son «Conflict», pero el mensaje
+     * a mostrar es completamente distinto.
+     */
+    @ExceptionHandler(ReturnNotAllowedException.class)
+    public ResponseEntity<Map<String, Object>> handleReturnNotAllowed(ReturnNotAllowedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "error", "Conflict",
+                "code", "RETURN_NOT_ALLOWED",
+                "message", ex.getMessage()
+        ));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(

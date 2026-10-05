@@ -5,8 +5,15 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexus.commerce.dto.OrderPageResponse;
 import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.dto.OrderSummaryResponse;
+import com.nexus.commerce.dto.ReturnRequest;
+import com.nexus.commerce.dto.ReturnResponse;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.ReturnStatus;
+import com.nexus.commerce.exception.GlobalExceptionHandler;
+import com.nexus.commerce.exception.ResourceNotFoundException;
+import com.nexus.commerce.exception.ReturnNotAllowedException;
 import com.nexus.commerce.service.OrderService;
+import com.nexus.commerce.service.ReturnService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,6 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -43,12 +51,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UserOrderControllerTest {
 
     private static final String EMAIL = "ana@example.com";
+    private static final String ORDER = "ORD-001";
 
     private MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Mock
     private OrderService orderService;
+
+    @Mock
+    private ReturnService returnService;
 
     @InjectMocks
     private UserOrderController userOrderController;
@@ -58,6 +70,7 @@ class UserOrderControllerTest {
         ObjectMapper mvcMapper = new ObjectMapper().registerModule(new JavaTimeModule());
         mockMvc = MockMvcBuilders.standaloneSetup(userOrderController)
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(mvcMapper))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
@@ -143,5 +156,97 @@ class UserOrderControllerTest {
         // WHEN / THEN
         mockMvc.perform(asUser(get("/api/v1/users/me/orders/ORD-INEXISTENTE")))
                 .andExpect(status().isNotFound());
+    }
+
+    // ---------------------------------------------------------------- Devoluciones (Tarea 5.4)
+
+    @Test
+    @DisplayName("POST /me/orders/{orderNumber}/returns - Responde 201 con la devolución creada")
+    void shouldCreateReturnAndRespond201() throws Exception {
+        // GIVEN
+        ReturnResponse response = new ReturnResponse(
+                10L, 55L, "SKU-55", ReturnStatus.REQUESTED, "Talla incorrecta",
+                "EUR", new BigDecimal("50.00"), Instant.now());
+        when(returnService.createReturn(eq(EMAIL), eq(ORDER), any(ReturnRequest.class)))
+                .thenReturn(response);
+
+        // WHEN / THEN
+        mockMvc.perform(asUser(post("/api/v1/users/me/orders/ORD-001/returns")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"orderItemId\":55,\"reason\":\"Talla incorrecta\"}")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(10))
+                .andExpect(jsonPath("$.orderItemId").value(55))
+                .andExpect(jsonPath("$.status").value("REQUESTED"))
+                .andExpect(jsonPath("$.currency").value("EUR"))
+                .andExpect(jsonPath("$.refundAmount").value(50.00));
+    }
+
+    @Test
+    @DisplayName("POST /me/orders/{orderNumber}/returns - Responde 400 si el motivo va en blanco")
+    void shouldRespond400WhenReasonIsBlank() throws Exception {
+        // WHEN / THEN  (regla de R4: validación en servidor como respaldo)
+        mockMvc.perform(asUser(post("/api/v1/users/me/orders/ORD-001/returns")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"orderItemId\":55,\"reason\":\"  \"}")))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /me/orders/{orderNumber}/returns - Responde 409 si la línea no es elegible")
+    void shouldRespond409WhenLineIsNotEligible() throws Exception {
+        // GIVEN
+        when(returnService.createReturn(eq(EMAIL), eq(ORDER), any(ReturnRequest.class)))
+                .thenThrow(new ReturnNotAllowedException("Ha pasado el plazo de 30 días desde la compra."));
+
+        // WHEN / THEN
+        mockMvc.perform(asUser(post("/api/v1/users/me/orders/ORD-001/returns")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"orderItemId\":55,\"reason\":\"Talla incorrecta\"}")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Ha pasado el plazo de 30 días desde la compra."));
+    }
+
+    @Test
+    @DisplayName("POST /me/orders/{orderNumber}/returns - Responde 404 si la línea no pertenece al pedido")
+    void shouldRespond404WhenOrderItemIdIsNotFromOrder() throws Exception {
+        // GIVEN
+        when(returnService.createReturn(eq(EMAIL), eq(ORDER), any(ReturnRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Línea de pedido no encontrada"));
+
+        // WHEN / THEN
+        mockMvc.perform(asUser(post("/api/v1/users/me/orders/ORD-001/returns")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"orderItemId\":999,\"reason\":\"Talla incorrecta\"}")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("GET /me/orders/{orderNumber}/returns - Lista las devoluciones del pedido")
+    void shouldListReturnsOfOrder() throws Exception {
+        // GIVEN
+        ReturnResponse response = new ReturnResponse(
+                10L, 55L, "SKU-55", ReturnStatus.REQUESTED, "Talla incorrecta",
+                "EUR", new BigDecimal("50.00"), Instant.now());
+        when(returnService.listReturns(EMAIL, ORDER)).thenReturn(List.of(response));
+
+        // WHEN / THEN
+        mockMvc.perform(asUser(get("/api/v1/users/me/orders/ORD-001/returns")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].orderItemId").value(55))
+                .andExpect(jsonPath("$[0].refundAmount").value(50.00));
+    }
+
+    @Test
+    @DisplayName("GET /me/orders/{orderNumber}/returns - Devuelve lista vacía si aún no hay devoluciones")
+    void shouldReturnEmptyListWhenNoReturns() throws Exception {
+        // GIVEN
+        when(returnService.listReturns(EMAIL, ORDER)).thenReturn(List.of());
+
+        // WHEN / THEN
+        mockMvc.perform(asUser(get("/api/v1/users/me/orders/ORD-001/returns")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(0));
     }
 }

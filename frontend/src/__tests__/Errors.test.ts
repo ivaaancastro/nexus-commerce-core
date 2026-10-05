@@ -63,6 +63,57 @@ describe("getFriendlyErrorMessage", () => {
         });
     });
 
+    describe("409 de devoluciones (Tarea 5.4)", () => {
+        it("muestra el mensaje del backend en lugar del de stock", () => {
+            // El backend emite 409 tanto para stock como para devoluciones;
+            // solo el de devoluciones trae `code`.
+            const crudo = apiError(
+                409,
+                '{"timestamp":"2026-10-05T12:00:00+02:00","status":409,' +
+                    '"error":"Conflict","code":"RETURN_NOT_ALLOWED",' +
+                    '"message":"Ha pasado el plazo de 30 días desde la compra."}'
+            );
+
+            const mensaje = getFriendlyErrorMessage(crudo);
+
+            expect(mensaje).toBe("Ha pasado el plazo de 30 días desde la compra.");
+            expect(mensaje).not.toContain("stock");
+            expect(mensaje).not.toContain("API Error");
+            expect(mensaje).not.toContain("RETURN_NOT_ALLOWED");
+        });
+
+        it("el 409 de stock sigue explicando que faltan existencias", () => {
+            const crudo = apiError(
+                409,
+                '{"timestamp":"2026-10-05T12:00:00+02:00","status":409,' +
+                    '"error":"Conflict","message":"Stock insuficiente en WH_ARTEIXO"}'
+            );
+
+            expect(getFriendlyErrorMessage(crudo)).toBe(
+                "No queda stock suficiente para completar el pedido."
+            );
+        });
+
+        it("con `RETURN_NOT_ALLOWED` pero sin message utilizable cae al mensaje genérico de 409", () => {
+            const crudo = apiError(
+                409,
+                '{"status":409,"error":"Conflict","code":"RETURN_NOT_ALLOWED"}'
+            );
+
+            expect(getFriendlyErrorMessage(crudo)).toBe(
+                "No queda stock suficiente para completar el pedido."
+            );
+        });
+
+        it("no rompe si el cuerpo no es JSON", () => {
+            const crudo = apiError(409, '"RETURN_NOT_ALLOWED" — cuerpo ilegible');
+
+            expect(getFriendlyErrorMessage(crudo)).toBe(
+                "No queda stock suficiente para completar el pedido."
+            );
+        });
+    });
+
     describe("Matching anclado al prefijo (evita falsos positivos)", () => {
         it("no confunde «401» dentro de un importe con un error HTTP 401", () => {
             // El importe 401.00 aparece en el cuerpo: sin anclaje esto devolvería

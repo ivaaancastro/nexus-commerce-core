@@ -76,6 +76,42 @@ export interface OrderItem {
     taxRate: number;
     taxAmount: number;
     totalAmount: number;
+    /** `true` solo si cumple R1 (30 días) + R2 (DELIVERED) + R3 (sin devolución previa). */
+    returnEligible: boolean;
+    /** Motivo de inelegibilidad, o `null` si la línea es devolvible. */
+    returnIneligibleReason: ReturnIneligibleReason | null;
+}
+
+/**
+ * Motivo por el que una línea no admite devolución. Refleja los valores de
+ * `returnIneligibleReason` del backend (spec Tarea 5.4, R8).
+ */
+export type ReturnIneligibleReason =
+    | "NOT_DELIVERED"
+    | "EXPIRED"
+    | "ALREADY_RETURNED";
+
+/** Estados de una devolución. Refleja el enum `ReturnStatus` del backend. */
+export type ReturnStatus = "REQUESTED" | "REJECTED" | "REFUNDED";
+
+/**
+ * Devolución de una línea. Corresponde a `ReturnResponse`.
+ * `refundAmount` es un registro contable: no hay pasarela de pago, no mueve dinero.
+ */
+export interface ProductReturn {
+    id: number;
+    orderItemId: number;
+    skuCode: string;
+    status: ReturnStatus;
+    reason: string;
+    currency: string;
+    refundAmount: number;
+    requestedAt: string;
+}
+
+export interface CreateReturnPayload {
+    orderItemId: number;
+    reason: string;
 }
 
 /**
