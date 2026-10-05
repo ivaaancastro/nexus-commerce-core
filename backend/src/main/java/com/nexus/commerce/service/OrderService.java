@@ -36,6 +36,7 @@ public class OrderService {
     private final InventoryService inventoryService;
     private final PricingService pricingService;
     private final WarehouseSelectionService warehouseSelectionService;
+    private final ReturnEligibilityService returnEligibilityService;
 
     @Transactional
     public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request, String userEmail) {
@@ -210,17 +211,25 @@ public class OrderService {
 
     private OrderResponse mapToOrderResponse(Order order) {
         List<OrderItemResponse> itemResponses = order.getItems().stream()
-                .map(item -> new OrderItemResponse(
-                        item.getId(),
-                        item.getSku().getId(),
-                        item.getSku().getBarcode(),
-                        item.getWarehouseCode(),
-                        item.getQuantity(),
-                        item.getUnitPrice(),
-                        item.getTaxRate(),
-                        item.getTaxAmount(),
-                        item.getTotalAmount()
-                ))
+                .map(item -> {
+                    // §2.2 de la spec: la elegibilidad viaja enriquecida en el detalle.
+                    // En el checkout el pedido es PENDING, así que sale por R2 sin consultar BD.
+                    ReturnEligibilityService.Eligibility eligibility =
+                            returnEligibilityService.evaluate(order, item);
+                    return new OrderItemResponse(
+                            item.getId(),
+                            item.getSku().getId(),
+                            item.getSku().getBarcode(),
+                            item.getWarehouseCode(),
+                            item.getQuantity(),
+                            item.getUnitPrice(),
+                            item.getTaxRate(),
+                            item.getTaxAmount(),
+                            item.getTotalAmount(),
+                            eligibility.eligible(),
+                            eligibility.ineligibleReason()
+                    );
+                })
                 .toList();
 
         return new OrderResponse(
