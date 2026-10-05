@@ -9,12 +9,16 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `feat/user-orders` |
+| **Rama activa** | `feat/product-returns` |
 | **Fase** | 5 — Gestión de Usuarios |
-| **Tarea** | 5.3 — Historial de Pedidos (specs ✅ aprobadas, en implementación) |
-| **Tarea siguiente** | 5.4 — Devoluciones (`specs/product-returns/`, spec ✅ aprobada) |
-| **Pendiente** | Completar Tarea 5.3 → commit + PR |
-| **Actualizado** | 2026-10-01 |
+| **Tarea** | 5.4 — Devoluciones (implementada y documentada, pendiente commit + PR) |
+| **Tarea siguiente** | Por definir — la 5.4 es la última spec escrita |
+| **Pendiente** | Commit + PR de `feat/product-returns` |
+| **Actualizado** | 2026-10-05 |
+
+> **Estado de pruebas**: 134 backend · 100 frontend · CI verde en `main`.
+> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`) y fix de checkout (PR #13, `8704dff`).
+> **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
 > Léelo al iniciar sesión para contexto completo.
@@ -524,4 +528,4 @@ gh pr checks <número>
 
 ---
 
-*Última actualización: 2026-10-01*
+*Última actualización: 2026-10-05*

@@ -90,12 +90,14 @@ Fuente única de verdad: el backend decide si una línea es devolvible. El front
 
 ## 6. Criterios de Aceptación
 
-- [ ] Solo las líneas de pedidos `DELIVERED` con menos de 30 días aparecen como devolvibles
-- [ ] Una línea ya devuelta no vuelve a ofrecerse
-- [ ] El importe se calcula con `BigDecimal` / `HALF_UP`
-- [ ] Un pedido de otro usuario devuelve `404`
-- [ ] Todo funciona sin mover dinero real
-- [ ] Tests pasando (backend y frontend)
+- [x] Solo las líneas de pedidos `DELIVERED` con menos de 30 días aparecen como devolvibles
+- [x] Una línea ya devuelta no vuelve a ofrecerse
+- [x] El importe se calcula con `BigDecimal` / `HALF_UP`
+- [x] Un pedido de otro usuario devuelve `404`
+- [x] Todo funciona sin mover dinero real
+- [x] Tests pasando (backend y frontend)
+
+> Verificado el 2026-10-05: 134 tests backend + 101 frontend en verde, ESLint en baseline.
 
 ---
 
