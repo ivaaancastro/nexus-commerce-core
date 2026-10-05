@@ -133,7 +133,7 @@ describe("OrderHistoryPage", () => {
         expect(link).toHaveAttribute("href", "/receipt/ORD%20001");
     });
 
-    it("debe declarar color explícito en el enlace al recibo para no heredar el del body", async () => {
+    it("debe declarar color explícito en los enlaces de la tarjeta para no heredar el del body", async () => {
         // GIVEN — globals.css cambia --foreground a #ededed con prefers-color-scheme: dark,
         // pero esta página fija fondos claros. Sin color propio el enlace sale casi
         // invisible sobre blanco (rgb(237,237,237)).
@@ -141,10 +141,28 @@ describe("OrderHistoryPage", () => {
 
         // WHEN
         renderHistory();
-        const link = await screen.findByRole("link", { name: /ver recibo/i });
+        const recibo = await screen.findByRole("link", { name: /ver recibo/i });
+        const pedido = screen.getByRole("link", { name: /ver pedido/i });
+
+        // THEN — basta con cualquier `text-neutral-*` explícito; lo que importa es
+        // que ninguno de los dos enlaces dependa del color heredado.
+        expect(recibo.className).toMatch(/text-neutral-\d+/);
+        expect(pedido.className).toMatch(/text-neutral-\d+/);
+    });
+
+    it("debe enlazar cada pedido a su detalle, donde vive la sección de devoluciones", async () => {
+        // GIVEN — la sección de devoluciones (Tarea 5.4) está en /orders/{orderNumber},
+        // y el listado solo enlazaba al recibo: la función era inalcanzable desde la UI.
+        vi.mocked(api.getMyOrders).mockResolvedValue(
+            makePage([makeOrder({ orderNumber: "ORD 001" })])
+        );
+
+        // WHEN
+        renderHistory();
+        const link = await screen.findByRole("link", { name: /ver pedido/i });
 
         // THEN
-        expect(link.className).toContain("text-neutral-900");
+        expect(link).toHaveAttribute("href", "/orders/ORD%20001");
     });
 
     it("debe mostrar el estado vacío con enlace a la colección", async () => {

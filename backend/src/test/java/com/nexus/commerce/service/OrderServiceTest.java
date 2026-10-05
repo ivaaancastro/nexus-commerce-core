@@ -9,6 +9,7 @@ import com.nexus.commerce.entity.User;
 import com.nexus.commerce.repository.OrderRepository;
 import com.nexus.commerce.repository.SkuRepository;
 import com.nexus.commerce.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,8 +53,20 @@ class OrderServiceTest {
     @Mock
     private WarehouseSelectionService warehouseSelectionService;
 
+    @Mock
+    private ReturnEligibilityService returnEligibilityService;
+
     @InjectMocks
     private OrderService orderService;
+
+    @BeforeEach
+    void stubReturnEligibility() {
+        // mapToOrderResponse enriquece cada línea con su elegibilidad de devolución
+        // (spec Tarea 5.4, §2.2). Ningún pedido de estos tests está DELIVERED.
+        // lenient() porque no todos los tests llegan al mapeo del detalle.
+        lenient().when(returnEligibilityService.evaluate(any(Order.class), any(OrderItem.class)))
+                .thenReturn(new ReturnEligibilityService.Eligibility(false, "NOT_DELIVERED"));
+    }
 
     @Test
     @DisplayName("Debe procesar el checkout, reservar inventario y persistir la orden en CONFIRMED")
@@ -319,6 +332,102 @@ class OrderServiceTest {
         assertThat(result.get().orderNumber()).isEqualTo(orderNumber);
         assertThat(result.get().status()).isEqualTo(OrderStatus.DELIVERED);
         verify(orderRepository).findByUserIdAndOrderNumber(7L, orderNumber);
+    }
+
+    @Test
+    @DisplayName("Debe enriquecer el detalle con la elegibilidad de devolución (spec 5.4, §2.2)")
+    void shouldEnrichDetailWithReturnEligibility() {
+        // GIVEN
+        String email = "ana@nexus.dev";
+        String orderNumber = "ORD-001";
+        User user = User.builder().id(7L).email(email).build();
+
+        OrderItem item = OrderItem.builder()
+                .id(55L)
+                .warehouseCode("MAD-01")
+                .quantity(1)
+                .unitPrice(new BigDecimal("50.00"))
+                .taxRate(new BigDecimal("21.00"))
+                .taxAmount(new BigDecimal("10.50"))
+                .totalAmount(new BigDecimal("60.50"))
+                .sku(Sku.builder().id(9L).barcode("SKU-55").build())
+                .build();
+
+        Order order = Order.builder()
+                .id(1L)
+                .orderNumber(orderNumber)
+                .idempotencyKey("k")
+                .marketCode("ES")
+                .currency("EUR")
+                .status(OrderStatus.DELIVERED)
+                .subtotalAmount(new BigDecimal("50.00"))
+                .taxAmount(new BigDecimal("10.50"))
+                .totalAmount(new BigDecimal("60.50"))
+                .createdAt(Instant.now())
+                .items(List.of(item))
+                .build();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(orderRepository.findByUserIdAndOrderNumber(7L, orderNumber))
+                .thenReturn(Optional.of(order));
+        when(returnEligibilityService.evaluate(order, item))
+                .thenReturn(new ReturnEligibilityService.Eligibility(true, null));
+
+        // WHEN
+        Optional<OrderResponse> result = orderService.getOrderForUser(email, orderNumber);
+
+        // THEN
+        assertThat(result.get().items()).hasSize(1);
+        assertThat(result.get().items().get(0).returnEligible()).isTrue();
+        assertThat(result.get().items().get(0).returnIneligibleReason()).isNull();
+        verify(returnEligibilityService).evaluate(order, item);
+    }
+
+    @Test
+    @DisplayName("Debe informar el motivo de inelegibilidad cuando la línea no puede devolverse")
+    void shouldReportIneligibleReasonInDetail() {
+        // GIVEN — misma línea, pero el servicio determina que no es devolvible
+        String email = "ana@nexus.dev";
+        String orderNumber = "ORD-002";
+        User user = User.builder().id(7L).email(email).build();
+
+        OrderItem item = OrderItem.builder()
+                .id(55L)
+                .warehouseCode("MAD-01")
+                .quantity(1)
+                .unitPrice(new BigDecimal("50.00"))
+                .taxRate(new BigDecimal("21.00"))
+                .taxAmount(new BigDecimal("10.50"))
+                .totalAmount(new BigDecimal("60.50"))
+                .sku(Sku.builder().id(9L).barcode("SKU-55").build())
+                .build();
+
+        Order order = Order.builder()
+                .id(2L)
+                .orderNumber(orderNumber)
+                .idempotencyKey("k2")
+                .marketCode("ES")
+                .currency("EUR")
+                .status(OrderStatus.DELIVERED)
+                .subtotalAmount(new BigDecimal("50.00"))
+                .taxAmount(new BigDecimal("10.50"))
+                .totalAmount(new BigDecimal("60.50"))
+                .createdAt(Instant.now())
+                .items(List.of(item))
+                .build();
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(orderRepository.findByUserIdAndOrderNumber(7L, orderNumber))
+                .thenReturn(Optional.of(order));
+        when(returnEligibilityService.evaluate(order, item))
+                .thenReturn(new ReturnEligibilityService.Eligibility(false, "EXPIRED"));
+
+        // WHEN
+        Optional<OrderResponse> result = orderService.getOrderForUser(email, orderNumber);
+
+        // THEN
+        assertThat(result.get().items().get(0).returnEligible()).isFalse();
+        assertThat(result.get().items().get(0).returnIneligibleReason()).isEqualTo("EXPIRED");
     }
 
     @Test

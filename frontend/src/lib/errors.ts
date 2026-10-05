@@ -19,6 +19,23 @@ function isHttpStatus(message: string, status: number): boolean {
 }
 
 /**
+ * Extrae el campo `message` del cuerpo JSON que `handleResponse()` incrusta en
+ * `API Error [n]: {…}`. Devuelve `null` si no hay cuerpo o no es JSON.
+ */
+function extractServerMessage(message: string): string | null {
+    const jsonStart = message.indexOf("{");
+    if (jsonStart === -1) return null;
+
+    try {
+        const parsed: unknown = JSON.parse(message.slice(jsonStart));
+        const serverMessage = (parsed as { message?: unknown })?.message;
+        return typeof serverMessage === "string" && serverMessage ? serverMessage : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Traduce errores técnicos del backend a mensajes amigables para el usuario.
  */
 export function getFriendlyErrorMessage(error: unknown): string {
@@ -75,6 +92,13 @@ export function getFriendlyErrorMessage(error: unknown): string {
         return "No encontramos lo que buscas.";
     }
     if (isHttpStatus(message, 409)) {
+        // El backend devuelve 409 tanto para stock como para devoluciones
+        // (Tarea 5.4). Solo el de devoluciones trae `code`, y su mensaje ya está
+        // redactado para el usuario («Ha pasado el plazo de 30 días…»).
+        if (message.includes('"RETURN_NOT_ALLOWED"')) {
+            const serverMessage = extractServerMessage(message);
+            if (serverMessage) return serverMessage;
+        }
         return "No queda stock suficiente para completar el pedido.";
     }
 

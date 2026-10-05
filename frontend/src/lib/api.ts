@@ -6,6 +6,8 @@ import {
     CheckoutRequest,
     Order,
     OrderPage,
+    ProductReturn,
+    CreateReturnPayload,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation } from "@/types/auth";
 
@@ -109,6 +111,31 @@ export const api = {
             { headers: getAuthHeaders(), cache: "no-store" }
         );
         return handleResponse<Order>(res);
+    },
+
+    // ── Devoluciones (Tarea 5.4) ────────────────────────────────────────────
+
+    getMyReturns: async (orderNumber: string): Promise<ProductReturn[]> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/users/me/orders/${encodeURIComponent(orderNumber)}/returns`,
+            { headers: getAuthHeaders(), cache: "no-store" }
+        );
+        return handleResponse<ProductReturn[]>(res);
+    },
+
+    createReturn: async (
+        orderNumber: string,
+        payload: CreateReturnPayload
+    ): Promise<ProductReturn> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/users/me/orders/${encodeURIComponent(orderNumber)}/returns`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                body: JSON.stringify(payload),
+            }
+        );
+        return handleResponse<ProductReturn>(res);
     },
 
     // Autenticación
