@@ -55,12 +55,22 @@ function OrderCard({ order }: { order: OrderSummary }) {
                 </div>
             </div>
 
-            <Link
-                href={`/receipt/${encodeURIComponent(order.orderNumber)}`}
-                className="self-start text-xs uppercase tracking-widest text-neutral-900 border-b border-neutral-900 pb-1 hover:opacity-60 transition-all"
-            >
-                Ver recibo
-            </Link>
+            <div className="flex flex-wrap items-center gap-6 self-start">
+                {/* El detalle es donde vive la sección de devoluciones (Tarea 5.4, R7),
+                    así que es la acción principal; el recibo queda como secundaria. */}
+                <Link
+                    href={`/orders/${encodeURIComponent(order.orderNumber)}`}
+                    className="text-xs uppercase tracking-widest text-neutral-900 border-b border-neutral-900 pb-1 hover:opacity-60 transition-all"
+                >
+                    Ver pedido
+                </Link>
+                <Link
+                    href={`/receipt/${encodeURIComponent(order.orderNumber)}`}
+                    className="text-xs uppercase tracking-widest text-neutral-600 border-b border-neutral-300 pb-1 hover:opacity-60 transition-all"
+                >
+                    Ver recibo
+                </Link>
+            </div>
         </article>
     );
 }

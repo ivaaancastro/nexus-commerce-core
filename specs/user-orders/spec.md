@@ -1,8 +1,8 @@
 # Spec: Tarea 5.3 — Historial de Pedidos
 
-> **Estado**: ✅ APROBADA
+> **Estado**: ✅ APROBADA → ✅ IMPLEMENTADA
 > **Fecha**: 2026-10-01
-> **Rama**: `feat/user-orders`
+> **Rama**: `feat/user-orders` (mergeada en `main`, PR #12, 2026-10-05)
 > **Aprobada por el usuario**: 2026-10-01
 
 ---
@@ -131,4 +131,6 @@ Cambio de comportamiento: `OrderService.processCheckout` debe asociar el usuario
 
 ---
 
-*Spec aprobada el 2026-10-01. Lista para implementar.*
+*Spec aprobada el 2026-10-01. **Implementada y mergeada en `main`** (PR #12, 2026-10-05).*
+
+*Continúa en **Tarea 5.4 — Devoluciones**, en `specs/product-returns/` (rama `feat/product-returns`).*

@@ -100,6 +100,15 @@ flowchart TD
 * `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID). Reserva existencias, congela precios y genera la orden (`201 Created`).
 * `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido confirmado.
 
+### Historial de Pedidos y Devoluciones
+
+* 🔒 `GET /api/v1/users/me/orders?page={n}&size={n}` $\rightarrow$ Historial paginado del usuario, del más reciente al más antiguo (`OrderPageResponse`).
+* 🔒 `GET /api/v1/users/me/orders/{orderNumber}` $\rightarrow$ Detalle de un pedido propiedad del usuario. Un pedido de otro usuario responde `404` (nunca `403`, para no filtrar su existencia).
+* 🔒 `POST /api/v1/users/me/orders/{orderNumber}/returns` $\rightarrow$ Body `{ "orderItemId": n, "reason": "…" }`. Valida los 30 días desde la compra, el estado `DELIVERED` y la ausencia de devoluciones previas **antes** de persistir; si la línea no es elegible responde `409 Conflict` con `code: RETURN_NOT_ALLOWED`. Devuelve `201 Created` con `ReturnResponse`.
+* 🔒 `GET /api/v1/users/me/orders/{orderNumber}/returns` $\rightarrow$ Devoluciones de un pedido propiedad del usuario.
+
+> Cada línea del detalle de pedido enriquece su respuesta con `returnEligible` y `returnIneligibleReason` (`NOT_DELIVERED` | `EXPIRED` | `ALREADY_RETURNED`), de modo que la UI puede explicar **por qué** una línea no admite devolución. `refundAmount` es un **registro contable**: no hay pasarela de pago y no se mueve dinero.
+
 ### Perfil y Direcciones
 * 🔒 `GET /api/v1/users/me` $\rightarrow$ Devuelve el perfil completo, incluidas las medidas (`height`, `weight`) usadas para recomendar tallas.
 * 🔒 `PUT /api/v1/users/me` $\rightarrow$ Actualiza el perfil. Es una **actualización parcial**: los campos `null` conservan su valor. El **email no es modificable**. Valida altura (100–250 cm), peso (30–250 kg) y fecha de nacimiento (no futura, no anterior a 1900).
