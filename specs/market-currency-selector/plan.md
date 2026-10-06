@@ -75,7 +75,7 @@ No existe ninguna tabla de tipos de cambio: `MarketPrice` es un precio
 
 | # | Decisión |
 |:--|:---|
-| **D1** | **Sembrar la matriz + degradación**: `V11` rellena los huecos (US×2, UK×L, CH×L) y, de todas formas, se añade degradación defensiva —si un producto nace sin precio en un mercado, la UI no lo ofrece y el backend responde `400` amigable. |
+| **D1** | **Sembrar la matriz + degradación**: `V11` rellena los huecos (US×M, US×L, UK×L, CH×L y ES×L) y, de todas formas, se añade degradación defensiva —si un producto nace sin precio en un mercado, la UI no lo ofrece y el backend responde `400` amigable. |
 | **D2** | **Re-precificar el carrito** al cambiar de mercado: se refetchan los precios de los artículos y el resumen se recalcula en la nueva divisa, para que lo que vea el usuario coincida con lo que cobrará el servidor. |
 | **D3** | **Etiqueta neutral «Impuestos»** en lugar de «IVA»: correcto para ES/UK (IVA), US (*sales tax*) y CH (*MWST*). |
 
