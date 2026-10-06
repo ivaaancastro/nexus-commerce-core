@@ -4,10 +4,11 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import OrderHistoryPage from "@/app/orders/page";
 import { AuthProvider } from "@/context/AuthContext";
+import { MarketProvider } from "@/context/MarketContext";
 import { CartProvider } from "@/context/CartContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { api } from "@/lib/api";
-import { OrderPage, OrderSummary } from "@/types/commerce";
+import { Market, OrderPage, OrderSummary } from "@/types/commerce";
 
 const replace = vi.fn();
 
@@ -20,8 +21,15 @@ vi.mock("@/lib/api", () => ({
     api: {
         getCurrentUser: vi.fn(),
         getMyOrders: vi.fn(),
+        getMarkets: vi.fn(),
+        getPrice: vi.fn(),
     },
 }));
+
+const MARKETS: Market[] = [
+    { code: "ES", name: "España", currency: "EUR", taxRate: 21 },
+    { code: "UK", name: "United Kingdom", currency: "GBP", taxRate: 20 },
+];
 
 function makeOrder(overrides: Partial<OrderSummary> = {}): OrderSummary {
     return {
@@ -61,11 +69,14 @@ function makePage(orders: OrderSummary[], overrides: Partial<OrderPage> = {}): O
 function renderHistory() {
     return render(
         <AuthProvider>
-            <CartProvider>
-                <CartDrawerProvider>
-                    <OrderHistoryPage />
-                </CartDrawerProvider>
-            </CartProvider>
+            {/* Mismo árbol que layout.tsx (D5) */}
+            <MarketProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderHistoryPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </MarketProvider>
         </AuthProvider>
     );
 }
@@ -74,6 +85,18 @@ describe("OrderHistoryPage", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.setItem("nexus-auth-token", "fake-token");
+        vi.mocked(api.getMarkets).mockResolvedValue(MARKETS);
+        vi.mocked(api.getPrice).mockResolvedValue({
+            skuId: 1,
+            marketCode: "ES",
+            currency: "EUR",
+            finalPrice: 79.95,
+            originalPrice: 79.95,
+            hasDiscount: false,
+            netAmount: 66.07,
+            taxAmount: 13.88,
+            taxRate: 21,
+        });
         vi.mocked(api.getCurrentUser).mockResolvedValue({
             id: 1,
             email: "ana@example.com",
@@ -107,6 +130,25 @@ describe("OrderHistoryPage", () => {
         expect(screen.getByText(/15 de septiembre de 2026/)).toBeInTheDocument();
         expect(screen.getByText("1 pedido")).toBeInTheDocument();
         expect(api.getMyOrders).toHaveBeenCalledWith(0, 20);
+    });
+
+    it("R9 — cambiar de mercado no altera un pedido ya emitido", async () => {
+        // GIVEN — pedido emitido en EUR mientras el usuario navega en UK
+        localStorage.setItem(
+            "nexus-market",
+            JSON.stringify({ code: "UK", name: "United Kingdom", currency: "GBP", taxRate: 20 })
+        );
+        vi.mocked(api.getMyOrders).mockResolvedValue(makePage([makeOrder()]));
+
+        // WHEN
+        renderHistory();
+
+        // THEN — la divisa la manda el pedido persistido, no el mercado activo
+        expect(await screen.findByText("ORD-2026-001")).toBeInTheDocument();
+        expect(screen.getAllByText(/79\.95 EUR/)).toHaveLength(2);
+        // Por importe y no por divisa suelta: el <select> del header (3.2)
+        // muestra «UK / GBP» y empataría con cualquier texto GBP.
+        expect(screen.queryByText(/79\.95 GBP/)).not.toBeInTheDocument();
     });
 
     it("R9 — pinta nombre y variante de cada producto en la tarjeta", async () => {

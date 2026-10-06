@@ -4,9 +4,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CartPage from "@/app/cart/page";
 import { CartProvider } from "@/context/CartContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
+import { MarketProvider } from "@/context/MarketContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { CartItem } from "@/types/commerce";
+import { CartItem, Market } from "@/types/commerce";
 import { User } from "@/types/auth";
 
 const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
@@ -29,9 +30,39 @@ vi.mock("@/lib/api", async (importOriginal) => {
             // R1: sin esta respuesta el carrito no tiene dirección y corta el
             // checkout antes de llegar a `api.checkout`.
             getAddresses: vi.fn(),
+            // Tarea 3.2: CartContext re-precifica al montar. Sin estos dos mocks
+            // el precio saldría de la red y el botón de checkout se
+            // deshabilitaría de forma azarosa según cuándo resuelva la promesa.
+            getMarkets: vi.fn(),
+            getPrice: vi.fn(),
         },
     };
 });
+
+const MARKETS: Market[] = [
+    { code: "ES", name: "España", currency: "EUR", taxRate: 21 },
+    { code: "UK", name: "United Kingdom", currency: "GBP", taxRate: 20 },
+    { code: "US", name: "United States", currency: "USD", taxRate: 7.25 },
+];
+
+/** Precio idéntico al de mockCartItem: re-precificar no mueve importes. */
+const mockPrice = {
+    skuId: 101,
+    marketCode: "ES",
+    currency: "EUR",
+    finalPrice: 89.95,
+    originalPrice: 89.95,
+    hasDiscount: false,
+    netAmount: 74.34,
+    taxAmount: 15.61,
+    taxRate: 21,
+};
+
+/** Endpoints que el contexto de mercado necesita en todos los tests de esta página. */
+function mockMarketEndpoints() {
+    vi.mocked(api.getMarkets).mockResolvedValue(MARKETS);
+    vi.mocked(api.getPrice).mockResolvedValue(mockPrice);
+}
 
 const mockCartItem: CartItem = {
     productId: 1,
@@ -70,11 +101,14 @@ const mockAddress = {
 function renderCartPage() {
     return render(
         <AuthProvider>
-            <CartProvider>
-                <CartDrawerProvider>
-                    <CartPage />
-                </CartDrawerProvider>
-            </CartProvider>
+            {/* Mismo árbol que layout.tsx (D5) */}
+            <MarketProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <CartPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </MarketProvider>
         </AuthProvider>
     );
 }
@@ -86,7 +120,11 @@ function renderCartPage() {
  */
 async function waitForAddressSelected() {
     await waitFor(() => {
-        expect(screen.getByRole("combobox")).toHaveValue(String(mockAddress.id));
+        // Por nombre y no por rol solo: el selector de mercado del Header (3.2)
+        // también es un combobox y empatará primero en el DOM.
+        expect(
+            screen.getByRole("combobox", { name: /dirección de envío/i })
+        ).toHaveValue(String(mockAddress.id));
     });
 }
 
@@ -99,6 +137,7 @@ describe("CartPage — guard de sesión y errores amigables (specs/checkout-auth
         // R1: sin dirección seleccionada el checkout no arranca, así que las
         // tres pruebas que lo comprueban necesitan una.
         vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        mockMarketEndpoints();
     });
 
     afterEach(() => {
@@ -209,6 +248,7 @@ describe("CartPage — dirección de envío y método de pago (spec order-detail
         localStorage.setItem("nexus-cart", JSON.stringify([mockCartItem]));
         localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
         vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+        mockMarketEndpoints();
     });
 
     afterEach(() => {
@@ -279,5 +319,68 @@ describe("CartPage — dirección de envío y método de pago (spec order-detail
         );
         // R2: nunca se pide un número de tarjeta
         expect(screen.queryByLabelText(/número de tarjeta/i)).not.toBeInTheDocument();
+    });
+});
+
+describe("CartPage — mercado activo (spec market-currency-selector)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem("nexus-cart", JSON.stringify([mockCartItem]));
+        localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        mockMarketEndpoints();
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("R5 — envía el marketCode del mercado elegido, no un «ES» hardcodeado", async () => {
+        // GIVEN — el usuario eligió UK en el selector del header (D4)
+        localStorage.setItem(
+            "nexus-market",
+            JSON.stringify({ code: "UK", name: "United Kingdom", currency: "GBP", taxRate: 20 })
+        );
+        vi.mocked(api.checkout).mockResolvedValue({
+            ...mockCartItem,
+            orderNumber: "ORD-2026-UK",
+        } as never);
+
+        // WHEN
+        renderCartPage();
+        const boton = await screen.findByRole("button", { name: /tramitar pedido/i });
+        await waitForAddressSelected();
+        fireEvent.click(boton);
+
+        // THEN — el pedido se emite en el mercado activo; el servidor usará su
+        // divisa y su impuestos para re-precificar.
+        await waitFor(() => expect(api.checkout).toHaveBeenCalledTimes(1));
+        expect(api.checkout).toHaveBeenCalledWith(
+            expect.objectContaining({ marketCode: "UK" }),
+            expect.any(String)
+        );
+    });
+
+    it("R6 — con un artículo sin precio en el mercado no se envía el checkout", async () => {
+        // GIVEN — ese mercado no tiene precio para el SKU del carrito
+        vi.mocked(api.getPrice).mockRejectedValue(
+            new Error('API Error [404]: {"message":"Sin precio"}')
+        );
+
+        // WHEN — la dirección ya está lista, así que no es ella lo que corta
+        renderCartPage();
+        const boton = await screen.findByRole("button", { name: /tramitar pedido/i });
+        await waitForAddressSelected();
+
+        // THEN — el aviso solo existe si hasUnavailableItems, y el botón queda
+        // cortado por ese motivo (la dirección ya está seleccionada).
+        expect(
+            await screen.findByText(/hay artículos sin precio en España/i)
+        ).toBeInTheDocument();
+        expect(boton).toBeDisabled();
+        expect(api.checkout).not.toHaveBeenCalled();
     });
 });
