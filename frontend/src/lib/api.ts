@@ -2,6 +2,7 @@ import {
     Product,
     SemanticSearchResult,
     PriceBreakdown,
+    Market,
     StockInfo,
     CheckoutRequest,
     Order,
@@ -58,8 +59,14 @@ export const api = {
         return handleResponse<SemanticSearchResult[]>(res);
     },
 
-    // Precios
-    getPrice: async (skuId: number, market: string = "ES"): Promise<PriceBreakdown> => {
+    // Mercados (selector de divisa — Tarea 3.2, R1)
+    getMarkets: async (): Promise<Market[]> => {
+        const res = await fetch(`${BASE_URL}/api/v1/markets`, { cache: "no-store" });
+        return handleResponse<Market[]>(res);
+    },
+
+    // Precios — `market` es obligatorio: el precio siempre pertenece a un mercado (R4)
+    getPrice: async (skuId: number, market: string): Promise<PriceBreakdown> => {
         const res = await fetch(`${BASE_URL}/api/v1/pricing/skus/${skuId}?market=${market}`);
         return handleResponse<PriceBreakdown>(res);
     },
