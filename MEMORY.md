@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/order-detail-redesign` |
-| **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
-| **Tarea actual** | Tarea 5.5 — Rediseño de la página de pedido (**implementada, sin commitear**) |
-| **Estado** | 5.3 (PR #12), fix de checkout (PR #13) y **5.4 (PR #14, `136c584`)** mergeadas · **139 backend + 125 frontend** · pendiente commit + PR de la 5.5 |
-| **Última actualización** | 2026-10-05 |
+| **Rama actual** | `main` |
+| **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación (**completada**) |
+| **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
+| **Estado** | 5.3 (PR #12), fix de checkout (PR #13), 5.4 (PR #14, `136c584`) y **5.5 (PR #15, `e23b86c`)** mergeadas · **139 backend + 125 frontend** · CI verde |
+| **Última actualización** | 2026-10-06 |
 
 ---
 
@@ -90,7 +90,7 @@
   - [x] Tests: 106 → **134** backend, 88 → **101** frontend
   - [x] **«Ver pedido»** en el historial — la sección era *inalcanzable* desde la UI: el listado solo enlazaba al recibo
   - [x] Docs: `CHANGELOG.md`, `README.md` §3 (añadidos también los endpoints de la 5.3, que faltaban), puntero en `specs/user-orders/spec.md`
-- [ ] Tarea 5.5 — **Rediseño de la página de pedido** (`specs/order-detail-redesign/`) — **implementada, sin commitear**
+- [x] Tarea 5.5 — **Rediseño de la página de pedido** (`specs/order-detail-redesign/`) — **mergeada en `main` (PR #15, `e23b86c`, 2026-10-06)**
   - [x] Specs: `specs/order-detail-redesign/` (plan, spec, tasks) ✅ aprobada el 2026-10-05
   - [x] Decidido con el usuario el 2026-10-05: **placeholder editorial** para las fotos (el proyecto no tiene ni una imagen), **snapshot de dirección** en la orden + paso en el checkout, y **método de pago como dato declarado** sin procesar
   - [x] Backend: migración `V10__order_shipping_payment.sql` (6 columnas nullable, sin backfill), `ShippingAddress` `@Embeddable`, `PaymentMethod` enum, `AddressRepository.findByIdAndUserId`
@@ -106,14 +106,14 @@
   - [x] **Sin ADR**: no cambia stack ni arquitectura (plan §3)
   - [x] Tests: 134 → **139** backend, 101 → **125** frontend · `tsc --noEmit` limpio · `next build` OK · ESLint **9 problems (4 errors, 5 warnings)**, los 4 errores los preexistentes de `main`
   - [x] Cobertura backend **86 %** vs **85 %** de `main` (medida en worktree aparte): sin regresión
-  - [ ] **Pendiente**: commit + push + PR + `/spec-check order-detail-redesign`
+  - [x] Verificación final: `/spec-check order-detail-redesign` ✅ **APROBADO (10/10)** + prueba manual en navegador (2026-10-06, R1–R10) + CI verde. Detectó 2 desviaciones y ambas se corrigieron: la tarjeta del historial no pintaba el `color` que ya traía el DTO (test R9 reforzado) y el copy de `BackLink` es contextual en 4 pantallas (documentado en spec R5)
 
 ---
 
 ## Tareas Pendiente
 
 ### Fase 5 — Gestión de Usuarios
-- [ ] **Cerrar la Tarea 5.5**: commit + push + PR de `feat/order-detail-redesign` y `/spec-check order-detail-redesign` en verde (el código ya está implementado; ver *Tareas Completadas*)
+- [x] **Tarea 5.5 cerrada** — PR #15 mergeado en `main` (`e23b86c`, 2026-10-06). ✅ La Fase 5 no tiene pendientes
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
