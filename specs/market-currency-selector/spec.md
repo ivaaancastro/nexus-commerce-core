@@ -1,8 +1,8 @@
 # Spec — Tarea 3.2: Selector Dinámico de Mercado y Divisa
 
-> **Estado**: ✅ APROBADA (2026-10-06) — pendiente de implementar
+> **Estado**: ✅ **COMPLETADA** (2026-10-06) — 10/10 requisitos, PR **#17** mergeado (`3214502`)
 > **Fecha**: 2026-10-06
-> **Rama**: `feat/market-currency-selector`
+> **Rama**: `feat/market-currency-selector` *(mergeada y borrada)*
 > **Plan**: `specs/market-currency-selector/plan.md`
 
 ---
