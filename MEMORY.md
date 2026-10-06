@@ -10,10 +10,10 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/product-returns` |
+| **Rama actual** | `feat/order-detail-redesign` |
 | **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación |
-| **Tarea actual** | Tarea 5.4 — Devoluciones (implementada, pendiente commit + PR) |
-| **Estado** | 5.3 (PR #12) y fix de checkout (PR #13) mergeadas · **134 backend + 100 frontend** · CI green en `main` |
+| **Tarea actual** | Tarea 5.5 — Rediseño de la página de pedido (**implementada, sin commitear**) |
+| **Estado** | 5.3 (PR #12), fix de checkout (PR #13) y **5.4 (PR #14, `136c584`)** mergeadas · **139 backend + 125 frontend** · pendiente commit + PR de la 5.5 |
 | **Última actualización** | 2026-10-05 |
 
 ---
@@ -77,7 +77,7 @@
   - [x] `getFriendlyErrorMessage()` anclado al prefijo `API Error [n]` con `isHttpStatus()`, y reglas nuevas para `401/403/404/409`
   - [x] Código muerto de checkout en la PDP eliminado (`handleCheckout`, `checkoutLoading`, imports residuales)
   - [x] Tests: backend 106 · frontend 88
-- [x] Tarea 5.4 — Devoluciones de Productos (`specs/product-returns/`) — **implementada, pendiente commit + PR**
+- [x] Tarea 5.4 — Devoluciones de Productos (`specs/product-returns/`) — **mergeada en `main` (PR #14, `136c584`, 2026-10-05)**
   - [x] Specs: `specs/product-returns/` (plan, spec, tasks) ✅ aprobada el 2026-10-01
   - [x] Backend: migración `V9__product_returns.sql`, `ProductReturn`, `ReturnStatus`, `ReturnEligibilityService` (con `Clock` inyectable), `ReturnService`, `ReturnNotAllowedException` → `409`, endpoints `POST/GET …/{orderNumber}/returns`
   - [x] `OrderItemResponse` gana `returnEligible` + `returnIneligibleReason`
@@ -87,17 +87,33 @@
   - [x] Carrera sobre el `UNIQUE (order_item_id)` → `DataIntegrityViolationException` → `409`, nunca `500`
   - [x] **Ampliación de spec** (anotada en §5): el `409` de devoluciones añade `code: RETURN_NOT_ALLOWED`, porque `getFriendlyErrorMessage()` traducía *todo* `409` a «No queda stock suficiente…»
   - [x] Frontend: sección «Devoluciones» en `/orders/[orderNumber]` con botón «Devolver», motivo legible (R8), formulario `noValidate`, estado `Solicitada` + importe y toast. Solo con sesión
-  - [x] Tests: 106 → **134** backend, 88 → **100** frontend
+  - [x] Tests: 106 → **134** backend, 88 → **101** frontend
+  - [x] **«Ver pedido»** en el historial — la sección era *inalcanzable* desde la UI: el listado solo enlazaba al recibo
   - [x] Docs: `CHANGELOG.md`, `README.md` §3 (añadidos también los endpoints de la 5.3, que faltaban), puntero en `specs/user-orders/spec.md`
+- [ ] Tarea 5.5 — **Rediseño de la página de pedido** (`specs/order-detail-redesign/`) — **implementada, sin commitear**
+  - [x] Specs: `specs/order-detail-redesign/` (plan, spec, tasks) ✅ aprobada el 2026-10-05
+  - [x] Decidido con el usuario el 2026-10-05: **placeholder editorial** para las fotos (el proyecto no tiene ni una imagen), **snapshot de dirección** en la orden + paso en el checkout, y **método de pago como dato declarado** sin procesar
+  - [x] Backend: migración `V10__order_shipping_payment.sql` (6 columnas nullable, sin backfill), `ShippingAddress` `@Embeddable`, `PaymentMethod` enum, `AddressRepository.findByIdAndUserId`
+  - [x] `CheckoutRequest` + `addressId` y `paymentMethod` con `@NotNull`; la dirección se resuelve **antes del bucle de reserva** para no tocar inventario con una dirección inválida
+  - [x] ⚠️ **Consecuencia registrada**: `addressId` obligatorio + verificar propiedad ⇒ **ya no existe checkout de invitado** (plan §5.10)
+  - [x] `OrderResponse` + `returnDeadline` (desde `ReturnEligibilityService.WINDOW_DAYS`, fuente única), `shippingAddress`, `paymentMethod`; `OrderItemResponse` + `productName`, `productFamily`, `size`, `color`
+  - [x] **Ampliación de alcance detectada al implementar**: `OrderSummaryResponse` no traía **ninguna línea** (solo `itemCount`), así que R9/R10 eran imposibles → gana `items` (`OrderItemPreviewResponse`) y `returnRequested`, con **una única consulta por página** (`ProductReturnRepository.findOrderItemIdIn`), no 40 queries. Plan §5 corregido **antes** de tocar código
+  - [x] `@BatchSize(size = 20)` a nivel de **clase** en `Sku` y `Product` — en `@ManyToOne` Hibernate lanza *«Property may not be annotated '@BatchSize'»* (rompía `contextLoads`)
+  - [x] Frontend: `BackLink` (6 pantallas), `ProductThumb` (placeholder compartido), ficha reescrita en 9 secciones, historial con nombre + variante + badge, carrito con selectores de dirección y pago
+  - [x] Banner «Gracias por tu compra» **solo** al llegar del checkout (`sessionStorage["nexus-just-checked-out"]` en `src/lib/checkout.ts`, consumido al leerlo)
+  - [x] `/addresses`: el botón «Volver al perfil» existente llamaba a `window.history.back()` **sin fallback** → sustituido por `BackLink href="/profile"`
+  - [x] `CartItemRow` delega su caja en `ProductThumb`; su rama `<img>` era código muerto (`imageUrl` nunca se asigna)
+  - [x] **Sin ADR**: no cambia stack ni arquitectura (plan §3)
+  - [x] Tests: 134 → **139** backend, 101 → **125** frontend · `tsc --noEmit` limpio · `next build` OK · ESLint **9 problems (4 errors, 5 warnings)**, los 4 errores los preexistentes de `main`
+  - [x] Cobertura backend **86 %** vs **85 %** de `main` (medida en worktree aparte): sin regresión
+  - [ ] **Pendiente**: commit + push + PR + `/spec-check order-detail-redesign`
 
 ---
 
 ## Tareas Pendiente
 
 ### Fase 5 — Gestión de Usuarios
-- [ ] Tarea 5.4 — **commit + PR** (implementación y documentación ya terminadas y verificadas)
-  - Alcance acordado: registro contable del reembolso, sin mover dinero (no hay PSP), solo estado `REQUESTED`
-  - Pendiente: `AGENTS.md` + `MEMORY.md` no deben quedar desactualizados otra vez (los dos bloques se han quedado atrás tras la 5.3)
+- [ ] **Cerrar la Tarea 5.5**: commit + push + PR de `feat/order-detail-redesign` y `/spec-check order-detail-redesign` en verde (el código ya está implementado; ver *Tareas Completadas*)
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
@@ -149,4 +165,4 @@
 
 ---
 
-*Última actualización: 2026-10-05 por agente IA — Tarea 5.4 implementada en `feat/product-returns`.*
+*Última actualización: 2026-10-05 por agente IA — Tarea 5.4 mergeada (PR #14, `136c584`); abierta la Tarea 5.5 en `feat/order-detail-redesign`.*
