@@ -14,12 +14,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.Filter;
 
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,7 +70,8 @@ class ProductSearchServiceTest {
     @DisplayName("Debe buscar documentos similares en VectorStore y mapear los resultados con score")
     void shouldSearchSimilarProductsAndMapResults() {
         // GIVEN
-        ProductSearchRequest request = new ProductSearchRequest("boda verano formal", "OUTERWEAR", null, 5);
+        ProductSearchRequest request = new ProductSearchRequest("boda verano formal", "OUTERWEAR", 5);
+        when(productRepository.existsByFamily("OUTERWEAR")).thenReturn(true);
 
         Document doc = Document.builder()
                 .text("Blazer formal de lino")
@@ -95,5 +98,78 @@ class ProductSearchServiceTest {
         assertThat(result.similarityScore()).isEqualTo(0.89);
 
         verify(vectorStore).similaritySearch(any(SearchRequest.class));
+    }
+
+    @Test
+    @DisplayName("R9 - family se envía al vector store como filterExpression")
+    void familiaSeAplicaComoFilterExpression() {
+        // GIVEN
+        when(productRepository.existsByFamily("OUTERWEAR")).thenReturn(true);
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+
+        // WHEN
+        productSearchService.searchSimilar(new ProductSearchRequest("abrigos de lana", "OUTERWEAR", 10));
+
+        // THEN
+        ArgumentCaptor<SearchRequest> captor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(vectorStore).similaritySearch(captor.capture());
+
+        // Spring AI devuelve la expresión ya parseada: EQ sobre la clave 'family'
+        // con el valor como literal, que es exactamente lo que se pidió.
+        Filter.Expression expresion = captor.getValue().getFilterExpression();
+        assertThat(expresion).isNotNull();
+        assertThat(expresion.type()).isEqualTo(Filter.ExpressionType.EQ);
+        assertThat(expresion.left().toString()).contains("family");
+        assertThat(expresion.right().toString()).contains("OUTERWEAR");
+    }
+
+    @Test
+    @DisplayName("R9 - Sin family no se envía ningún filterExpression")
+    void sinFamiliaNoHayFilterExpression() {
+        // GIVEN
+        when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
+
+        // WHEN
+        productSearchService.searchSimilar(new ProductSearchRequest("abrigos de lana", null, 10));
+
+        // THEN
+        ArgumentCaptor<SearchRequest> captor = ArgumentCaptor.forClass(SearchRequest.class);
+        verify(vectorStore).similaritySearch(captor.capture());
+        assertThat(captor.getValue().getFilterExpression()).isNull();
+
+        // La validación de familia no debe costarle una consulta a la base de datos
+        verifyNoInteractions(productRepository);
+    }
+
+    /**
+     * El valor se concatena dentro de una expresión que Spring AI interpreta, así
+     * que una comilla lo rompería. Ni se llega a consultar la base de datos.
+     */
+    @Test
+    @DisplayName("R9 - family con comilla no se concatena: ni consulta la BD ni el vector store")
+    void familiaConComillaNoSeConcatena() {
+        // WHEN
+        List<ProductSearchResultResponse> results =
+                productSearchService.searchSimilar(new ProductSearchRequest("abrigos", "OUTERWEAR'", 10));
+
+        // THEN
+        assertThat(results).isEmpty();
+        verify(productRepository, never()).existsByFamily(anyString());
+        verifyNoInteractions(vectorStore);
+    }
+
+    @Test
+    @DisplayName("R9 - family desconocida devuelve vacío sin llegar a consultar el vector store")
+    void familiaDesconocidaDevuelveVacio() {
+        // GIVEN
+        when(productRepository.existsByFamily("NOEXISTE")).thenReturn(false);
+
+        // WHEN
+        List<ProductSearchResultResponse> results =
+                productSearchService.searchSimilar(new ProductSearchRequest("abrigos", "NOEXISTE", 10));
+
+        // THEN
+        assertThat(results).isEmpty();
+        verifyNoInteractions(vectorStore);
     }
 }
