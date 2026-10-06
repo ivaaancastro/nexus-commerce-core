@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import BackLink from "@/components/BackLink";
 import Header from "@/components/Header";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { api } from "@/lib/api";
@@ -162,6 +163,13 @@ function AddressesContent() {
     return (
         <main className="flex-1 px-6 py-12">
             <div className="max-w-2xl mx-auto">
+                {/* R5: este botón ya existía, pero llamaba a `window.history.back()`
+                    a secas y se quedaba mudo al entrar directamente en la URL.
+                    `BackLink` añade el fallback a `/profile`. */}
+                <div className="mb-6">
+                    <BackLink href="/profile" label="Volver al perfil" />
+                </div>
+
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-lg font-medium uppercase tracking-wider text-neutral-900">
@@ -171,13 +179,6 @@ function AddressesContent() {
                             {addresses.length} de {MAX_ADDRESSES} direcciones guardadas
                         </p>
                     </div>
-
-                    <button
-                        onClick={() => window.history.back()}
-                        className="text-xs text-neutral-500 hover:text-black underline self-start sm:self-auto"
-                    >
-                        ← Volver al perfil
-                    </button>
                 </div>
 
                 {error && (

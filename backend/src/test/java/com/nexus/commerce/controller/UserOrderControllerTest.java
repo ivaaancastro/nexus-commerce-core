@@ -2,6 +2,7 @@ package com.nexus.commerce.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.nexus.commerce.dto.OrderItemPreviewResponse;
 import com.nexus.commerce.dto.OrderPageResponse;
 import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.dto.OrderSummaryResponse;
@@ -29,6 +30,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -86,10 +88,15 @@ class UserOrderControllerTest {
     @Test
     @DisplayName("GET /me/orders - Devuelve el historial paginado del usuario autenticado")
     void shouldReturnOrderHistory() throws Exception {
-        // GIVEN
+        // GIVEN — la tarjeta pinta nombre, variante y el badge de devolución
+        // (Tarea 5.5, R9 y R10)
         OrderSummaryResponse summary = new OrderSummaryResponse(
                 1L, "ORD-001", OrderStatus.DELIVERED, "EUR",
-                new BigDecimal("50.00"), Instant.now(), 2);
+                new BigDecimal("50.00"), Instant.now(), 2,
+                List.of(new OrderItemPreviewResponse(
+                        "Camisa Oxford", "Camisas", "M", "Blanco",
+                        1, new BigDecimal("25.00"))),
+                true);
         OrderPageResponse page = new OrderPageResponse(List.of(summary), 0, 20, 1, 1);
 
         when(orderService.listOrders(EMAIL, 0, 20)).thenReturn(page);
@@ -100,6 +107,10 @@ class UserOrderControllerTest {
                 .andExpect(jsonPath("$.orders[0].orderNumber").value("ORD-001"))
                 .andExpect(jsonPath("$.orders[0].status").value("DELIVERED"))
                 .andExpect(jsonPath("$.orders[0].itemCount").value(2))
+                .andExpect(jsonPath("$.orders[0].items[0].productName").value("Camisa Oxford"))
+                .andExpect(jsonPath("$.orders[0].items[0].productFamily").value("Camisas"))
+                .andExpect(jsonPath("$.orders[0].items[0].size").value("M"))
+                .andExpect(jsonPath("$.orders[0].returnRequested").value(true))
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
 
@@ -124,7 +135,8 @@ class UserOrderControllerTest {
         OrderResponse order = new OrderResponse(
                 1L, "ORD-001", "idem-1", "ES", "EUR",
                 OrderStatus.DELIVERED, new BigDecimal("41.32"), new BigDecimal("8.68"),
-                new BigDecimal("50.00"), Instant.now(), List.of());
+                new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
+                null, null, List.of());
 
         when(orderService.getOrderForUser(EMAIL, "ORD-001")).thenReturn(Optional.of(order));
 

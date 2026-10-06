@@ -7,6 +7,11 @@ import java.math.BigDecimal;
  *                                R2 (pedido {@code DELIVERED}) y R3 (sin devolución previa).
  * @param returnIneligibleReason  {@code NOT_DELIVERED}, {@code EXPIRED} o
  *                                {@code ALREADY_RETURNED}; {@code null} si es devolvible.
+ * @param productName             nombre del producto (Tarea 5.5, R3) — resuelto vía
+ *                                {@code OrderItem → Sku → Product}, no un snapshot
+ * @param productFamily           familia textil del producto
+ * @param size                    talla de la variante
+ * @param color                   color de la variante
  */
 public record OrderItemResponse(
         Long id,
@@ -19,5 +24,9 @@ public record OrderItemResponse(
         BigDecimal taxAmount,
         BigDecimal totalAmount,
         Boolean returnEligible,
-        String returnIneligibleReason
+        String returnIneligibleReason,
+        String productName,
+        String productFamily,
+        String size,
+        String color
 ) {}

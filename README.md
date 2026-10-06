@@ -97,12 +97,14 @@ flowchart TD
 * `POST /api/v1/products/search/index` $\rightarrow$ Dispara la reindexación vectorial completa del catálogo.
 
 ### Pedidos y Checkout
-* `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID). Reserva existencias, congela precios y genera la orden (`201 Created`).
-* `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido confirmado.
+* 🔒 `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID) y los campos `addressId` y `paymentMethod` (`CARD` | `BIZUM` | `PAYPAL` | `BANK_TRANSFER`). Reserva existencias, congela precios y genera la orden (`201 Created`). La dirección indicada se copia a la orden como **snapshot inmutable**: editarla después no cambia el pedido.
+* 🔒 `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido, con `shippingAddress`, `paymentMethod` y `returnDeadline` (fecha límite de devolución, calculada en servidor desde los 30 días de la ventana).
+
+> El **método de pago es un dato declarado, no un cobro**: no se pide número de tarjeta, no se tokeniza y no se conecta con ninguna pasarela — el proyecto no tiene PSP, igual que `refundAmount` es solo un registro contable.
 
 ### Historial de Pedidos y Devoluciones
 
-* 🔒 `GET /api/v1/users/me/orders?page={n}&size={n}` $\rightarrow$ Historial paginado del usuario, del más reciente al más antiguo (`OrderPageResponse`).
+* 🔒 `GET /api/v1/users/me/orders?page={n}&size={n}` $\rightarrow$ Historial paginado del usuario, del más reciente al más antiguo (`OrderPageResponse`). Cada fila trae sus líneas (`items`) con nombre y variante del producto, más `returnRequested` para pintar el badge «Devolución solicitada». Ese badge se resuelve con **una única consulta por página**, no una por línea.
 * 🔒 `GET /api/v1/users/me/orders/{orderNumber}` $\rightarrow$ Detalle de un pedido propiedad del usuario. Un pedido de otro usuario responde `404` (nunca `403`, para no filtrar su existencia).
 * 🔒 `POST /api/v1/users/me/orders/{orderNumber}/returns` $\rightarrow$ Body `{ "orderItemId": n, "reason": "…" }`. Valida los 30 días desde la compra, el estado `DELIVERED` y la ausencia de devoluciones previas **antes** de persistir; si la línea no es elegible responde `409 Conflict` con `code: RETURN_NOT_ALLOWED`. Devuelve `201 Created` con `ReturnResponse`.
 * 🔒 `GET /api/v1/users/me/orders/{orderNumber}/returns` $\rightarrow$ Devoluciones de un pedido propiedad del usuario.
