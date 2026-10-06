@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` |
+| **Rama actual** | `feat/catalog-family-filters` (sin commitear) |
 | **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) |
-| **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
-| **Estado** | **3.2 cerrada**: PR **#17** mergeado en `main` (`3214502`, 2026-10-06) · **143 backend + 147 frontend** · ESLint 4 (baseline) · CI verde |
-| **Pendiente** | Definir la siguiente tarea (3.1, 3.3 o Fase 4) → escribir `plan.md` y pedir aprobación de la spec |
+| **Tarea actual** | **3.1 — Navegación por Familias y Filtros** · **spec v2 aprobada e implementada**, 26/26 criterios verificados |
+| **Estado** | **3.1 lista para commit/PR**: backend + frontend + tests + docs hechos · **165 backend + 171 frontend** · ESLint 3 (todos preexistentes, 0 nuevos) · `tsc` y `npm run build` en verde · prueba manual en navegador sin mensajes de consola · base: 3.2 cerrada (PR **#17**, `3214502`) |
+| **Pendiente** | **Commit + PR** de `feat/catalog-family-filters` (*pendiente de aprobación*). Después: **3.3 — Galería de Imágenes Responsive** |
 | **Última actualización** | 2026-10-06 |
 
 ---
@@ -42,6 +42,16 @@
 - [x] Tarea 2.3 — Checkout Multilínea con selección automática de almacén
 
 ### Fase 3 — Experiencia Editorial
+- [x] **Tarea 3.1 — Navegación por Familias y Filtros** — ✅ **implementada 2026-10-06, pendiente de commit/PR** · rama `feat/catalog-family-filters` · spec `specs/catalog-family-filters/` · **26/26 criterios**
+  - [x] Backend: `GET /api/v1/products/families` (público, `SELECT family, COUNT(*)` contando **productos**) y `GET /api/v1/products?family=&size=&color=&sort=` con **filtrado en backend** y **AND** — `size`/`color` exigen **el mismo SKU** (un único `EXISTS` con params anulables), `sort` es un enum → `400`, familia desconocida → `200 []`. Sin paginación (D10).
+  - [x] `V12__catalog_navigation_seed.sql` — 3 productos, 4 SKUs, 16 precios, 8 stock, todo `ON CONFLICT DO NOTHING` → idempotente, + índice `idx_products_family`. BD de 1 → 4 productos.
+  - [x] Semántica filtra por `family` (R9) vía `filterExpression`, **validado** con `existsByFamily` y rechazo de comillas; **`maxPrice` retirado** (se recibía y se ignoraba → documentaba algo que el código no hacía).
+  - [x] Frontend: `/` portada editorial con 3 accesos · `/search` con la semántica **migrada** · `/catalog` con columna lateral + panel «Filtrar», **un solo `CatalogFilters`** para ambas · `Header` con `<Link>` reales.
+  - [x] Tests: **+22 backend** (165) y **+24 frontend** (171) · `/spec-check` **10/10** · prueba manual sin mensajes de consola, checkout `POST /orders/checkout` → **201**.
+  - ⚠️ **2 bugs encontrados en la prueba manual y corregidos con su test**: el punto final del mensaje amigable se concatenaba con la pista técnica («*minutos**..** Asegúrate*») y el contador decía «1 prendas».
+  - ⚠️ **`Map<String,Long>` no está soportado por Spring Data en `@Query`** → `List<Object[]>` + mapeo en el service.
+  - ⚠️ **La primera versión de `CatalogFilters` reseteaba los demás filtros al cambiar de campo**, lo que hacía inalcanzable `family + size` aunque el backend combinara con AND. Ahora cada opción sólo toca su campo.
+  - ⚠️ **Limitación anotada**: sin `OPENAI_API_KEY` local, la semántica devuelve `500` (fallback `mock-key` preexistente en `main`) → `/search` enseña su estado de error; el filtro se verifica en test unitario y `family` inválida sí se comprueba en vivo (`200 []`).
 - [x] **Tarea 3.2 — Selector Dinámico de Mercado y Divisa** — ✅ **cerrada 2026-10-06** · PR **#17** (`3214502`) · spec `specs/market-currency-selector/`
   - [x] Backend: `GET /api/v1/markets` público (`MarketController` + `MarketService` + `MarketResponse`), `permitAll()` en `SecurityConfig`
   - [x] Migración `V11__complete_market_price_matrix.sql` — completa la matriz 8/8 (los seeds de V1 solo cubrían talla M en ES/UK/CH, así que **US y la talla L devolvían 404**); `ON CONFLICT DO NOTHING` → idempotente
@@ -130,8 +140,10 @@
 - [x] **Tarea 5.5 cerrada** — PR #15 mergeado en `main` (`e23b86c`, 2026-10-06). ✅ La Fase 5 no tiene pendientes
 
 ### Fase 3 — Experiencia Editorial
-- [ ] Tarea 3.1 — Navegación por Familias y Filtros
-- [x] **Tarea 3.2 cerrada** — PR **#17** mergeado en `main` (`3214502`, 2026-10-06) · 10/10 · CI verde ✅ Quedan 3.1 y 3.3
+- [ ] **Tarea 3.1 — Commit + PR** · 📍 **código listo, sin commitear** · rama `feat/catalog-family-filters`
+  - Implementación, tests y docs **terminados** (165 backend · 171 frontend · `/spec-check` 10/10 · prueba manual sin mensajes de consola)
+  - **Falta únicamente** commit y PR — *no se commitea ni se pushea sin aprobación del usuario*
+- [x] **Tarea 3.2 cerrada** — PR #17 mergeado en `main` (`3214502`, 2026-10-06) · 10/10 · CI verde ✅ Quedan 3.1 (commit) y 3.3
 - [ ] Tarea 3.3 — Galería de Imágenes Responsive
 
 ### Fase 4 — Calidad Enterprise
@@ -157,6 +169,12 @@
 | **D6 — sin precio** | Un artículo sin precio **nunca se borra** del carrito: se marca `priceUnavailable` y bloquea el checkout |
 | **Copy fiscal** | «Impuestos» en vez de «IVA» (UK es VAT, US *sales tax*); el envío gratuito traduce la **moneda**, no el valor |
 | **ADR 3.2** | No hace falta (D8): no cambia stack ni arquitectura |
+| **Filtrado 3.1** | Siempre **en backend** (Q2): cambiar filtro ⇒ nueva petición. Tallas y colores se derivan de la respuesta, no de una lista fija en cliente |
+| **AND 3.1** | `family` + `size` + `color` se combinan con AND; `size`/`color` exigen **el mismo SKU** para no mezclar variantes de prendas distintas |
+| **Estado 3.1** | La URL **es** el estado: `useSearchParams` dentro de `<Suspense>`, `router.push` (no `replace`) y parámetros por defecto omitidos |
+| **Filtros UI 3.1** | Un **único** `CatalogFilters` para la columna lateral y el panel móvil — dos implementaciones podrían divergir. Cada opción sólo toca su campo |
+| **D10 3.1** | El catálogo **nunca se pagina** — regla de producto, no de esta tarea |
+| **ADR 3.1** | No hace falta (D8): no cambia stack ni arquitectura |
 
 ---
 

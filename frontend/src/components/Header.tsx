@@ -27,12 +27,12 @@ export default function Header() {
                 </div>
 
                 <div className="flex items-center space-x-6 text-xs uppercase tracking-wider text-neutral-600 font-medium">
-                    <span className="hover:text-black cursor-pointer transition-colors">
+                    <Link href="/catalog" className="hover:text-black transition-colors">
                         Colección
-                    </span>
-                    <span className="hover:text-black cursor-pointer transition-colors">
+                    </Link>
+                    <Link href="/search" className="hover:text-black transition-colors">
                         Búsqueda Vectorial
-                    </span>
+                    </Link>
                     <div className="h-4 w-px bg-neutral-200" />
                     {markets.length > 0 && (
                         <span className="relative inline-flex items-center text-neutral-400">

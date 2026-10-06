@@ -45,7 +45,7 @@ class ProductControllerTest {
                 1L, "0432/021", "Blazer Cruzada", "Descripción", "OUTERWEAR", List.of(sku)
         );
 
-        when(catalogService.getAllProducts()).thenReturn(List.of(product));
+        when(catalogService.listarProductos(null, null, null, null)).thenReturn(List.of(product));
 
         mockMvc.perform(get("/api/v1/products"))
                 .andExpect(status().isOk())
