@@ -9,14 +9,14 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `feat/market-currency-selector` — **todo sin commitear** |
+| **Rama activa** | `feat/market-currency-selector` — **PR #17 abierto, CI verde** |
 | **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**implementada**) |
 | **Tarea** | 3.2 — Selector Dinámico de Mercado y Divisa (spec `specs/market-currency-selector/`) |
-| **Tarea siguiente** | Cerrar 3.2 (commit + PR) — después elegir entre 3.1 y 3.3 |
-| **Pendiente** | **Preguntar al usuario antes de commitear**; `/spec-check` ya está en verde (10/10) |
+| **Tarea siguiente** | Merge del PR #17 y cierre de 3.2 — después elegir entre 3.1 y 3.3 |
+| **Pendiente** | Merge de PR #17 en GitHub (lo aprueba el usuario) → `/spec-close market-currency-selector` |
 | **Actualizado** | 2026-10-06 |
 
-> **Estado de pruebas**: en la rama → **143 backend · 147 frontend** (baseline `main`: 139 · 125). ESLint 4 errores (preexistentes). CI verde en `main`.
+> **Estado de pruebas**: en la rama → **143 backend · 147 frontend** (baseline `main`: 139 · 125). ESLint 4 errores (preexistentes). **CI verde en PR #17** (backend `1m4s`, frontend `47s`).
 > **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`), **Tarea 5.4** (PR #14, `136c584`), **Tarea 5.5** (PR #15, `e23b86c`) y estado de 5.5 (PR #16, `2e2c2b6`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 > **Decisión 3.2 (R8b, aprobada)**: el umbral de envío gratuito traduce la **moneda**, no el valor — `50` en todas las divisas. No existe como dato en BD.
