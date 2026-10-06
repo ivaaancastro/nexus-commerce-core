@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `feat/product-returns` |
+| **Rama activa** | `feat/order-detail-redesign` |
 | **Fase** | 5 — Gestión de Usuarios |
-| **Tarea** | 5.4 — Devoluciones (implementada y documentada, pendiente commit + PR) |
-| **Tarea siguiente** | Por definir — la 5.4 es la última spec escrita |
-| **Pendiente** | Commit + PR de `feat/product-returns` |
+| **Tarea** | 5.5 — Rediseño de la página de pedido (**implementada, sin commitear**) |
+| **Tarea siguiente** | Por definir — la 5.5 es la última spec escrita |
+| **Pendiente** | Commit + push + PR de `feat/order-detail-redesign`; `/spec-check order-detail-redesign` |
 | **Actualizado** | 2026-10-05 |
 
-> **Estado de pruebas**: 134 backend · 100 frontend · CI verde en `main`.
-> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`) y fix de checkout (PR #13, `8704dff`).
+> **Estado de pruebas**: 139 backend · 125 frontend · CI verde en `main`.
+> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`) y **Tarea 5.4** (PR #14, `136c584`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
