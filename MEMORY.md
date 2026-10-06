@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/market-currency-selector` — **todo sin commitear** |
-| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**implementada**, pendiente commit + PR) |
+| **Rama actual** | `feat/market-currency-selector` — **PR #17 abierto, CI verde** (3 commits) |
+| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**implementada**, PR abierto) |
 | **Tarea actual** | 3.2 — Selector Dinámico de Mercado y Divisa |
-| **Estado** | Spec aprobada · código completo · `/spec-check` **10/10** · prueba manual en navegador **hecha** (4 mercados) · **143 backend + 147 frontend** · ESLint 4 (baseline) · `tsc=0` · build OK |
-| **Pendiente** | Commit (previa autorización) → push → PR → `/spec-close market-currency-selector` |
+| **Estado** | Spec aprobada · código completo · `/spec-check` **10/10** · prueba manual en navegador **hecha** (4 mercados) · **143 backend + 147 frontend** · ESLint 4 (baseline) · `tsc=0` · build OK · **CI verde** |
+| **Pendiente** | Merge del PR #17 (lo aprueba el usuario) → `/spec-close market-currency-selector` |
 | **Última actualización** | 2026-10-06 |
 
 ---

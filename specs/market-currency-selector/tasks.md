@@ -128,6 +128,7 @@
 - [x] `npx tsc --noEmit` sin errores
 - [x] `npx eslint src` → **4 errores**, todos los preexistentes de `main` (0 nuevos)
 - [x] `npm run build` OK (13 rutas)
+- [x] **GitHub Actions (PR #17)** — backend ✅ `1m4s` · frontend ✅ `47s` en `3f2f9d0`
 - [x] `/spec-check market-currency-selector` → **10/10 requisitos** (R1–R9 + R8b) ✅ APROBADO
 - [x] **Prueba manual**: cambiar a UK y a US y ver que ficha, carrito y checkout cambian de divisa e impuestos
 
