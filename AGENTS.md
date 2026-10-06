@@ -9,16 +9,17 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `main` |
-| **Fase** | 5 — Gestión de Usuarios (**completada**) |
-| **Tarea** | Sin tarea activa |
-| **Tarea siguiente** | Por definir — quedan Fase 3 (3.1–3.3) y Fase 4 (4.1–4.3) |
-| **Pendiente** | Escribir el `plan.md` de la siguiente tarea y pedir aprobación de la spec (SDD) |
+| **Rama activa** | `feat/market-currency-selector` — **todo sin commitear** |
+| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**implementada**) |
+| **Tarea** | 3.2 — Selector Dinámico de Mercado y Divisa (spec `specs/market-currency-selector/`) |
+| **Tarea siguiente** | Cerrar 3.2 (commit + PR) — después elegir entre 3.1 y 3.3 |
+| **Pendiente** | **Preguntar al usuario antes de commitear**; `/spec-check` ya está en verde (10/10) |
 | **Actualizado** | 2026-10-06 |
 
-> **Estado de pruebas**: 139 backend · 125 frontend · CI verde en `main`.
-> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`), **Tarea 5.4** (PR #14, `136c584`) y **Tarea 5.5** (PR #15, `e23b86c`).
+> **Estado de pruebas**: en la rama → **143 backend · 147 frontend** (baseline `main`: 139 · 125). ESLint 4 errores (preexistentes). CI verde en `main`.
+> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`), **Tarea 5.4** (PR #14, `136c584`), **Tarea 5.5** (PR #15, `e23b86c`) y estado de 5.5 (PR #16, `2e2c2b6`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
+> **Decisión 3.2 (R8b, aprobada)**: el umbral de envío gratuito traduce la **moneda**, no el valor — `50` en todas las divisas. No existe como dato en BD.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
 > Léelo al iniciar sesión para contexto completo.
