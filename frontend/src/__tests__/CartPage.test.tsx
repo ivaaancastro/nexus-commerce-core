@@ -22,7 +22,14 @@ vi.mock("@/lib/api", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/lib/api")>();
     return {
         ...actual,
-        api: { ...actual.api, checkout: vi.fn(), getCurrentUser: vi.fn() },
+        api: {
+            ...actual.api,
+            checkout: vi.fn(),
+            getCurrentUser: vi.fn(),
+            // R1: sin esta respuesta el carrito no tiene dirección y corta el
+            // checkout antes de llegar a `api.checkout`.
+            getAddresses: vi.fn(),
+        },
     };
 });
 
@@ -49,6 +56,17 @@ const mockUser: User = {
     emailVerified: true,
 };
 
+/** Dirección que el selector de R1 necesita para habilitar «Tramitar pedido». */
+const mockAddress = {
+    id: 3,
+    fullName: "Ana Castaño",
+    street: "Calle Mayor 1",
+    city: "Madrid",
+    postalCode: "28013",
+    countryCode: "ES",
+    defaultAddress: true,
+};
+
 function renderCartPage() {
     return render(
         <AuthProvider>
@@ -61,12 +79,26 @@ function renderCartPage() {
     );
 }
 
+/**
+ * Espera a que el selector de dirección (R1) cargue y se preseleccione.
+ * Sin esto el clic puede llegar antes de `getAddresses` y `handleCheckout`
+ * cortaría por «sin dirección» antes de tocar `api.checkout`.
+ */
+async function waitForAddressSelected() {
+    await waitFor(() => {
+        expect(screen.getByRole("combobox")).toHaveValue(String(mockAddress.id));
+    });
+}
+
 describe("CartPage — guard de sesión y errores amigables (specs/checkout-auth)", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
         // Carrito con un artículo para que se pinte el botón de checkout
         localStorage.setItem("nexus-cart", JSON.stringify([mockCartItem]));
+        // R1: sin dirección seleccionada el checkout no arranca, así que las
+        // tres pruebas que lo comprueban necesitan una.
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
     });
 
     afterEach(() => {
@@ -106,6 +138,7 @@ describe("CartPage — guard de sesión y errores amigables (specs/checkout-auth
         renderCartPage();
 
         const boton = await screen.findByRole("button", { name: /tramitar pedido/i });
+        await waitForAddressSelected();
         fireEvent.click(boton);
 
         await waitFor(() => expect(api.checkout).toHaveBeenCalledTimes(1));
@@ -129,13 +162,18 @@ describe("CartPage — guard de sesión y errores amigables (specs/checkout-auth
         renderCartPage();
 
         const boton = await screen.findByRole("button", { name: /tramitar pedido/i });
+        await waitForAddressSelected();
         fireEvent.click(boton);
 
         await waitFor(() => expect(api.checkout).toHaveBeenCalledTimes(1));
+        // R1 y R2: la dirección elegida y la preferencia de pago viajan siempre
         expect(api.checkout).toHaveBeenCalledWith(
             expect.objectContaining({
                 marketCode: "ES",
                 items: [expect.objectContaining({ skuId: 101, quantity: 1 })],
+                addressId: mockAddress.id,
+                paymentMethod: "CARD",
+                destinationCountryCode: mockAddress.countryCode,
             }),
             expect.any(String)
         );
@@ -151,11 +189,95 @@ describe("CartPage — guard de sesión y errores amigables (specs/checkout-auth
         renderCartPage();
 
         const boton = await screen.findByRole("button", { name: /tramitar pedido/i });
+        await waitForAddressSelected();
         fireEvent.click(boton);
 
         await waitFor(() => expect(api.checkout).toHaveBeenCalledTimes(1));
 
         expect(screen.getByText(/algo salió mal/i)).toBeInTheDocument();
         expect(screen.queryByText(/API Error/i)).not.toBeInTheDocument();
+    });
+});
+
+// ── Tarea 5.5 — Dirección y método de pago ───────────────────────────────────
+
+describe("CartPage — dirección de envío y método de pago (spec order-detail-redesign)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem("nexus-cart", JSON.stringify([mockCartItem]));
+        localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("R1 — sin direcciones bloquea el checkout y enlaza a /addresses", async () => {
+        vi.mocked(api.getAddresses).mockResolvedValue([]);
+
+        renderCartPage();
+
+        expect(
+            await screen.findByText("Añade una dirección para poder tramitar el pedido.")
+        ).toBeInTheDocument();
+
+        expect(screen.getByRole("link", { name: /añadir dirección/i })).toHaveAttribute(
+            "href",
+            "/addresses"
+        );
+        expect(
+            screen.getByRole("button", { name: /tramitar pedido/i })
+        ).toBeDisabled();
+        expect(api.checkout).not.toHaveBeenCalled();
+    });
+
+    it("R1 — preselecciona la dirección por defecto y la envía en el checkout", async () => {
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        vi.mocked(api.checkout).mockResolvedValue({
+            orderNumber: "ORD-2026-002",
+        } as never);
+
+        renderCartPage();
+
+        await waitForAddressSelected();
+        fireEvent.click(screen.getByRole("button", { name: /tramitar pedido/i }));
+
+        await waitFor(() => expect(api.checkout).toHaveBeenCalledTimes(1));
+        expect(api.checkout).toHaveBeenCalledWith(
+            expect.objectContaining({ addressId: mockAddress.id }),
+            expect.any(String)
+        );
+    });
+
+    it("R2 — ofrece los cuatro métodos de pago y permite cambiar de uno", async () => {
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        vi.mocked(api.checkout).mockResolvedValue({
+            orderNumber: "ORD-2026-003",
+        } as never);
+
+        renderCartPage();
+
+        await waitForAddressSelected();
+
+        expect(screen.getByRole("radio", { name: "Tarjeta" })).toBeChecked();
+        expect(screen.getByRole("radio", { name: "Bizum" })).toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: "PayPal" })).toBeInTheDocument();
+        expect(
+            screen.getByRole("radio", { name: "Transferencia bancaria" })
+        ).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("radio", { name: "Bizum" }));
+        fireEvent.click(screen.getByRole("button", { name: /tramitar pedido/i }));
+
+        await waitFor(() => expect(api.checkout).toHaveBeenCalledTimes(1));
+        expect(api.checkout).toHaveBeenCalledWith(
+            expect.objectContaining({ paymentMethod: "BIZUM" }),
+            expect.any(String)
+        );
+        // R2: nunca se pide un número de tarjeta
+        expect(screen.queryByLabelText(/número de tarjeta/i)).not.toBeInTheDocument();
     });
 });

@@ -12,6 +12,9 @@ import { User } from "@/types/auth";
 
 vi.mock("next/navigation", () => ({
     useParams: vi.fn(),
+    // BackLink llama a `useRouter()` en montar; se devuelve un objeto para que
+    // el clic sea testeable sin romper el render.
+    useRouter: vi.fn(() => ({ back: vi.fn(), push: vi.fn() })),
 }));
 
 vi.mock("@/lib/api", () => ({
@@ -35,6 +38,10 @@ const baseItem: OrderItem = {
     totalAmount: 79.95,
     returnEligible: false,
     returnIneligibleReason: "NOT_DELIVERED",
+    productName: "Camisa Oxford",
+    productFamily: "Camisas",
+    size: "M",
+    color: "Blanco",
 };
 
 const mockOrder: Order = {
@@ -48,6 +55,15 @@ const mockOrder: Order = {
     taxAmount: 13.88,
     totalAmount: 79.95,
     createdAt: "2026-09-29T15:30:00Z",
+    returnDeadline: "2026-10-29T15:30:00Z",
+    shippingAddress: {
+        fullName: "Ana García",
+        street: "Calle Mayor 1",
+        city: "Madrid",
+        postalCode: "28013",
+        countryCode: "ES",
+    },
+    paymentMethod: "CARD",
     items: [baseItem],
 };
 
@@ -93,7 +109,10 @@ describe("OrderDetailPage Component", () => {
 
         await waitFor(() => {
             expect(screen.getByText("ORD-TEST-99")).toBeInTheDocument();
-            expect(screen.getByText("Pedido Confirmado")).toBeInTheDocument();
+            expect(screen.getByText("Detalle del pedido")).toBeInTheDocument();
+            expect(
+                screen.getByRole("heading", { level: 1, name: "Pedido" })
+            ).toBeInTheDocument();
             expect(screen.getByText(/843321900101/i)).toBeInTheDocument();
             expect(screen.getByText(/66.07/i)).toBeInTheDocument();
             expect(screen.getByText(/13.88/i)).toBeInTheDocument();
@@ -122,7 +141,7 @@ describe("OrderDetailPage Component", () => {
         renderPage();
 
         await waitFor(() => {
-            expect(screen.getByText("Pedido Confirmado")).toBeInTheDocument();
+            expect(screen.getByText("Detalle del pedido")).toBeInTheDocument();
         });
 
         expect(screen.queryByRole("heading", { name: "Devoluciones" })).not.toBeInTheDocument();
@@ -291,5 +310,231 @@ describe("OrderDetailPage Component", () => {
         ).toBeInTheDocument();
         // Nunca el error técnico crudo
         expect(screen.queryByText(/API Error/)).not.toBeInTheDocument();
+    });
+});
+
+// ── Tarea 5.5 — Rediseño de la ficha ─────────────────────────────────────────
+
+describe("OrderDetailPage — rediseño (spec order-detail-redesign)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        sessionStorage.clear();
+        vi.mocked(useParams).mockReturnValue({ orderNumber: "ORD-TEST-99" });
+    });
+
+    it("R6 — copia el número de pedido con el botón «Copiar»", async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, "clipboard", {
+            value: { writeText },
+            configurable: true,
+        });
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        await screen.findByText("Detalle del pedido");
+        fireEvent.click(screen.getByTestId("copy-order-number"));
+
+        expect(writeText).toHaveBeenCalledWith("ORD-TEST-99");
+        // Confirmación visible mientras dure el aviso de 2 s
+        await waitFor(() => {
+            expect(screen.getByTestId("copy-order-number")).toHaveTextContent("Copiado");
+        });
+    });
+
+    it("R6 — sin navigator.clipboard no revienta la ficha", async () => {
+        Object.defineProperty(navigator, "clipboard", {
+            value: undefined,
+            configurable: true,
+        });
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        await screen.findByText("Detalle del pedido");
+
+        // El guard del try/catch evita el TypeError y la página sigue en pie
+        expect(() =>
+            fireEvent.click(screen.getByTestId("copy-order-number"))
+        ).not.toThrow();
+        expect(screen.getByTestId("order-number")).toHaveTextContent("ORD-TEST-99");
+        expect(screen.getByTestId("copy-order-number")).toHaveTextContent("Copiar");
+    });
+
+    it("R3 — pinta nombre, familia, talla, color y referencia de cada producto", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        await screen.findByText("Detalle del pedido");
+
+        expect(screen.getByText("Camisa Oxford")).toBeInTheDocument();
+        expect(screen.getByText(/Camisas · Talla M · Blanco/)).toBeInTheDocument();
+        expect(screen.getByText(/Referencia 843321900101 · Cantidad 1/)).toBeInTheDocument();
+        // R8: la caja decorativa reutiliza el mismo placeholder que el carrito
+        expect(screen.getByTestId("product-thumb")).toBeInTheDocument();
+    });
+
+    it("R4 — muestra la fecha de compra y el límite de devolución", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        expect(await screen.findByText("29 de septiembre de 2026")).toBeInTheDocument();
+        // R4: el límite lo calcula el backend, el cliente solo lo pinta
+        expect(screen.getByTestId("return-deadline")).toHaveTextContent(
+            "29 de octubre de 2026"
+        );
+    });
+
+    it("R1 y R2 — pinta la dirección de envío y el método de pago", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        await screen.findByText("Detalle del pedido");
+
+        const address = screen.getByTestId("shipping-address");
+        expect(address).toHaveTextContent("Ana García");
+        expect(address).toHaveTextContent("Calle Mayor 1");
+        expect(address).toHaveTextContent("28013");
+        expect(address).toHaveTextContent("Madrid");
+
+        // R2: la etiqueta es «Tarjeta», nunca un número de tarjeta
+        const payment = screen.getByTestId("payment-method");
+        expect(payment).toHaveTextContent("Tarjeta");
+        expect(payment).not.toHaveTextContent(/\d{4}/);
+    });
+
+    it("R7 — las órdenes anteriores a V10 no pintan ni dirección ni pago vacíos", async () => {
+        // Con sesión para que llegue hasta la sección de devoluciones
+        localStorage.setItem("nexus-auth-token", "test-token");
+        vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+        vi.mocked(api.getMyReturns).mockResolvedValue([]);
+        vi.mocked(api.getOrder).mockResolvedValue({
+            ...mockOrder,
+            returnDeadline: null,
+            shippingAddress: null,
+            paymentMethod: null,
+        });
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        await screen.findByText("Detalle del pedido");
+
+        expect(screen.queryByTestId("shipping-address")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("payment-method")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("return-deadline")).not.toBeInTheDocument();
+        // Sección de devoluciones conservada (Tarea 5.4)
+        expect(screen.getByRole("heading", { name: "Devoluciones" })).toBeInTheDocument();
+    });
+
+    it("R10 — muestra el badge «Devolución solicitada» cuando alguna línea ya devolvió", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue({
+            ...mockOrder,
+            items: [{ ...baseItem, returnEligible: false, returnIneligibleReason: "ALREADY_RETURNED" }],
+        });
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        // Sin sesión no llega `getMyReturns`, así que sale del propio motivo
+        expect(await screen.findByTestId("return-requested-badge")).toBeInTheDocument();
+        expect(api.getMyReturns).not.toHaveBeenCalled();
+    });
+
+    it("R5 — ofrece volver a mis pedidos", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        await screen.findByText("Detalle del pedido");
+        expect(screen.getByTestId("back-link")).toBeInTheDocument();
+    });
+
+    it("§5.7 — da las gracias solo al llegar desde el checkout", async () => {
+        sessionStorage.setItem("nexus-just-checked-out", "ORD-TEST-99");
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        render(
+            <AuthProvider>
+                <CartProvider>
+                    <CartDrawerProvider>
+                        <OrderDetailPage />
+                    </CartDrawerProvider>
+                </CartProvider>
+            </AuthProvider>
+        );
+
+        expect(await screen.findByText("Gracias por tu compra")).toBeInTheDocument();
+        expect(screen.getByText("Pedido confirmado")).toBeInTheDocument();
+        // Se consume en cuanto se lee: una recarga no vuelve a dar las gracias
+        expect(
+            sessionStorage.getItem("nexus-just-checked-out")
+        ).toBeNull();
     });
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import BackLink from "@/components/BackLink";
 import Header from "@/components/Header";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuth } from "@/context/AuthContext";
@@ -128,6 +129,11 @@ function ProfileContent() {
     return (
         <main className="flex-1 px-6 py-12">
             <div className="max-w-2xl mx-auto">
+                {/* R5 */}
+                <div className="mb-6">
+                    <BackLink href="/" />
+                </div>
+
                 <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-lg font-medium uppercase tracking-wider text-neutral-900">

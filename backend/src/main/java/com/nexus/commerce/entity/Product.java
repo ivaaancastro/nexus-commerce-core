@@ -2,6 +2,7 @@ package com.nexus.commerce.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -9,6 +10,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "products")
+// A nivel de clase agrupa la carga de los proxies de Product — la referencia
+// Sku → Product del historial. Hibernate lo rechaza en @ManyToOne (plan §5.9).
+@BatchSize(size = 20)
 @Getter
 @Setter
 @NoArgsConstructor

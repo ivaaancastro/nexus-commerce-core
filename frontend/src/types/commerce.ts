@@ -64,6 +64,53 @@ export interface CheckoutRequest {
     destinationCountryCode?: string;
     destinationLatitude?: number;
     destinationLongitude?: number;
+    /** Obligatorio desde la Tarea 5.5 (R1): la dirección se copia a la orden. */
+    addressId: number;
+    /** Obligatorio desde la Tarea 5.5 (R2): preferencia declarada, no se procesa. */
+    paymentMethod: PaymentMethod;
+}
+
+/**
+ * Preferencia de pago declarada al hacer checkout (Tarea 5.5, R2).
+ * Refleja el enum `PaymentMethod` del backend.
+ *
+ * **No procesa pagos**: no se pide número de tarjeta ni se tokeniza — el proyecto
+ * no tiene pasarela de pago, igual que `refundAmount` es solo un registro contable.
+ */
+export type PaymentMethod = "CARD" | "BIZUM" | "PAYPAL" | "BANK_TRANSFER";
+
+/**
+ * Etiquetas visibles de cada método de pago. El orden es el del selector del
+ * carrito.
+ */
+export const PAYMENT_METHODS: PaymentMethod[] = [
+    "CARD",
+    "BIZUM",
+    "PAYPAL",
+    "BANK_TRANSFER",
+];
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+    CARD: "Tarjeta",
+    BIZUM: "Bizum",
+    PAYPAL: "PayPal",
+    BANK_TRANSFER: "Transferencia bancaria",
+};
+
+/**
+ * Snapshot inmutable de la dirección de envío usada en el pedido (Tarea 5.5, R1).
+ * Es el valor que se copió al hacer checkout, no la dirección actual del usuario:
+ * si él la edita después, el pedido no cambia.
+ *
+ * Corresponde a `ShippingAddressResponse`; llega en `null` en las órdenes
+ * anteriores a la migración V10.
+ */
+export interface ShippingAddress {
+    fullName: string;
+    street: string;
+    city: string;
+    postalCode: string;
+    countryCode: string;
 }
 
 export interface OrderItem {
@@ -80,6 +127,11 @@ export interface OrderItem {
     returnEligible: boolean;
     /** Motivo de inelegibilidad, o `null` si la línea es devolvible. */
     returnIneligibleReason: ReturnIneligibleReason | null;
+    /** Nombre del producto, vía `OrderItem → Sku → Product` (Tarea 5.5, R3). */
+    productName: string;
+    productFamily: string;
+    size: string;
+    color: string;
 }
 
 /**
@@ -135,12 +187,36 @@ export interface Order {
     taxAmount: number;
     totalAmount: number;
     createdAt: string;
+    /**
+     * Límite para solicitar la devolución: `createdAt + 30 días` (Tarea 5.5, R4).
+     * Sale del backend para que los 30 días no se reimplementen en cliente.
+     * `null` solo en la respuesta inmediata del checkout, cuando `createdAt`
+     * aún no se ha fijado en el flush.
+     */
+    returnDeadline: string | null;
+    /** `null` en las órdenes previas a V10 → la sección no se llega a pintar. */
+    shippingAddress: ShippingAddress | null;
+    /** `null` en las órdenes previas a V10. Preferencia declarada, no cobrada. */
+    paymentMethod: PaymentMethod | null;
     items: OrderItem[];
 }
 
 /**
+ * Línea resumida para la tarjeta del historial (Tarea 5.5, R9).
+ * Corresponde a `OrderItemPreviewResponse`: solo lo que se pinta, sin precios
+ * fiscales ni elegibilidad de devolución.
+ */
+export interface OrderItemPreview {
+    productName: string;
+    productFamily: string;
+    size: string;
+    color: string;
+    quantity: number;
+    totalAmount: number;
+}
+
+/**
  * Fila del historial de pedidos. Corresponde a `OrderSummaryResponse`.
- * No incluye las líneas: solo el número de artículos.
  */
 export interface OrderSummary {
     id: number;
@@ -150,6 +226,10 @@ export interface OrderSummary {
     totalAmount: number;
     createdAt: string;
     itemCount: number;
+    /** Líneas para pintar la tarjeta. */
+    items: OrderItemPreview[];
+    /** `true` si alguna línea tiene devolución solicitada (Tarea 5.5, R10). */
+    returnRequested: boolean;
 }
 
 /**

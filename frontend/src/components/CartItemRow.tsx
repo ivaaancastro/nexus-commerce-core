@@ -1,5 +1,6 @@
 "use client";
 
+import ProductThumb from "@/components/ProductThumb";
 import { useCart } from "@/context/CartContext";
 import { CartItem } from "@/types/commerce";
 
@@ -32,22 +33,15 @@ export default function CartItemRow({ item }: CartItemRowProps) {
 
     return (
         <div className="flex gap-4 py-4 border-b border-neutral-100">
-            {/* Imagen */}
-            <div className="w-20 h-24 bg-neutral-100 flex-shrink-0 overflow-hidden">
-                {item.imageUrl ? (
-                    <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-[10px] uppercase tracking-wider text-neutral-400">
-                            {item.family}
-                        </span>
-                    </div>
-                )}
-            </div>
+            {/* Imagen: placeholder editorial compartido con el historial y la ficha.
+                La rama <img> anterior era código muerto: `imageUrl` nunca llega
+                a asignarse en ningún sitio (Tarea 5.5, R8). */}
+            <ProductThumb
+                name={item.name}
+                family={item.family}
+                size={item.size}
+                className="w-20 h-24"
+            />
 
             {/* Info */}
             <div className="flex-1 flex flex-col justify-between">

@@ -1,14 +1,19 @@
 package com.nexus.commerce.service;
 
 import com.nexus.commerce.dto.*;
+import com.nexus.commerce.entity.Address;
 import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.Product;
+import com.nexus.commerce.entity.ShippingAddress;
 import com.nexus.commerce.entity.Sku;
 import com.nexus.commerce.entity.User;
 import com.nexus.commerce.exception.InsufficientStockException;
 import com.nexus.commerce.exception.ResourceNotFoundException;
+import com.nexus.commerce.repository.AddressRepository;
 import com.nexus.commerce.repository.OrderRepository;
+import com.nexus.commerce.repository.ProductReturnRepository;
 import com.nexus.commerce.repository.SkuRepository;
 import com.nexus.commerce.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Slf4j
@@ -33,6 +42,8 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final SkuRepository skuRepository;
     private final UserRepository userRepository;
+    private final AddressRepository addressRepository;
+    private final ProductReturnRepository productReturnRepository;
     private final InventoryService inventoryService;
     private final PricingService pricingService;
     private final WarehouseSelectionService warehouseSelectionService;
@@ -49,6 +60,12 @@ public class OrderService {
 
         log.info("Iniciando checkout transaccional para mercado '{}' con {} líneas",
                 request.marketCode(), request.items().size());
+
+        // 1b. Dirección y usuario, ANTES de reservar stock (Tarea 5.5, R1).
+        //     Si la dirección no existe o es de otro usuario, se falla aquí sin
+        //     haber tocado inventario.
+        User user = resolveUser(userEmail);
+        ShippingAddress shippingAddress = resolveShippingAddress(request.addressId(), user);
 
         String orderNumber = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String currency = null;
@@ -123,7 +140,9 @@ public class OrderService {
                 .subtotalAmount(subtotalAccumulator)
                 .taxAmount(taxAccumulator)
                 .totalAmount(totalAccumulator)
-                .user(resolveUser(userEmail))
+                .user(user)
+                .shippingAddress(shippingAddress)
+                .paymentMethod(request.paymentMethod())
                 .build();
 
         for (OrderItem item : orderItems) {
@@ -153,6 +172,18 @@ public class OrderService {
         Page<Order> result = orderRepository.findByUserIdOrderByCreatedAtDesc(
                 user.getId(), PageRequest.of(page, size));
 
+        // R10: qué líneas tienen devolución ya solicitada. UNA consulta para toda
+        // la página — llamando a existsByOrderItemId por línea dispararíamos una
+        // query por cada artículo del listado.
+        List<Long> itemIds = result.getContent().stream()
+                .flatMap(order -> order.getItems().stream())
+                .map(OrderItem::getId)
+                .toList();
+
+        Set<Long> returnedItemIds = itemIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(productReturnRepository.findOrderItemIdIn(itemIds));
+
         List<OrderSummaryResponse> summaries = result.getContent().stream()
                 .map(order -> new OrderSummaryResponse(
                         order.getId(),
@@ -161,7 +192,14 @@ public class OrderService {
                         order.getCurrency(),
                         order.getTotalAmount(),
                         order.getCreatedAt(),
-                        order.getItems().size()
+                        order.getItems().size(),
+                        // R9: la tarjeta pinta nombre y variante de cada producto
+                        order.getItems().stream()
+                                .map(this::mapToItemPreview)
+                                .toList(),
+                        // R10: badge «Devolución solicitada» en el historial
+                        order.getItems().stream()
+                                .anyMatch(item -> returnedItemIds.contains(item.getId()))
                 ))
                 .toList();
 
@@ -171,6 +209,23 @@ public class OrderService {
                 result.getSize(),
                 result.getTotalElements(),
                 result.getTotalPages()
+        );
+    }
+
+    /**
+     * Línea para la tarjeta del historial (Tarea 5.5, R9). Recorre
+     * {@code OrderItem → Sku → Product}, igual que el detalle, pero solo con lo
+     * que se pinta: sin precios fiscales ni elegibilidad.
+     */
+    private OrderItemPreviewResponse mapToItemPreview(OrderItem item) {
+        Product product = item.getSku().getProduct();
+        return new OrderItemPreviewResponse(
+                product.getName(),
+                product.getFamily(),
+                item.getSku().getSize(),
+                item.getSku().getColor(),
+                item.getQuantity(),
+                item.getTotalAmount()
         );
     }
 
@@ -204,6 +259,36 @@ public class OrderService {
                 });
     }
 
+    /**
+     * Resuelve el <strong>snapshot</strong> de la dirección de envío (Tarea 5.5, R1).
+     *
+     * <p>La propiedad se comprueba <em>en la propia consulta</em>
+     * ({@code findByIdAndUserId}), así que «no existe» y «es de otro usuario»
+     * caen en lo mismo: un único {@code 400} que además no permite averiguar si
+     * una dirección ajena existe.</p>
+     *
+     * <p>Si no hay usuario, no hay a quién pertenecer la dirección —y
+     * {@code addressId} es obligatorio—, así que el checkout se rechaza. Ese
+     * caso solo es alcanzable con un email que ya no resuelva: desde que el
+     * checkout exige sesión (PR #13) siempre hay usuario.</p>
+     */
+    private ShippingAddress resolveShippingAddress(Long addressId, User user) {
+        Optional<Address> found = user == null
+                ? Optional.empty()
+                : addressRepository.findByIdAndUserId(addressId, user.getId());
+
+        return found
+                .map(source -> ShippingAddress.builder()
+                        .fullName(source.getFullName())
+                        .street(source.getStreet())
+                        .city(source.getCity())
+                        .postalCode(source.getPostalCode())
+                        .countryCode(source.getCountryCode())
+                        .build())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "La dirección de envío seleccionada no es válida."));
+    }
+
     private User requireUser(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
@@ -216,6 +301,9 @@ public class OrderService {
                     // En el checkout el pedido es PENDING, así que sale por R2 sin consultar BD.
                     ReturnEligibilityService.Eligibility eligibility =
                             returnEligibilityService.evaluate(order, item);
+
+                    // Tarea 5.5, R3: nombre y variantes para el resumen de productos.
+                    Product product = item.getSku().getProduct();
                     return new OrderItemResponse(
                             item.getId(),
                             item.getSku().getId(),
@@ -227,10 +315,22 @@ public class OrderService {
                             item.getTaxAmount(),
                             item.getTotalAmount(),
                             eligibility.eligible(),
-                            eligibility.ineligibleReason()
+                            eligibility.ineligibleReason(),
+                            product.getName(),
+                            product.getFamily(),
+                            item.getSku().getSize(),
+                            item.getSku().getColor()
                     );
                 })
                 .toList();
+
+        // R4: la ventana vive en un solo sitio — la misma constante que evalúa R1.
+        // `createdAt` es nullable aquí porque @CreationTimestamp se fija en el flush,
+        // no necesariamente en el save() del propio checkout.
+        Instant createdAt = order.getCreatedAt();
+        Instant returnDeadline = createdAt == null
+                ? null
+                : createdAt.plus(Duration.ofDays(ReturnEligibilityService.WINDOW_DAYS));
 
         return new OrderResponse(
                 order.getId(),
@@ -242,8 +342,29 @@ public class OrderService {
                 order.getSubtotalAmount(),
                 order.getTaxAmount(),
                 order.getTotalAmount(),
-                order.getCreatedAt(),
+                createdAt,
+                returnDeadline,
+                mapToShippingAddress(order.getShippingAddress()),
+                order.getPaymentMethod(),
                 itemResponses
+        );
+    }
+
+    /**
+     * Snapshot de envío a DTO. {@code null} en las órdenes anteriores a {@code V10}:
+     * se devuelve tal cual y el frontend <strong>no pinta</strong> la sección
+     * en lugar de mostrar un hueco vacío (Tarea 5.5, R7).
+     */
+    private ShippingAddressResponse mapToShippingAddress(ShippingAddress address) {
+        if (address == null) {
+            return null;
+        }
+        return new ShippingAddressResponse(
+                address.getFullName(),
+                address.getStreet(),
+                address.getCity(),
+                address.getPostalCode(),
+                address.getCountryCode()
         );
     }
 }
