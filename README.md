@@ -85,8 +85,9 @@ flowchart TD
 * `GET /api/v1/products/search?reference={ref}` $\rightarrow$ Búsqueda exacta por código comercial (ej: `0432/021`).
 * `POST /api/v1/products/enrich?reference={ref}` $\rightarrow$ Clasificación y enriquecimiento taxonómico mediante LLM.
 
-### Precios Multimercado
-* `GET /api/v1/pricing/skus/{skuId}?market={code}` $\rightarrow$ Devuelve desglose financiero (base neta, IVA, moneda y descuento). Mercado por defecto: `ES`.
+### Mercados y Precios Multimercado
+* `GET /api/v1/markets` $\rightarrow$ Lista los mercados activos con su divisa y tipo impositivo (`code`, `name`, `currency`, `taxRate`), ordenados por código. **Público** (sin sesión) y sin lógica de negocio: solo `findAll` + mapeo a `MarketResponse`. Es la única fuente de la lista del selector de mercado del frontend.
+* `GET /api/v1/pricing/skus/{skuId}?market={code}` $\rightarrow$ Devuelve desglose financiero (base neta, impuestos, moneda y descuento) **del mercado indicado**. Devuelve `404` si ese mercado no tiene precio para el SKU, estado que la ficha de producto traduce a «No disponible en …».
 
 ### Inventario y Stock
 * `GET /api/v1/inventory/skus/{skuId}` $\rightarrow$ Consulta agregada del stock omnicanal y desglose por almacén.
