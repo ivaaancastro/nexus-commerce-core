@@ -94,6 +94,19 @@ describe("Header", () => {
             .toHaveAttribute("href", "/profile");
     });
 
+    it("R7 — «Colección» y «Búsqueda Vectorial» son enlaces a sus rutas", async () => {
+        // GIVEN — antes eran <span> con cursor-pointer: se veían como enlaces pero
+        // no se podía navegar con ellos, con clic derecho ni con el teclado.
+        renderHeader();
+
+        // THEN
+        const coleccion = await screen.findByRole("link", { name: /colección/i });
+        expect(coleccion).toHaveAttribute("href", "/catalog");
+
+        const busqueda = screen.getByRole("link", { name: /búsqueda vectorial/i });
+        expect(busqueda).toHaveAttribute("href", "/search");
+    });
+
     it("R2 — pinta el selector de mercado accesible con las opciones del endpoint", async () => {
         // GIVEN / WHEN
         renderHeader();

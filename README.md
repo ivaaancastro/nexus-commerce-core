@@ -81,7 +81,8 @@ flowchart TD
 * 🔒 `GET /api/v1/auth/me` $\rightarrow$ Devuelve el perfil del usuario asociado al token (`401` sin token).
 
 ### Catálogo de Productos
-* `GET /api/v1/products` $\rightarrow$ Lista todos los productos y sus variantes SKU.
+* `GET /api/v1/products/families` $\rightarrow$ Taxonomía real del catálogo: `[{ family, productCount }]` ordenada por familia. **Público** (sin sesión) y calculada en BD con `SELECT family, COUNT(*)`, contando **productos y no SKUs**. Es la única fuente del menú de familias: la portada y la columna de filtros se pintan de esta respuesta, nunca de un `Set` derivado de la lista de productos.
+* `GET /api/v1/products?family={familia}&size={talla}&color={color}&sort={orden}` $\rightarrow$ Lista de productos filtrada **en backend** y combinada con **AND**. `family` exige que el producto pertenezca a esa familia; `size` y `color` exigen que coincidan **en el mismo SKU**, de modo que `?size=M&color=Negro` no sirve para mezclar variantes de prendas distintas. `sort` admite `default` \| `name-asc` \| `name-desc` (cualquier otro valor → `400` con los valores admitidos); una familia inexistente → `200 []`. **Sin paginación**: la respuesta siempre llega entera.
 * `GET /api/v1/products/search?reference={ref}` $\rightarrow$ Búsqueda exacta por código comercial (ej: `0432/021`).
 * `POST /api/v1/products/enrich?reference={ref}` $\rightarrow$ Clasificación y enriquecimiento taxonómico mediante LLM.
 
@@ -94,7 +95,7 @@ flowchart TD
 * `POST /api/v1/inventory/reserve` $\rightarrow$ Reserva atómica de existencias. Devuelve `409 Conflict` si el ATS es insuficiente.
 
 ### Búsqueda y Enriquecimiento
-* `GET /api/v1/products/search/semantic?query={q}&family={f}&limit={n}` $\rightarrow$ Búsqueda por similitud semántica mediante embeddings vectoriales (HNSW).
+* `GET /api/v1/products/search/semantic?query={q}&family={f}&limit={n}` $\rightarrow$ Búsqueda por similitud semántica mediante embeddings vectoriales (HNSW). El filtro `family` se inyecta en la expresión de filtro **sólo** si la familia existe en el catálogo (`existsByFamily`) y no contiene comillas; si no, la búsqueda **devuelve `200 []` sin consultar el vector store**. No admite filtro por precio.
 * `POST /api/v1/products/search/index` $\rightarrow$ Dispara la reindexación vectorial completa del catálogo.
 
 ### Pedidos y Checkout

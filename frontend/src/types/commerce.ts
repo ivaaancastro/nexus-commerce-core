@@ -14,6 +14,36 @@ export interface Product {
     skus: Sku[];
 }
 
+/**
+ * Familia textil con su recuento de productos (Tarea 3.1, R1).
+ * Refleja exactamente `FamilyResponse` del backend.
+ *
+ * El portada y el menú de filtros se pintan únicamente de esta respuesta:
+ * la taxonomía es dato del servidor, no algo que se derive en cliente.
+ */
+export interface FamilyResponse {
+    family: string;
+    productCount: number;
+}
+
+/** Orden admitido por `GET /api/v1/products?sort=`. El backend devuelve 400 ante uno desconocido. */
+export type SortOption = "default" | "name-asc" | "name-desc";
+
+/**
+ * Filtros del catálogo (Tarea 3.1, R2). Todos opcionales y combinables con AND.
+ * Se traducen 1:1 a query params — la URL es el estado, no una copia de él.
+ *
+ * No hay `page` ni `size` de paginación a propósito: es regla de producto que
+ * el catálogo no se pagina y todo el contenido baje en continuo (D10).
+ * El `size` de aquí es la **talla de SKU**, no un tamaño de página.
+ */
+export interface ProductFilters {
+    family?: string;
+    size?: string;
+    color?: string;
+    sort?: SortOption;
+}
+
 export interface SemanticSearchResult {
     productId: number;
     referenceCode: string;
