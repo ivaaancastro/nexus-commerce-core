@@ -27,6 +27,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/v1/products/**").permitAll()
                 .requestMatchers("/api/v1/pricing/**").permitAll()
+                .requestMatchers("/api/v1/markets").permitAll()
                 .requestMatchers("/api/v1/inventory/**").permitAll()
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/orders/**").authenticated()

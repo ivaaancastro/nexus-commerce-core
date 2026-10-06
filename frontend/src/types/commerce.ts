@@ -36,6 +36,17 @@ export interface PriceBreakdown {
     taxRate: number;
 }
 
+/**
+ * Mercado disponible para el selector de divisa (Tarea 3.2).
+ * Refleja exactamente `MarketResponse` del backend.
+ */
+export interface Market {
+    code: string;
+    name: string;
+    currency: string;
+    taxRate: number;
+}
+
 export interface WarehouseStock {
     warehouseCode: string;
     warehouseName: string;
@@ -255,10 +266,24 @@ export interface CartItem {
     unitPrice: number;
     currency: string;
     imageUrl?: string;
+    /** Espec. R6/D6: true cuando el mercado activo no tiene precio para este SKU. */
+    priceUnavailable?: boolean;
 }
 
 export interface CartState {
     items: CartItem[];
+}
+
+/**
+ * Resultado de re-precificar un artículo en un nuevo mercado (Tarea 3.2, R6).
+ * `unitPrice`/`currency` ausentes significa «ese mercado no tiene precio».
+ */
+export interface RepriceResult {
+    skuId: number;
+    size: string;
+    unitPrice?: number;
+    currency?: string;
+    priceUnavailable?: boolean;
 }
 
 export type CartAction =
@@ -266,4 +291,5 @@ export type CartAction =
     | { type: "REMOVE_ITEM"; payload: { skuId: number; size: string } }
     | { type: "UPDATE_QUANTITY"; payload: { skuId: number; size: string; quantity: number } }
     | { type: "CLEAR_CART" }
+    | { type: "REPRICE"; payload: RepriceResult[] }
     | { type: "HYDRATE"; payload: CartItem[] };

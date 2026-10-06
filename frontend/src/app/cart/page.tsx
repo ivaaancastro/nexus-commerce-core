@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import CartItemRow from "@/components/CartItemRow";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useMarket } from "@/context/MarketContext";
 import { api } from "@/lib/api";
 import { JUST_CHECKED_OUT_KEY } from "@/lib/checkout";
 import { getFriendlyErrorMessage } from "@/lib/errors";
@@ -27,8 +28,18 @@ import {
  * segundo se guarda como dato declarado — no procesa ningún pago.
  */
 export default function CartPage() {
-    const { items, subtotal, taxEstimate, currency, totalItems, clearCart } = useCart();
+    const {
+        items,
+        subtotal,
+        taxEstimate,
+        currency,
+        totalItems,
+        clearCart,
+        isRepricing,
+        hasUnavailableItems,
+    } = useCart();
     const { isAuthenticated } = useAuth();
+    const { market } = useMarket();
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -75,6 +86,18 @@ export default function CartPage() {
             return;
         }
 
+        // R5/R6: sin precio en este mercado el servidor respondería 400
+        // «Precio no configurado para el SKU …». El botón ya viene
+        // deshabilitado, pero se vuelve a comprobar por si se llega por teclado.
+        if (hasUnavailableItems) {
+            setError("Hay artículos sin precio en este mercado. Retíralos o vuelve al mercado anterior.");
+            return;
+        }
+        if (isRepricing) {
+            setError("Actualizando los precios al mercado elegido. Inténtalo en un momento.");
+            return;
+        }
+
         setIsProcessing(true);
 
         try {
@@ -82,7 +105,7 @@ export default function CartPage() {
 
             const order = await api.checkout(
                 {
-                    marketCode: "ES",
+                    marketCode: market.code,
                     items: items.map((item) => ({
                         skuId: item.skuId,
                         warehouseCode: "AUTO",
@@ -289,16 +312,29 @@ export default function CartPage() {
                                     </div>
                                 )}
 
+                                {hasUnavailableItems && (
+                                    <div className="mt-4 p-3 bg-neutral-100 border border-neutral-300 text-xs text-neutral-700 leading-relaxed">
+                                        Hay artículos sin precio en {market.name}. Retíralos o vuelve al
+                                        mercado anterior para tramitar el pedido.
+                                    </div>
+                                )}
+
                                 <button
                                     onClick={handleCheckout}
-                                    disabled={isProcessing || (isAuthenticated && !selectedAddress)}
+                                    disabled={
+                                        isProcessing ||
+                                        isRepricing ||
+                                        hasUnavailableItems ||
+                                        (isAuthenticated && !selectedAddress)
+                                    }
                                     className="w-full bg-neutral-900 hover:bg-black text-white text-xs uppercase tracking-widest py-4 transition-colors disabled:opacity-40 disabled:hover:bg-neutral-900 mt-6"
                                 >
                                     {isProcessing ? "Procesando..." : "Tramitar pedido"}
                                 </button>
 
                                 <p className="text-[10px] text-neutral-400 mt-4 leading-relaxed">
-                                    Impuestos calculados al 21% IVA (mercado ES). El cálculo final se realizará en el checkout.
+                                    Impuestos calculados al {market.taxRate}% (mercado {market.code}).
+                                    El cálculo final se realizará en el checkout.
                                 </p>
 
                                 <Link
