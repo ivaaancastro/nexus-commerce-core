@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/market-currency-selector` — **PR #17 abierto, CI verde** (3 commits) |
-| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**implementada**, PR abierto) |
-| **Tarea actual** | 3.2 — Selector Dinámico de Mercado y Divisa |
-| **Estado** | Spec aprobada · código completo · `/spec-check` **10/10** · prueba manual en navegador **hecha** (4 mercados) · **143 backend + 147 frontend** · ESLint 4 (baseline) · `tsc=0` · build OK · **CI verde** |
-| **Pendiente** | Merge del PR #17 (lo aprueba el usuario) → `/spec-close market-currency-selector` |
+| **Rama actual** | `main` |
+| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) |
+| **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
+| **Estado** | **3.2 cerrada**: PR **#17** mergeado en `main` (`3214502`, 2026-10-06) · **143 backend + 147 frontend** · ESLint 4 (baseline) · CI verde |
+| **Pendiente** | Definir la siguiente tarea (3.1, 3.3 o Fase 4) → escribir `plan.md` y pedir aprobación de la spec |
 | **Última actualización** | 2026-10-06 |
 
 ---
@@ -42,7 +42,7 @@
 - [x] Tarea 2.3 — Checkout Multilínea con selección automática de almacén
 
 ### Fase 3 — Experiencia Editorial
-- [x] **Tarea 3.2 — Selector Dinámico de Mercado y Divisa** *(spec `specs/market-currency-selector/`, implementada 2026-10-06)*
+- [x] **Tarea 3.2 — Selector Dinámico de Mercado y Divisa** — ✅ **cerrada 2026-10-06** · PR **#17** (`3214502`) · spec `specs/market-currency-selector/`
   - [x] Backend: `GET /api/v1/markets` público (`MarketController` + `MarketService` + `MarketResponse`), `permitAll()` en `SecurityConfig`
   - [x] Migración `V11__complete_market_price_matrix.sql` — completa la matriz 8/8 (los seeds de V1 solo cubrían talla M en ES/UK/CH, así que **US y la talla L devolvían 404**); `ON CONFLICT DO NOTHING` → idempotente
   - [x] Frontend: `MarketContext` (objeto completo en `localStorage["nexus-market"]`, default `ES`, reset ante JSON corrupto o código desconocido) + `<select>` accesible en `Header` que no se pinta sin lista
@@ -131,7 +131,7 @@
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
-- [x] **Tarea 3.2 implementada** — spec `specs/market-currency-selector/` · código + tests + docs completos · `/spec-check` 10/10 · **pendiente commit → PR → cierre**
+- [x] **Tarea 3.2 cerrada** — PR **#17** mergeado en `main` (`3214502`, 2026-10-06) · 10/10 · CI verde ✅ Quedan 3.1 y 3.3
 - [ ] Tarea 3.3 — Galería de Imágenes Responsive
 
 ### Fase 4 — Calidad Enterprise

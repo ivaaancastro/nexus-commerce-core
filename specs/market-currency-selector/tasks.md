@@ -1,8 +1,9 @@
 # Tasks — Tarea 3.2: Selector Dinámico de Mercado y Divisa
 
 > **Spec**: `specs/market-currency-selector/spec.md` ✅ aprobada 2026-10-06
+> **Estado**: ✅ **COMPLETADA** — cerrada el **2026-10-06** · PR **#17** (`3214502`) · CI verde · 10/10 requisitos
 > **Plan**: `specs/market-currency-selector/plan.md`
-> **Rama**: `feat/market-currency-selector`
+> **Rama**: `feat/market-currency-selector` *(mergeada en `main` y borrada)*
 
 ---
 
