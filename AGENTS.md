@@ -9,15 +9,15 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `feat/order-detail-redesign` |
-| **Fase** | 5 — Gestión de Usuarios |
-| **Tarea** | 5.5 — Rediseño de la página de pedido (**implementada, sin commitear**) |
-| **Tarea siguiente** | Por definir — la 5.5 es la última spec escrita |
-| **Pendiente** | Commit + push + PR de `feat/order-detail-redesign`; `/spec-check order-detail-redesign` |
-| **Actualizado** | 2026-10-05 |
+| **Rama activa** | `main` |
+| **Fase** | 5 — Gestión de Usuarios (**completada**) |
+| **Tarea** | Sin tarea activa |
+| **Tarea siguiente** | Por definir — quedan Fase 3 (3.1–3.3) y Fase 4 (4.1–4.3) |
+| **Pendiente** | Escribir el `plan.md` de la siguiente tarea y pedir aprobación de la spec (SDD) |
+| **Actualizado** | 2026-10-06 |
 
 > **Estado de pruebas**: 139 backend · 125 frontend · CI verde en `main`.
-> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`) y **Tarea 5.4** (PR #14, `136c584`).
+> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`), **Tarea 5.4** (PR #14, `136c584`) y **Tarea 5.5** (PR #15, `e23b86c`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
