@@ -10,10 +10,10 @@ import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    @EntityGraph(attributePaths = {"items", "items.sku"})
+    @EntityGraph(attributePaths = {"items", "items.sku", "items.sku.product"})
     Optional<Order> findByIdempotencyKey(String idempotencyKey);
 
-    @EntityGraph(attributePaths = {"items", "items.sku"})
+    @EntityGraph(attributePaths = {"items", "items.sku", "items.sku.product"})
     Optional<Order> findByOrderNumber(String orderNumber);
 
     /**
@@ -21,13 +21,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * Devolver vacío cubre a la vez «no existe» y «es de otro usuario» → 404.
      * Sin paginación, así que el EntityGraph no trunca la colección.
      */
-    @EntityGraph(attributePaths = {"items", "items.sku"})
+    @EntityGraph(attributePaths = {"items", "items.sku", "items.sku.product"})
     Optional<Order> findByUserIdAndOrderNumber(Long userId, String orderNumber);
 
     /**
      * Historial paginado. <strong>Sin</strong> EntityGraph: hacer fetch de una
      * colección junto a una paginación truncaría los items en el corte de página.
-     * Los items se cargan en lote por {@code @BatchSize} al mapear el DTO.
+     * Los items se cargan en lote por {@code @BatchSize}, igual que cada
+     * {@code sku} y su {@code product} (Tarea 5.5, plan §5.9).
      */
     Page<Order> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
 }

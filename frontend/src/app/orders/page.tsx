@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import Header from "@/components/Header";
 import OrderStatusBadge from "@/components/OrderStatusBadge";
+import ProductThumb from "@/components/ProductThumb";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { api } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/errors";
@@ -29,8 +31,50 @@ function OrderCard({ order }: { order: OrderSummary }) {
                         {order.orderNumber}
                     </p>
                 </div>
-                <OrderStatusBadge status={order.status} />
+                <div className="flex flex-wrap items-center gap-3">
+                    <OrderStatusBadge status={order.status} />
+                    {/* R10: el badge también en la tarjeta, no solo en la ficha */}
+                    {order.returnRequested && (
+                        <span
+                            data-testid={`return-badge-${order.orderNumber}`}
+                            className="border border-neutral-900 px-3 py-1 text-[10px] uppercase tracking-widest text-neutral-900"
+                        >
+                            Devolución solicitada
+                        </span>
+                    )}
+                </div>
             </div>
+
+            {/* R9: nombre, variante y miniatura de cada producto en vez de un
+                contador de artículos sin más. */}
+            <ul className="space-y-3 border-y border-neutral-100 py-4">
+                {order.items.map((item, index) => (
+                    <li key={`${order.id}-${index}`} className="flex gap-3">
+                        <ProductThumb
+                            name={item.productName}
+                            family={item.productFamily}
+                            size={item.size}
+                            className="w-12 h-14 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-[11px] font-medium uppercase tracking-wide text-neutral-900 truncate">
+                                {item.productName}
+                            </p>
+                            <p className="text-[11px] text-neutral-500">
+                                {item.productFamily}
+                                {item.size && <> · Talla {item.size}</>}
+                                {item.color && <> · {item.color}</>}
+                            </p>
+                            <p className="text-[10px] text-neutral-400">
+                                {item.quantity} {item.quantity === 1 ? "unidad" : "unidades"}
+                            </p>
+                        </div>
+                        <p className="text-[11px] text-neutral-900 whitespace-nowrap">
+                            {item.totalAmount.toFixed(2)} {order.currency}
+                        </p>
+                    </li>
+                ))}
+            </ul>
 
             <div className="flex flex-wrap gap-x-8 gap-y-2 text-xs text-neutral-600">
                 <div>
@@ -114,7 +158,8 @@ function OrderHistoryContent() {
     return (
         <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-12">
             <header className="mb-8">
-                <h1 className="text-lg font-medium uppercase tracking-widest text-neutral-900">
+                <BackLink href="/" label="Inicio" />
+                <h1 className="mt-4 text-lg font-medium uppercase tracking-widest text-neutral-900">
                     Mis pedidos
                 </h1>
                 <p className="mt-2 text-xs text-neutral-500">
