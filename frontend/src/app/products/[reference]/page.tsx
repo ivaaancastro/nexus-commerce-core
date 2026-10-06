@@ -7,7 +7,8 @@ import ProductDetailSkeleton from "@/components/ProductDetailSkeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AddToCartButton from "@/components/AddToCartButton";
 import { api } from "@/lib/api";
-import { getFriendlyErrorMessage } from "@/lib/errors";
+import { getFriendlyErrorMessage, isNotFoundError } from "@/lib/errors";
+import { useMarket } from "@/context/MarketContext";
 import { Product, Sku, PriceBreakdown, StockInfo } from "@/types/commerce";
 import { useParams } from "next/navigation";
 
@@ -16,11 +17,15 @@ export default function ProductDetailPage() {
     const referenceCode = params?.reference
         ? decodeURIComponent(params.reference as string)
         : "";
+    const { market } = useMarket();
+    const marketCode = market.code;
 
     const [product, setProduct] = useState<Product | null>(null);
     const [selectedSku, setSelectedSku] = useState<Sku | null>(null);
     const [pricing, setPricing] = useState<PriceBreakdown | null>(null);
     const [stock, setStock] = useState<StockInfo | null>(null);
+    // R4: el mercado activo no tiene precio para este SKU — no es un error.
+    const [priceUnavailable, setPriceUnavailable] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,26 +55,47 @@ export default function ProductDetailPage() {
     useEffect(() => {
         if (!selectedSku) return;
 
-        async function loadSkuData() {
-            try {
-                // 1. Limpiamos el estado anterior para evitar datos residuales
-                setStock(null);
-                setPricing(null);
-                setErrorMessage(null);
+        // El efecto ahora también se dispara al cambiar de mercado, así que una
+        // respuesta tardía de un mercado anterior no debe sobrescribir la nueva.
+        let cancelled = false;
 
-                const [priceData, stockData] = await Promise.all([
-                    api.getPrice(selectedSku!.id, "ES"),
-                    api.getStock(selectedSku!.id),
-                ]);
-                setPricing(priceData);
-                setStock(stockData);
-            } catch (err: unknown) {
-                console.error("Error al actualizar precio/stock:", err);
+        async function loadSkuData() {
+            // 1. Limpiamos el estado anterior para evitar datos residuales
+            setStock(null);
+            setPricing(null);
+            setErrorMessage(null);
+            setPriceUnavailable(false);
+
+            const [priceResult, stockResult] = await Promise.allSettled([
+                api.getPrice(selectedSku!.id, marketCode),
+                api.getStock(selectedSku!.id),
+            ]);
+
+            if (cancelled) return;
+
+            // El stock se pinta aunque falle el precio: la prenda existe, lo que
+            // puede faltar es su precio en este mercado (R4).
+            if (stockResult.status === "fulfilled") {
+                setStock(stockResult.value);
+            } else {
                 setErrorMessage("No se pudieron recuperar las existencias para la talla seleccionada.");
+            }
+
+            if (priceResult.status === "fulfilled") {
+                setPricing(priceResult.value);
+            } else if (isNotFoundError(priceResult.reason)) {
+                // Ese mercado no tiene precio para este SKU → estado, no error.
+                setPriceUnavailable(true);
+            } else {
+                setErrorMessage("No se pudo recuperar el precio para la talla seleccionada.");
             }
         }
         loadSkuData();
-    }, [selectedSku]);
+
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedSku, marketCode]);
 
     if (loading) {
         return <ProductDetailSkeleton />;
@@ -165,10 +191,16 @@ export default function ProductDetailPage() {
                     </span>
                                     )}
                                 </div>
-                                {pricing && (
-                                    <span className="text-[11px] text-neutral-400 block mt-1 tracking-wider uppercase">
-                    IVA incluido ({pricing.taxRate}%): {pricing.taxAmount.toFixed(2)} {pricing.currency} (Base: {pricing.netAmount.toFixed(2)} {pricing.currency})
+                                {priceUnavailable ? (
+                                    <span className="text-xs uppercase tracking-widest text-neutral-500 block mt-1">
+                                        No disponible en {market.name}
+                                    </span>
+                                ) : (
+                                    pricing && (
+                                        <span className="text-[11px] text-neutral-400 block mt-1 tracking-wider uppercase">
+                    Impuestos ({pricing.taxRate}%): {pricing.taxAmount.toFixed(2)} {pricing.currency} (Base: {pricing.netAmount.toFixed(2)} {pricing.currency})
                   </span>
+                                    )
                                 )}
                             </div>
 
@@ -217,13 +249,17 @@ export default function ProductDetailPage() {
                                 size={selectedSku!.size}
                                 color={selectedSku!.color}
                                 unitPrice={pricing?.finalPrice ?? 0}
-                                currency={pricing?.currency ?? "EUR"}
-                                disabled={!stock?.inStock || !stock?.breakdown.some(w => w.netAvailable > 0)}
+                                currency={pricing?.currency ?? market.currency}
+                                disabled={
+                                    priceUnavailable ||
+                                    !stock?.inStock ||
+                                    !stock?.breakdown.some(w => w.netAvailable > 0)
+                                }
                             />
 
                             <div className="mt-4 text-center">
                                 <span className="text-[10px] uppercase tracking-wider text-neutral-400 block">
-                                  Envío gratuito en pedidos superiores a 50€
+                                  Envío gratuito en pedidos superiores a 50 {market.currency}
                                 </span>
                             </div>
                         </div>

@@ -10,10 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` |
-| **Fase actual** | Fase 5 — Gestión de Usuarios y Autenticación (**completada**) |
-| **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
-| **Estado** | 5.3 (PR #12), fix de checkout (PR #13), 5.4 (PR #14, `136c584`) y **5.5 (PR #15, `e23b86c`)** mergeadas · **139 backend + 125 frontend** · CI verde |
+| **Rama actual** | `feat/market-currency-selector` — **PR #17 abierto, CI verde** (3 commits) |
+| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**implementada**, PR abierto) |
+| **Tarea actual** | 3.2 — Selector Dinámico de Mercado y Divisa |
+| **Estado** | Spec aprobada · código completo · `/spec-check` **10/10** · prueba manual en navegador **hecha** (4 mercados) · **143 backend + 147 frontend** · ESLint 4 (baseline) · `tsc=0` · build OK · **CI verde** |
+| **Pendiente** | Merge del PR #17 (lo aprueba el usuario) → `/spec-close market-currency-selector` |
 | **Última actualización** | 2026-10-06 |
 
 ---
@@ -39,6 +40,19 @@
 - [x] Tarea 2.1 — Estado Global de la Bolsa (CartContext)
 - [x] Tarea 2.2 — Cajón Lateral de la Bolsa (Cart Drawer)
 - [x] Tarea 2.3 — Checkout Multilínea con selección automática de almacén
+
+### Fase 3 — Experiencia Editorial
+- [x] **Tarea 3.2 — Selector Dinámico de Mercado y Divisa** *(spec `specs/market-currency-selector/`, implementada 2026-10-06)*
+  - [x] Backend: `GET /api/v1/markets` público (`MarketController` + `MarketService` + `MarketResponse`), `permitAll()` en `SecurityConfig`
+  - [x] Migración `V11__complete_market_price_matrix.sql` — completa la matriz 8/8 (los seeds de V1 solo cubrían talla M en ES/UK/CH, así que **US y la talla L devolvían 404**); `ON CONFLICT DO NOTHING` → idempotente
+  - [x] Frontend: `MarketContext` (objeto completo en `localStorage["nexus-market"]`, default `ES`, reset ante JSON corrupto o código desconocido) + `<select>` accesible en `Header` que no se pinta sin lista
+  - [x] Precios y checkout con el mercado activo; ficha con `Promise.allSettled` → «No disponible en {mercado}» si el SKU no tiene precio en ese mercado (el stock sigue visible)
+  - [x] Re-precificado del carrito (D2) con `applyRepriceToItems` estable y `isRepricing` **derivado**; artículo sin precio **se conserva** marcado y bloquea el checkout (D6)
+  - [x] Copy «IVA» → «Impuestos» (4 sitios) + **R8b aprobado**: el «50€» del envío gratuito pasó a `50 {currency}`
+  - [x] Tests: **+4 backend** (143) y **+22 frontend** (147) · `/spec-check` **10/10** · prueba manual en navegador (ES/UK/US/CH, checkout real `{"marketCode":"US"}` → 201, orden `ORD-E5AD5491` inalterada al cambiar a CH)
+  - ⚠️ **Impacto transversal**: el `<select>` añade un 2º `combobox` → `waitForAddressSelected()` busca por nombre accesible; la aserción R9 mira el importe completo, no la divisa suelta
+  - ⚠️ **Desviación documentada**: `useMarket()` usa el valor por defecto de `createContext` en vez de lanzar error (el estado degradado es correcto: sin provider no hay lista y no se pinta el selector)
+  - ⚠️ **Fuera de alcance**: `addresses/page.tsx` mantiene `countryCode` fijo por defecto (es una dirección, no de mercado)
 
 ### Fase 5 — Gestión de Usuarios (EN CURSO)
 - [x] Tarea 5.1 — Registro y Login
@@ -117,7 +131,7 @@
 
 ### Fase 3 — Experiencia Editorial
 - [ ] Tarea 3.1 — Navegación por Familias y Filtros
-- [ ] Tarea 3.2 — Selector Dinámico de Mercado y Divisa
+- [x] **Tarea 3.2 implementada** — spec `specs/market-currency-selector/` · código + tests + docs completos · `/spec-check` 10/10 · **pendiente commit → PR → cierre**
 - [ ] Tarea 3.3 — Galería de Imágenes Responsive
 
 ### Fase 4 — Calidad Enterprise
@@ -138,6 +152,11 @@
 | **Auth** | JWT + BCrypt, roles: solo USER por ahora |
 | **Email** | Mailtrap (desarrollo), SendGrid (producción) |
 | **Validación** | Frontend: simple y robusta; Backend: completa |
+| **Mercado 3.2** | Se persiste el **objeto entero** en `localStorage["nexus-market"]` (no solo el código) para pintar con divisa y tasa correctas desde el primer render |
+| **Precios 3.2** | Sin FX ni conversión: cada mercado tiene su precio sembrado a mano; `V11` es re-ejecutable (`ON CONFLICT DO NOTHING`) |
+| **D6 — sin precio** | Un artículo sin precio **nunca se borra** del carrito: se marca `priceUnavailable` y bloquea el checkout |
+| **Copy fiscal** | «Impuestos» en vez de «IVA» (UK es VAT, US *sales tax*); el envío gratuito traduce la **moneda**, no el valor |
+| **ADR 3.2** | No hace falta (D8): no cambia stack ni arquitectura |
 
 ---
 

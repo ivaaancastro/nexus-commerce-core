@@ -129,7 +129,7 @@ export default function ReceiptPage() {
                                             {item.totalAmount.toFixed(2)} {order.currency}
                                         </p>
                                         <p className="text-neutral-500">
-                                            IVA {item.taxRate}%: {item.taxAmount.toFixed(2)} {order.currency}
+                                            Impuestos {item.taxRate}%: {item.taxAmount.toFixed(2)} {order.currency}
                                         </p>
                                     </div>
                                 </div>

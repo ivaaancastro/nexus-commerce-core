@@ -4,10 +4,12 @@ import Link from "next/link";
 import CartIcon from "@/components/CartIcon";
 import { useCartDrawer } from "@/context/CartDrawerContext";
 import { useAuth } from "@/context/AuthContext";
+import { useMarket } from "@/context/MarketContext";
 
 export default function Header() {
     const { openDrawer } = useCartDrawer();
     const { isAuthenticated, logout } = useAuth();
+    const { markets, market, setMarketCode } = useMarket();
 
     return (
         <header className="border-b border-neutral-200 bg-white sticky top-0 z-50">
@@ -32,7 +34,40 @@ export default function Header() {
                         Búsqueda Vectorial
                     </span>
                     <div className="h-4 w-px bg-neutral-200" />
-                    <span className="text-neutral-400">ES / EUR</span>
+                    {markets.length > 0 && (
+                        <span className="relative inline-flex items-center text-neutral-400">
+                            <select
+                                aria-label="Mercado y divisa"
+                                value={market.code}
+                                onChange={(event) => setMarketCode(event.target.value)}
+                                className="appearance-none bg-transparent pr-4 uppercase cursor-pointer transition-colors hover:text-black focus:text-black focus:outline-none focus:border-b focus:border-neutral-400"
+                            >
+                                {markets.map((option) => (
+                                    <option
+                                        key={option.code}
+                                        value={option.code}
+                                        className="text-neutral-900"
+                                    >
+                                        {option.code} / {option.currency}
+                                    </option>
+                                ))}
+                            </select>
+                            <svg
+                                aria-hidden="true"
+                                className="pointer-events-none absolute right-0 w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={1.5}
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M19 9l-7 7-7-7"
+                                />
+                            </svg>
+                        </span>
+                    )}
 
                     {isAuthenticated ? (
                         <div className="flex items-center space-x-4">

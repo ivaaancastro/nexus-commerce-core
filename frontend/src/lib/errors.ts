@@ -19,6 +19,18 @@ function isHttpStatus(message: string, status: number): boolean {
 }
 
 /**
+ * Detecta que un recurso no existe (404).
+ *
+ * En la ficha de producto distingue «ese mercado no tiene precio para este
+ * SKU» de un fallo real de red o de servidor. No es un error: es la ausencia
+ * de un dato de catálogo, y la UI debe responder con el estado «no disponible»
+ * de la spec (R4) en lugar de un mensaje técnico.
+ */
+export function isNotFoundError(error: unknown): boolean {
+    return error instanceof Error && isHttpStatus(error.message, 404);
+}
+
+/**
  * Extrae el campo `message` del cuerpo JSON que `handleResponse()` incrusta en
  * `API Error [n]: {…}`. Devuelve `null` si no hay cuerpo o no es JSON.
  */

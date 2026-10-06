@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
+import { MarketProvider } from "@/context/MarketContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { AuthProvider } from "@/context/AuthContext";
 import CartDrawer from "@/components/CartDrawer";
@@ -29,12 +30,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <AuthProvider>
-          <CartProvider>
-            <CartDrawerProvider>
-              {children}
-              <CartDrawer />
-            </CartDrawerProvider>
-          </CartProvider>
+          <MarketProvider>
+            <CartProvider>
+              <CartDrawerProvider>
+                {children}
+                <CartDrawer />
+              </CartDrawerProvider>
+            </CartProvider>
+          </MarketProvider>
         </AuthProvider>
       </body>
     </html>
