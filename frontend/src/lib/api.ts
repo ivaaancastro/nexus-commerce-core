@@ -1,5 +1,7 @@
 import {
     Product,
+    FamilyResponse,
+    ProductFilters,
     SemanticSearchResult,
     PriceBreakdown,
     Market,
@@ -40,10 +42,29 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export const api = {
-    // Catálogo
-    getProducts: async (): Promise<Product[]> => {
-        const res = await fetch(`${BASE_URL}/api/v1/products`, { cache: "no-store" });
+    // Catálogo — los filtros se traducen a query params. Todos son opcionales:
+    // sin argumentos la llamada es idéntica a la de siempre (R2).
+    getProducts: async (filters?: ProductFilters): Promise<Product[]> => {
+        const params = new URLSearchParams();
+
+        // Sólo se emiten los parámetros con valor real; los vacíos y el orden
+        // por defecto no viajan, para que la URL compartible quede limpia (R5).
+        if (filters?.family) params.set("family", filters.family);
+        if (filters?.size) params.set("size", filters.size);
+        if (filters?.color) params.set("color", filters.color);
+        if (filters?.sort && filters.sort !== "default") params.set("sort", filters.sort);
+
+        const query = params.toString();
+        const res = await fetch(`${BASE_URL}/api/v1/products${query ? `?${query}` : ""}`, {
+            cache: "no-store",
+        });
         return handleResponse<Product[]>(res);
+    },
+
+    // Taxonomía del catálogo: familias con su recuento (Tarea 3.1, R1)
+    getFamilies: async (): Promise<FamilyResponse[]> => {
+        const res = await fetch(`${BASE_URL}/api/v1/products/families`, { cache: "no-store" });
+        return handleResponse<FamilyResponse[]>(res);
     },
 
     searchByReference: async (ref: string): Promise<Product> => {

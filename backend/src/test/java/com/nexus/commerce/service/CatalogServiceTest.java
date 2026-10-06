@@ -47,10 +47,10 @@ class CatalogServiceTest {
 
         product.setSkus(List.of(sku));
 
-        when(productRepository.findAll()).thenReturn(List.of(product));
+        when(productRepository.buscarConFiltros(null, null, null)).thenReturn(List.of(product));
 
-        // WHEN
-        List<ProductResponse> result = catalogService.getAllProducts();
+        // WHEN — sin parámetros, el listado devuelve todo el catálogo
+        List<ProductResponse> result = catalogService.listarProductos(null, null, null, null);
 
         // THEN
         assertThat(result).hasSize(1);
@@ -59,7 +59,7 @@ class CatalogServiceTest {
         assertThat(response.skus()).hasSize(1);
         assertThat(response.skus().getFirst().barcode()).isEqualTo("843321900101");
 
-        verify(productRepository, times(1)).findAll();
+        verify(productRepository, times(1)).buscarConFiltros(null, null, null);
     }
 
     @Test

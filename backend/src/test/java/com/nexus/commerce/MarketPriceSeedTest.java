@@ -24,6 +24,13 @@ import static org.assertj.core.api.Assertions.assertThat;
  * el checkout. Este test comprueba tanto el resultado (la matriz queda completa)
  * como la propiedad que hace segura la migración en una BD ya poblada: que se
  * puede ejecutar dos veces sin duplicar filas.</p>
+ *
+ * <p><strong>El número esperado se deriva de los datos, nunca se hardcodea</strong>:
+ * «matriz completa» significa <em>cada mercado tiene un precio para cada SKU</em>,
+ * y esa igualdad se compara con {@code count(skus)} en vez de con un literal.
+ * Con un literal el test acoplaba el recuento de SKUs de V1 (2); cuando V12
+ * añadió catálogo en la Tarea 3.1 dejó de ser «2 por mercado» sin que la matriz
+ * dejara de estar completa.</p>
  */
 @SpringBootTest
 class MarketPriceSeedTest {
@@ -34,17 +41,20 @@ class MarketPriceSeedTest {
     private DataSource dataSource;
 
     @Test
-    @DisplayName("La matriz de precios queda completa: cada mercado tiene los 2 SKUs")
+    @DisplayName("La matriz de precios queda completa: cada mercado tiene todos los SKUs")
     void laMatrizDePreciosQuedaCompleta() throws Exception {
-        // GIVEN / WHEN
+        // GIVEN
+        int skus = contarSkus();
+
+        // WHEN
         Map<String, Integer> porMercado = preciosPorMercado();
 
-        // THEN
+        // THEN — «completa» = cada mercado precía a TODOS los SKUs, no un recuento fijo
         assertThat(porMercado)
-                .containsEntry("CH", 2)
-                .containsEntry("ES", 2)
-                .containsEntry("UK", 2)
-                .containsEntry("US", 2);
+                .containsEntry("CH", skus)
+                .containsEntry("ES", skus)
+                .containsEntry("UK", skus)
+                .containsEntry("US", skus);
     }
 
     @Test
@@ -52,13 +62,23 @@ class MarketPriceSeedTest {
     void v11EsIdempotente() throws Exception {
         // GIVEN
         int antes = contarPrecios();
+        int skus = contarSkus();
 
         // WHEN — la migración corre otra vez contra una BD ya poblada
         ejecutarV11();
 
         // THEN — uk_sku_market y el ON CONFLICT impiden el duplicado
         assertThat(contarPrecios()).isEqualTo(antes);
-        assertThat(preciosPorMercado().values()).allMatch(n -> n == 2);
+        assertThat(preciosPorMercado().values()).allMatch(n -> n == skus);
+    }
+
+    private int contarSkus() throws Exception {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet rs = statement.executeQuery("SELECT count(*) FROM skus")) {
+            rs.next();
+            return rs.getInt(1);
+        }
     }
 
     private int contarPrecios() throws Exception {

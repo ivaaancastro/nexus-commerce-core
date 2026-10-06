@@ -9,17 +9,18 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `main` |
+| **Rama activa** | `feat/catalog-family-filters` |
 | **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) |
-| **Tarea** | Sin tarea activa |
-| **Tarea siguiente** | Por definir — quedan Fase 3 (3.1, 3.3) y Fase 4 (4.1–4.3) |
-| **Pendiente** | Escribir el `plan.md` de la siguiente tarea y pedir aprobación de la spec (SDD) |
+| **Tarea** | **3.1 — Navegación por Familias y Filtros** · spec v2 **aprobada e implementada** (26/26 criterios) |
+| **Tarea siguiente** | — (3.1 lista para commit/PR); queda 3.3 y Fase 4 (4.1–4.3) |
+| **Pendiente** | **Commit + PR** de `feat/catalog-family-filters` — *pendiente de aprobación* |
 | **Actualizado** | 2026-10-06 |
 
-> **Estado de pruebas**: **143 backend · 147 frontend** · ESLint 4 errores (preexistentes) · CI verde en `main`.
+> **Estado de pruebas**: **165 backend · 171 frontend** · ESLint **3 errores** (todos preexistentes; el de `page.tsx:22` desapareció al reescribir la portada) · CI verde en `main`.
 > **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`), **Tarea 5.4** (PR #14, `136c584`), **Tarea 5.5** (PR #15, `e23b86c`), estado de 5.5 (PR #16, `2e2c2b6`) y **Tarea 3.2** (PR #17, `3214502`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 > **Decisión 3.2 (R8b, aprobada)**: el umbral de envío gratuito traduce la **moneda**, no el valor — `50` en todas las divisas. No existe como dato en BD.
+> **Decisiones 3.1**: filtrado **en backend** (Q2), no con `filter()` en cliente · la portada es un **menú editorial sin grid ni barra de búsqueda** (D1) y la semántica vive en `/search` · filtros en **columna lateral** + panel «Filtrar» en móvil, con **un solo `CatalogFilters`** para ambas (D2) · `useSearchParams` **dentro de `<Suspense>`** y `router.push` para que «atrás» recorra los filtros (D8) · el catálogo **nunca se pagina** (D10) · sin ADR.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
 > Léelo al iniciar sesión para contexto completo.
