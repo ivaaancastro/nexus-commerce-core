@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/catalog-family-filters` (sin commitear) |
-| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) |
-| **Tarea actual** | **3.1 — Navegación por Familias y Filtros** · **spec v2 aprobada e implementada**, 26/26 criterios verificados |
-| **Estado** | **3.1 lista para commit/PR**: backend + frontend + tests + docs hechos · **165 backend + 171 frontend** · ESLint 3 (todos preexistentes, 0 nuevos) · `tsc` y `npm run build` en verde · prueba manual en navegador sin mensajes de consola · base: 3.2 cerrada (PR **#17**, `3214502`) |
-| **Pendiente** | **Commit + PR** de `feat/catalog-family-filters` (*pendiente de aprobación*). Después: **3.3 — Galería de Imágenes Responsive** |
+| **Rama actual** | `main` (todo commiteado) |
+| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) |
+| **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
+| **Estado** | **3.1 mergeada** (PR **#19**, `bf7339c`, CI verde) · **165 backend + 171 frontend** · ESLint 3 (todos preexistentes) · `/spec-check` 10/10 · spec v2 aprobada e implementada, 26/26 criterios |
+| **Pendiente** | **3.3 — Galería de Imágenes Responsive**: escribir `plan.md` + `spec.md` y pedir aprobación (**bloqueo SDD**). Después Fase 4 (4.1–4.3) |
 | **Última actualización** | 2026-10-06 |
 
 ---
@@ -42,7 +42,7 @@
 - [x] Tarea 2.3 — Checkout Multilínea con selección automática de almacén
 
 ### Fase 3 — Experiencia Editorial
-- [x] **Tarea 3.1 — Navegación por Familias y Filtros** — ✅ **implementada 2026-10-06, pendiente de commit/PR** · rama `feat/catalog-family-filters` · spec `specs/catalog-family-filters/` · **26/26 criterios**
+- [x] **Tarea 3.1 — Navegación por Familias y Filtros** — ✅ **cerrada 2026-10-06** · PR **#19** (`bf7339c`) · spec `specs/catalog-family-filters/` · **26/26 criterios**
   - [x] Backend: `GET /api/v1/products/families` (público, `SELECT family, COUNT(*)` contando **productos**) y `GET /api/v1/products?family=&size=&color=&sort=` con **filtrado en backend** y **AND** — `size`/`color` exigen **el mismo SKU** (un único `EXISTS` con params anulables), `sort` es un enum → `400`, familia desconocida → `200 []`. Sin paginación (D10).
   - [x] `V12__catalog_navigation_seed.sql` — 3 productos, 4 SKUs, 16 precios, 8 stock, todo `ON CONFLICT DO NOTHING` → idempotente, + índice `idx_products_family`. BD de 1 → 4 productos.
   - [x] Semántica filtra por `family` (R9) vía `filterExpression`, **validado** con `existsByFamily` y rechazo de comillas; **`maxPrice` retirado** (se recibía y se ignoraba → documentaba algo que el código no hacía).
@@ -140,10 +140,8 @@
 - [x] **Tarea 5.5 cerrada** — PR #15 mergeado en `main` (`e23b86c`, 2026-10-06). ✅ La Fase 5 no tiene pendientes
 
 ### Fase 3 — Experiencia Editorial
-- [ ] **Tarea 3.1 — Commit + PR** · 📍 **código listo, sin commitear** · rama `feat/catalog-family-filters`
-  - Implementación, tests y docs **terminados** (165 backend · 171 frontend · `/spec-check` 10/10 · prueba manual sin mensajes de consola)
-  - **Falta únicamente** commit y PR — *no se commitea ni se pushea sin aprobación del usuario*
-- [x] **Tarea 3.2 cerrada** — PR #17 mergeado en `main` (`3214502`, 2026-10-06) · 10/10 · CI verde ✅ Quedan 3.1 (commit) y 3.3
+- [x] **Tarea 3.1 cerrada** — PR **#19** mergeado en `main` (`bf7339c`, 2026-10-06) · 10/10 · CI verde ✅ Queda 3.3
+- [x] **Tarea 3.2 cerrada** — PR **#17** mergeado en `main` (`3214502`, 2026-10-06) · 10/10 · CI verde
 - [ ] Tarea 3.3 — Galería de Imágenes Responsive
 
 ### Fase 4 — Calidad Enterprise
