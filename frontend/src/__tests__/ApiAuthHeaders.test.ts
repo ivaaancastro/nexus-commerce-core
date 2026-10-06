@@ -16,6 +16,8 @@ const checkoutRequest: CheckoutRequest = {
     marketCode: "ES",
     items: [{ skuId: 1, warehouseCode: "WH_ARTEIXO", quantity: 1 }],
     destinationCountryCode: "ES",
+    addressId: 5,
+    paymentMethod: "CARD",
 };
 
 function jsonResponse(body: unknown, status = 200): Response {

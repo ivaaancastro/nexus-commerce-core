@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import BackLink from "@/components/BackLink";
 import Header from "@/components/Header";
 import { api } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/errors";
@@ -88,6 +89,12 @@ export default function ReceiptPage() {
             <Header />
 
             <main className="flex-1 max-w-2xl w-full mx-auto px-6 py-12">
+                {/* R5: siempre hay una vía de vuelta; el recibo se consulta desde
+                    la ficha o el historial, así que el fallback es `/orders`. */}
+                <div className="mb-6">
+                    <BackLink href="/orders" label="Mis pedidos" />
+                </div>
+
                 <div className="bg-white border border-neutral-200 p-8">
                     <div className="text-center mb-8">
                         <span className="text-[10px] uppercase tracking-widest text-neutral-400 block mb-2">

@@ -49,6 +49,21 @@ public class Order {
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
+    /**
+     * Snapshot de la dirección usada al hacer checkout (Tarea 5.5, R1).
+     * {@code null} en las órdenes anteriores a la migración {@code V10}.
+     */
+    @Embedded
+    private ShippingAddress shippingAddress;
+
+    /**
+     * Preferencia de pago declarada —no procesada— al hacer checkout (R2).
+     * {@code null} en las órdenes anteriores a la migración {@code V10}.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 16)
+    private PaymentMethod paymentMethod;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;

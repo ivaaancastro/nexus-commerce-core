@@ -5,6 +5,7 @@ import com.nexus.commerce.dto.CheckoutItemRequest;
 import com.nexus.commerce.dto.CheckoutRequest;
 import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.PaymentMethod;
 import com.nexus.commerce.service.OrderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -52,12 +55,13 @@ class OrderControllerTest {
     void shouldReturn201OnSuccessfulCheckout() throws Exception {
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038);
+        ), "ES", 40.4168, -3.7038, 5L, PaymentMethod.CARD);
 
         OrderResponse response = new OrderResponse(
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
-                new BigDecimal("50.00"), Instant.now(), List.of()
+                new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
+                null, PaymentMethod.CARD, List.of()
         );
 
         when(orderService.processCheckout(eq("idem-uuid-001"), any(CheckoutRequest.class), eq(null)))
@@ -70,7 +74,29 @@ class OrderControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.orderNumber").value("ORD-9999"))
                 .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.paymentMethod").value("CARD"))
+                .andExpect(jsonPath("$.returnDeadline").exists())
                 .andExpect(jsonPath("$.totalAmount").value(50.00));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/orders/checkout - Sin dirección o método de pago responde 400")
+    void shouldRejectCheckoutWithoutAddressOrPaymentMethod() throws Exception {
+        // GIVEN — `addressId` y `paymentMethod` son obligatorios desde la
+        // Tarea 5.5 (R1 y R2): sin ellos no hay snapshot ni preferencia que guardar.
+        CheckoutRequest request = new CheckoutRequest("ES", List.of(
+                new CheckoutItemRequest(1L, "WH-MAD-01", 1)
+        ), "ES", 40.4168, -3.7038, null, null);
+
+        // WHEN / THEN
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", "idem-sin-direccion")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        // La validación corta antes del servicio: ni se reserva stock
+        verifyNoInteractions(orderService);
     }
 
     @Test
@@ -79,7 +105,8 @@ class OrderControllerTest {
         OrderResponse response = new OrderResponse(
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
-                new BigDecimal("50.00"), Instant.now(), List.of()
+                new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
+                null, PaymentMethod.CARD, List.of()
         );
 
         when(orderService.getOrderByNumber("ORD-9999")).thenReturn(Optional.of(response));

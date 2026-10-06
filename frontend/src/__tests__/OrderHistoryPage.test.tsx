@@ -32,6 +32,17 @@ function makeOrder(overrides: Partial<OrderSummary> = {}): OrderSummary {
         totalAmount: 79.95,
         createdAt: "2026-09-15T10:00:00Z",
         itemCount: 2,
+        items: [
+            {
+                productName: "Camisa Oxford",
+                productFamily: "Camisas",
+                size: "M",
+                color: "Blanco",
+                quantity: 1,
+                totalAmount: 79.95,
+            },
+        ],
+        returnRequested: false,
         ...overrides,
     };
 }
@@ -90,11 +101,60 @@ describe("OrderHistoryPage", () => {
 
         // THEN
         expect(await screen.findByText("ORD-2026-001")).toBeInTheDocument();
-        expect(screen.getByText(/79\.95 EUR/)).toBeInTheDocument();
+        // R9: el importe ya aparece dos veces — el de la línea y el del pedido
+        expect(screen.getAllByText(/79\.95 EUR/)).toHaveLength(2);
         expect(screen.getByText("2")).toBeInTheDocument();
         expect(screen.getByText(/15 de septiembre de 2026/)).toBeInTheDocument();
         expect(screen.getByText("1 pedido")).toBeInTheDocument();
         expect(api.getMyOrders).toHaveBeenCalledWith(0, 20);
+    });
+
+    it("R9 — pinta nombre y variante de cada producto en la tarjeta", async () => {
+        // GIVEN
+        vi.mocked(api.getMyOrders).mockResolvedValue(makePage([makeOrder()]));
+
+        // WHEN
+        renderHistory();
+
+        // THEN
+        expect(await screen.findByText("Camisa Oxford")).toBeInTheDocument();
+        // R9: familia · talla · color — el color viaja en el DTO, la tarjeta debe pintarlo
+        expect(screen.getByText(/Camisas · Talla M · Blanco/)).toBeInTheDocument();
+        // R8: la caja decorativa reutiliza la familia · talla
+        expect(screen.getByTestId("product-thumb")).toBeInTheDocument();
+        expect(screen.getByText("1 unidad")).toBeInTheDocument();
+    });
+
+    it("R10 — marca «Devolución solicitada» cuando el backend lo indica", async () => {
+        // GIVEN
+        vi.mocked(api.getMyOrders).mockResolvedValue(
+            makePage([makeOrder({ returnRequested: true })])
+        );
+
+        // WHEN
+        renderHistory();
+
+        // THEN
+        expect(await screen.findByText("ORD-2026-001")).toBeInTheDocument();
+        expect(
+            screen.getByTestId("return-badge-ORD-2026-001")
+        ).toHaveTextContent("Devolución solicitada");
+    });
+
+    it("R10 — no muestra el badge en los pedidos sin devoluciones", async () => {
+        // GIVEN
+        vi.mocked(api.getMyOrders).mockResolvedValue(
+            makePage([makeOrder({ returnRequested: false })])
+        );
+
+        // WHEN
+        renderHistory();
+
+        // THEN
+        expect(await screen.findByText("ORD-2026-001")).toBeInTheDocument();
+        expect(
+            screen.queryByTestId("return-badge-ORD-2026-001")
+        ).not.toBeInTheDocument();
     });
 
     it("debe mostrar el badge propio de cada estado", async () => {
