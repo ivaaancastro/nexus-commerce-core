@@ -22,9 +22,20 @@
 
 ## 2. Backend — migración de cobertura (R7)
 
-- [x] `V11__complete_market_price_matrix.sql` — 4 celdas con `ON CONFLICT DO NOTHING` (spec §2)
+- [x] `V11__complete_market_price_matrix.sql` — 5 celdas con `ON CONFLICT DO NOTHING` (spec §2)
 - [x] Confirmar `spring.jpa.hibernate.ddl-auto=validate` sigue en verde (sin cambio de esquema)
-- [x] Verificar en BD local que la matriz queda completa (4 × 2 = **8 precios**, `flyway_schema_history` → V11 `success=t`)
+- [x] Verificar que la matriz queda completa (4 × 2 = **8 precios**, `flyway_schema_history` → V11 `success=t`)
+
+> **Bug detectado por la CI del PR #17** — la primera versión de `V11` dejaba
+> `ES×L` sin sembrar: insertaba 4 celdas cuando hacían falta 5. El test falló
+> en CI con `["ES"=1 (expected: 2)]` pero **pasaba en local**, porque la BD de
+> desarrollo tenía esa fila residual (el propio comentario de V11 anticipaba
+> que el entorno de dev tiene filas que no vienen de las migraciones).
+>
+> Reproducido y verificado en local creando una BD vacía
+> (`market_matrix_ci`) y corriendo el test contra ella, igual que CI: matriz
+> `CH=2 ES=2 UK=2 US=2` y 2/2 en verde. **Lección**: un test de semilla sólo
+> es fiable contra una BD construida desde cero — que pase en local no basta.
 
 ## 3. Frontend — contexto de mercado (R2, R3)
 

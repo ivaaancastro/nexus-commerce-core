@@ -1,8 +1,9 @@
 -- V11 — Tarea 3.2: cobertura completa de precios por mercado
 --
--- La semilla de V1 solo preció la talla M en ES, UK y CH: quedaban 4 celdas
--- vacías (US×2, UK×L, CH×L). Elegir US o la talla L en UK/CH devolvía 404 en
--- /pricing y un 400 en el checkout («Precio no configurado para el SKU …»).
+-- La semilla de V1 solo preció la talla M en ES, UK y CH: de las 8 celdas de la
+-- matriz quedaban 5 vacías (US×M, US×L, UK×L, CH×L y ES×L). Elegir US o la
+-- talla L devolvía 404 en /pricing y un 400 en el checkout («Precio no
+-- configurado para el SKU …»).
 --
 -- Esto es SEMILLA DE PRUEBA, no lógica de negocio: las cifras se ajustarán
 -- cuando haya catálogo real. La degradación defensiva de la spec (R4/R6) se
@@ -19,6 +20,7 @@ SELECT s.id,
        NULL
 FROM (VALUES
           (1, 'US',  84.95),   -- talla M en USD
+          (2, 'ES',  79.95),   -- talla L en EUR
           (2, 'UK',  79.99),   -- talla L en GBP
           (2, 'CH', 119.00),   -- talla L en CHF
           (2, 'US',  84.95)    -- talla L en USD
