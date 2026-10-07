@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import SearchPage from "@/app/search/page";
+import { CATALOG_CARD_SIZES, SEARCH_CARD_SIZES } from "@/components/ProductCard";
 import { AuthProvider } from "@/context/AuthContext";
 import { MarketProvider } from "@/context/MarketContext";
 import { CartProvider } from "@/context/CartContext";
@@ -178,5 +179,24 @@ describe("SearchPage (búsqueda semántica)", () => {
         // Y no se afirma «0 artículos encontrados»: la petición no terminó,
         // no es que no haya coincidencias.
         expect(screen.queryByText(/artículos encontrados/i)).not.toBeInTheDocument();
+    });
+
+    it("R5 — la tarjeta de resultados usa el `sizes` de su rejilla, sin columna lateral", async () => {
+        // GIVEN
+        vi.mocked(api.searchSemantic).mockResolvedValue([RESULTADO]);
+
+        // WHEN
+        renderSearch();
+        await buscar("traje lino");
+
+        // THEN
+        const card = (await screen.findByText("Blazer Lino")).closest("article");
+        const image = card?.querySelector("img") as HTMLImageElement;
+
+        expect(image).toBeInTheDocument();
+        expect(image).toHaveAttribute("alt", "Blazer Lino");
+        // Rejilla de /search: 1 / sm:2 / lg:3, sin columna lateral
+        expect(image).toHaveAttribute("sizes", SEARCH_CARD_SIZES);
+        expect(image).not.toHaveAttribute("sizes", CATALOG_CARD_SIZES);
     });
 });

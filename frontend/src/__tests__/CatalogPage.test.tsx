@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CatalogPage from "@/app/catalog/page";
+import { CATALOG_CARD_SIZES, EAGER_CARDS } from "@/components/ProductCard";
 import { AuthProvider } from "@/context/AuthContext";
 import { MarketProvider } from "@/context/MarketContext";
 import { CartProvider } from "@/context/CartContext";
@@ -296,5 +297,68 @@ describe("CatalogPage", () => {
         expect(screen.queryByRole("button", { name: /cargar más/i })).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: /siguiente/i })).not.toBeInTheDocument();
         expect(screen.queryByText(/página \d+/i)).not.toBeInTheDocument();
+    });
+
+    it("R5 — la tarjeta pinta la imagen de su referencia, con su `sizes`", async () => {
+        // GIVEN / WHEN
+        renderCatalog();
+
+        // THEN
+        await screen.findByText("Blazer Cruzada Estructura");
+        const card = screen
+            .getByText("Blazer Cruzada Estructura")
+            .closest("article");
+        const image = card?.querySelector("img") as HTMLImageElement;
+
+        expect(image).toBeInTheDocument();
+        expect(image).toHaveAttribute("alt", "Blazer Cruzada Estructura");
+        // Rejilla de /catalog: 1 / sm:2 / xl:3 con columna lateral de filtros
+        expect(image).toHaveAttribute("sizes", CATALOG_CARD_SIZES);
+        expect(image.getAttribute("sizes")).not.toContain("100vw,");
+        // El contenedor reserva la relación de aspecto: sin CLS
+        expect(card?.querySelector('[data-testid="product-image"]'))
+            .toHaveClass("aspect-[3/4]");
+    });
+
+    it("R6 — sólo la primera fila de la rejilla va `eager`; el resto va `lazy`", async () => {
+        // GIVEN — los 4 productos con imagen en el manifiesto: uno más que
+        // EAGER_CARDS para poder comprobar que el corte se aplica
+        const JERSEY: Product = {
+            id: 3,
+            referenceCode: "0815/004",
+            name: "Jersey Punto Lana",
+            family: "KNITWEAR",
+            skus: [{ id: 4, barcode: "843321900401", size: "M", color: "Crudo" }],
+        };
+        const ZAPATILLA: Product = {
+            id: 4,
+            referenceCode: "1240/007",
+            name: "Zapatilla Lona Baja",
+            family: "FOOTWEAR",
+            skus: [{ id: 5, barcode: "843321900501", size: "42", color: "Blanco" }],
+        };
+        vi.mocked(api.getProducts).mockResolvedValue([
+            BLAZER,
+            ABRIGO,
+            JERSEY,
+            ZAPATILLA,
+        ]);
+
+        // WHEN
+        renderCatalog();
+
+        // THEN
+        await screen.findByText("Blazer Cruzada Estructura");
+        const images = [...document.querySelectorAll("article img")];
+
+        expect(images).toHaveLength(4);
+        images.forEach((img, index) => {
+            expect(img).toHaveAttribute(
+                "loading",
+                index < EAGER_CARDS ? "eager" : "lazy"
+            );
+        });
+        expect(images[0]).toHaveAttribute("fetchpriority", "high");
+        expect(images[EAGER_CARDS]).not.toHaveAttribute("fetchpriority", "high");
     });
 });
