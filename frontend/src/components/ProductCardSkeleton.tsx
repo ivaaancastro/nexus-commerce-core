@@ -6,7 +6,11 @@ import Skeleton from "./Skeleton";
  */
 export default function ProductCardSkeleton() {
     return (
-        <article className="flex flex-col justify-between border border-neutral-200 bg-white p-6">
+        <article className="flex flex-col border border-neutral-200 bg-white">
+            {/* Imagen: mismo aspecto que ProductImage para evitar layout shift */}
+            <Skeleton className="w-full aspect-[3/4] rounded-none" />
+
+            <div className="flex flex-1 flex-col justify-between p-6">
             <div>
                 {/* REF + Badge */}
                 <div className="flex items-start justify-between mb-4">
@@ -42,6 +46,7 @@ export default function ProductCardSkeleton() {
 
                 {/* Botón */}
                 <Skeleton className="h-10 w-full mt-6" />
+            </div>
             </div>
         </article>
     );

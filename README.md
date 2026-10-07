@@ -52,6 +52,21 @@ flowchart TD
 * **Taxonomía Automatizada:** Integración de **Spring AI** para enriquecer descripciones textiles no estructuradas mediante *Structured Outputs* (JSON Schema estricto).
 * **Trazabilidad de Decisiones:** Los fundamentos técnicos y compromisos arquitectónicos están documentados en [docs/adr](docs/adr/README.md).
 
+### Imágenes de Producto (Frontend)
+
+Las imágenes **no viven en la base de datos**: son ficheros estáticos bajo `frontend/public/products/`, servidos por la canalización de `next/image`. El backend no tiene migración, campo, DTO ni endpoint para ellas.
+
+| Regla | Detalle |
+|:---|:---|
+| **Ruta** | `public/products/{referencia}-{n}.webp`, con la `/` de la referencia sustituida por `-` → `0432/021` = `0432-021-1.webp` … `-3.webp` |
+| **Manifiesto** | `frontend/src/data/product-images.json`, generado por el script y **importado estáticamente** desde `src/lib/product-images.ts` — sin `fetch` en tiempo de ejecución |
+| **Generación** | `cd frontend && npm run images`: descubre las referencias **de las migraciones**, genera los WebP 1200×1600 con `sharp` y reescribe el manifiesto. **Idempotente** |
+| **Componente** | `ProductImage` (contenedor `aspect-[3/4]` + `<Image fill sizes>`). Sin entrada en el manifiesto o fallo de carga (`onError`) → caja `ProductThumb`: cero 404 |
+| **`sizes`** | **Obligatorio** en cada uso y derivado del ancho real de la caja; si falta, el navegador asume `100vw` y descarga de más. Las constantes viven en `ProductCard` y `ProductGallery` |
+| **LCP** | La primera fila va `loading="eager"` + `fetchPriority="high"`. **Nunca `priority`**: deprecado desde Next 16 |
+
+Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta `npm run images` para refrescar el manifiesto y refiérelo desde `ProductImage`. No hay ningún cambio de backend.
+
 ---
 
 ## 2. Motores Implementados

@@ -11,11 +11,11 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` (todo commiteado) |
-| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) |
+| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) |
 | **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
-| **Estado** | **3.1 mergeada** (PR **#19**, `bf7339c`, CI verde) · **165 backend + 171 frontend** · ESLint 3 (todos preexistentes) · `/spec-check` 10/10 · spec v2 aprobada e implementada, 26/26 criterios |
-| **Pendiente** | **3.3 — Galería de Imágenes Responsive**: escribir `plan.md` + `spec.md` y pedir aprobación (**bloqueo SDD**). Después Fase 4 (4.1–4.3) |
-| **Última actualización** | 2026-10-06 |
+| **Estado** | **165 backend + 206 frontend** · ESLint 3 (todos preexistentes) · `tsc --noEmit`, `npm run build` (14 rutas) y `vitest` en verde · prueba manual en 390/768/1440 con consola limpia |
+| **Pendiente** | **Fase 4 (4.1–4.3)** |
+| **Última actualización** | 2026-10-07 |
 
 ---
 
@@ -63,6 +63,18 @@
   - ⚠️ **Impacto transversal**: el `<select>` añade un 2º `combobox` → `waitForAddressSelected()` busca por nombre accesible; la aserción R9 mira el importe completo, no la divisa suelta
   - ⚠️ **Desviación documentada**: `useMarket()` usa el valor por defecto de `createContext` en vez de lanzar error (el estado degradado es correcto: sin provider no hay lista y no se pinta el selector)
   - ⚠️ **Fuera de alcance**: `addresses/page.tsx` mantiene `countryCode` fijo por defecto (es una dirección, no de mercado)
+- [x] **Tarea 3.3 — Galería de Imágenes Responsive** — ✅ **cerrada 2026-10-07** · spec `specs/gallery-responsive/`
+  - [x] Imágenes **estáticas en `public/products/`** (D1): 3 WebP 1200×1600 por referencia, **backend sin tocar** (D4). Manifiesto `src/data/product-images.json` importado **estáticamente** por `getProductImages()` — sin `fetch` (D2).
+  - [x] `npm run images` (`scripts/generate-product-images.mjs` + `sharp@^0.35.5`) descubre las referencias **de las migraciones**; **idempotente** (verificado con `shasum`); cubre las 4 refs sembradas (D3).
+  - [x] `ProductImage`: caja `aspect-[3/4]` + `<Image fill sizes>` → espacio reservado antes de descargar; fallback a `ProductThumb` si no hay manifiesto o falla la carga → **cero 404** (D8).
+  - [x] `ProductGallery` + ficha reescrita en `md:grid-cols-12`: galería 7 col, panel de compra 5 col con `sticky top-24`, `self-start`, `max-h` + `overflow-y-auto`, descripción bajo la galería. **Orden del DOM galería → compra → descripción** en las 3 anchuras, sin reordenar con CSS (D5).
+  - [x] `sizes` derivado del ancho **real medido** de la caja (4 tramos, redondeo hacia arriba) → el navegador pide siempre el bucket mínimo; `EAGER_CARDS = 3` y `EAGER_IMAGES = 2` para el LCP; **sin `priority`** (D7).
+  - [x] Tests: **+35 frontend** (206) — 4 ficheros nuevos (`product-images`, `generate-product-images`, `ProductImage`, `ProductGallery`) + 5 ampliados · `tsc`, `build` y ESLint 3 preexistentes en verde · **R10: `git diff main` no toca `backend/`**.
+  - [x] Prueba manual en **390/768/1440**: 1→2 columnas, `sticky` a `top: 96px`, scroll interno del panel con viewport de 480 px, `srcset` de 15 anchos servido por `/_next/image`, atrás y recarga conservando `?family=`, **consola sin errores ni avisos de `next/image`**.
+  - ⚠️ **2 bugs encontrados en la prueba manual, cada uno con su test**: (1) el aviso de LCP de Next — con cajas del mismo tamaño el LCP se resuelve por un **empate de pintado**, así que hace falta `eager` en **toda la primera fila**, no sólo en la primera imagen; (2) el `sizes` de la galería apuntaba al ancho del contenedor (278 px) en vez de la imagen (276 px) y esos 6 px cruzaban el bucket 828→1080 a DPR3.
+  - ⚠️ **CLS medido**: 0.000 en 390px, 0.011 en 1440px y 0.039 en 768px — **ninguna fuente es una imagen**: precios y stock ATS llegan en peticiones posteriores y hacen crecer el panel de 473 a 680 px, arrastrando a la descripción. Todo por debajo de 0.1.
+  - ⚠️ **`/search` no verificable en navegador**: sin `OPENAI_API_KEY` la semántica devuelve `500` (limitación preexistente); cubierto por `SearchPage.test.tsx` y por el mismo `ProductCard` verificado en `/catalog`.
+  - ⚠️ **Preexistente observado** (fuera de alcance): el `nav` del `Header` no tiene `flex-wrap` ni breakpoint y desborda horizontalmente por debajo de ~560 px — `Header.tsx` está sin cambios vs `main`.
 
 ### Fase 5 — Gestión de Usuarios (EN CURSO)
 - [x] Tarea 5.1 — Registro y Login
@@ -140,9 +152,9 @@
 - [x] **Tarea 5.5 cerrada** — PR #15 mergeado en `main` (`e23b86c`, 2026-10-06). ✅ La Fase 5 no tiene pendientes
 
 ### Fase 3 — Experiencia Editorial
-- [x] **Tarea 3.1 cerrada** — PR **#19** mergeado en `main` (`bf7339c`, 2026-10-06) · 10/10 · CI verde ✅ Queda 3.3
+- [x] **Tarea 3.1 cerrada** — PR **#19** mergeado en `main` (`bf7339c`, 2026-10-06) · 10/10 · CI verde
 - [x] **Tarea 3.2 cerrada** — PR **#17** mergeado en `main` (`3214502`, 2026-10-06) · 10/10 · CI verde
-- [ ] Tarea 3.3 — Galería de Imágenes Responsive
+- [x] **Tarea 3.3 cerrada** — ✅ **Fase 3 completa**
 
 ### Fase 4 — Calidad Enterprise
 - [ ] Tarea 4.1 — Suite de Pruebas Unitarias de Componentes
@@ -173,6 +185,13 @@
 | **Filtros UI 3.1** | Un **único** `CatalogFilters` para la columna lateral y el panel móvil — dos implementaciones podrían divergir. Cada opción sólo toca su campo |
 | **D10 3.1** | El catálogo **nunca se pagina** — regla de producto, no de esta tarea |
 | **ADR 3.1** | No hace falta (D8): no cambia stack ni arquitectura |
+| **Imágenes 3.3** | Ficheros **estáticos** en `public/products/` + manifiesto generado por `npm run images` — **sin migración, DTO ni endpoint**; el backend no se toca |
+| **Manifiesto 3.3** | Se importa **estáticamente** desde `src/data/product-images.json` (sin `fetch`); un `<img>` con `src` desconocido o `onError` cae a `ProductThumb` → **cero 404** |
+| **LCP 3.3** | Toda la **primera fila** con `loading="eager"` + `fetchPriority="high"`: con cajas del mismo tamaño el LCP se resuelve por un **empate de pintado** y una `lazy` puede ganarlo. **`priority` está prohibido** (deprecado desde Next 16) |
+| **`sizes` 3.3** | Derivado del ancho **medido** de la imagen y redondeado hacia arriba. Apuntar al contenedor en vez de la imagen (278 vs 276 px) cruza buckets del `srcset` y dispara la descarga a 1080w en vez de 828w |
+| **DOM 3.3** | El orden es galería → compra → descripción **en el DOM** y la disposición de escritorio se consigue con colocación explícita de rejilla, **nunca reordenando con `order`** |
+| **ADR 3.3** | No hace falta (R10): no cambia stack ni arquitectura — las imágenes son assets |
+| **Estado 3.3** | El bloque de estado de `AGENTS.md` se redacta **en la feature PR**, formulado para ser verdad después del merge y **sin números de PR ni SHA** (viven en git y GitHub) → **no existe PR de documentación de cierre** (D11) |
 
 ---
 

@@ -57,5 +57,24 @@ describe("Skeleton Components", () => {
             const header = container.querySelector(".border-b");
             expect(header).toBeInTheDocument();
         });
+
+        it("R9 — replica galería + panel + descripción con cajas de aspecto reservado", () => {
+            const { container } = render(<ProductDetailSkeleton />);
+
+            // 3 cajas con el mismo aspecto que ProductImage → sin layout shift
+            const aspectBoxes = container.querySelectorAll('div[class*="aspect-"]');
+            expect(aspectBoxes).toHaveLength(3);
+            for (const box of aspectBoxes) {
+                expect(box).toHaveClass("aspect-[3/4]");
+                expect(box).toHaveClass("w-full");
+            }
+
+            // La galería es una rejilla de 1 / 2 columnas dentro de la de 12
+            expect(container.querySelector(".md\\:grid-cols-2")).toBeInTheDocument();
+
+            // El panel conserva las clases sticky del layout nuevo
+            expect(container.querySelector(".md\\:sticky")).toBeInTheDocument();
+            expect(container.querySelector(".md\\:row-span-2")).toBeInTheDocument();
+        });
     });
 });

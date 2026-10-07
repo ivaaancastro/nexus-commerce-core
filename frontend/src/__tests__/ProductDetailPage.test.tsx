@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ProductDetailPage from "@/app/products/[reference]/page";
+import { GALLERY_SIZES } from "@/components/ProductGallery";
 import { AuthProvider } from "@/context/AuthContext";
 import { MarketProvider } from "@/context/MarketContext";
 import { CartProvider } from "@/context/CartContext";
@@ -174,5 +175,118 @@ describe("ProductDetailPage — mercado activo (spec market-currency-selector)",
             await screen.findByText(/envío gratuito en pedidos superiores a 50 GBP/i)
         ).toBeInTheDocument();
         expect(screen.queryByText(/50€/)).not.toBeInTheDocument();
+    });
+});
+
+/**
+ * R7 de specs/gallery-responsive: la ficha pasa de dos paneles de texto a
+ * galería + panel de compra sticky + descripción bajo la galería.
+ */
+describe("ProductDetailPage — galería responsive (spec gallery-responsive)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        vi.mocked(api.searchByReference).mockResolvedValue(mockProduct);
+        vi.mocked(api.getStock).mockResolvedValue(mockStock);
+        vi.mocked(api.getPrice).mockResolvedValue(mockPrice);
+        vi.mocked(api.getMarkets).mockResolvedValue(MARKETS);
+        vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("R7 — monta la galería con las 3 imágenes del manifiesto", async () => {
+        // GIVEN / WHEN
+        renderPage();
+
+        // THEN
+        expect(await screen.findByTestId("product-gallery")).toBeInTheDocument();
+        expect(screen.getAllByTestId("product-image")).toHaveLength(3);
+    });
+
+    it("R6 — la galería lleva su `sizes`, derivado del ancho de la imagen", async () => {
+        // GIVEN / WHEN
+        renderPage();
+
+        // THEN
+        expect(await screen.findByTestId("product-gallery")).toBeInTheDocument();
+        const images = [
+            ...screen.getByTestId("product-gallery").querySelectorAll("img"),
+        ];
+
+        expect(images).toHaveLength(3);
+        images.forEach((img) => {
+            expect(img).toHaveAttribute("sizes", GALLERY_SIZES);
+        });
+
+        // Regresión: la primera versión apuntaba al ancho del contenedor
+        // (100vw, 278 px) y no al de la imagen (276 px). Esos 2 px bastaban
+        // para cruzar de bucket a DPR alto y pedir 1080w en vez de 828w.
+        expect(GALLERY_SIZES).toContain("calc(100vw - 114px)");
+        expect(GALLERY_SIZES).not.toContain("(max-width: 767px) 100vw");
+    });
+
+    it("R7 — el orden del DOM es galería → panel de compra → descripción", async () => {
+        // GIVEN / WHEN
+        renderPage();
+        await screen.findByTestId("product-gallery");
+
+        // THEN — es también el orden de móvil: no se reordena con CSS
+        const gallery = screen.getByTestId("product-gallery");
+        const panel = screen.getByTestId("purchase-panel");
+        const description = screen.getByTestId("product-description");
+
+        const precedes = (a: Element, b: Element) =>
+            (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+        expect(precedes(gallery, panel)).toBe(true);
+        expect(precedes(panel, description)).toBe(true);
+    });
+
+    it("R7 — galería en 7 columnas y panel de compra en 5, sobre 12", async () => {
+        // GIVEN / WHEN
+        renderPage();
+        await screen.findByTestId("product-gallery");
+
+        // THEN
+        const galleryWrapper = screen.getByTestId("product-gallery").parentElement;
+        expect(galleryWrapper).toHaveClass("md:col-start-1");
+        expect(galleryWrapper).toHaveClass("md:col-span-7");
+        expect(galleryWrapper).toHaveClass("md:row-start-1");
+
+        const panel = screen.getByTestId("purchase-panel");
+        expect(panel).toHaveClass("md:col-start-8");
+        expect(panel).toHaveClass("md:col-span-5");
+    });
+
+    it("R7 — el panel es sticky, no se estira y nada queda inalcanzable", async () => {
+        // GIVEN / WHEN
+        renderPage();
+        await screen.findByTestId("product-gallery");
+
+        // THEN
+        const panel = screen.getByTestId("purchase-panel");
+        expect(panel).toHaveClass("md:sticky");
+        expect(panel).toHaveClass("md:top-24");
+        expect(panel).toHaveClass("md:self-start");
+        // Ocupa las dos filas (galería y descripción) para tener recorrido
+        expect(panel).toHaveClass("md:row-span-2");
+        // Si supera el viewport, scrollea dentro en vez de cortarse
+        expect(panel).toHaveClass("md:max-h-[calc(100vh-7rem)]");
+        expect(panel).toHaveClass("md:overflow-y-auto");
+    });
+
+    it("R7 — la descripción queda bajo la galería, no en una columna propia", async () => {
+        // GIVEN / WHEN
+        renderPage();
+        await screen.findByTestId("product-gallery");
+
+        // THEN
+        const description = screen.getByTestId("product-description");
+        expect(description).toHaveClass("md:col-start-1");
+        expect(description).toHaveClass("md:col-span-7");
+        expect(description).toHaveClass("md:row-start-2");
     });
 });
