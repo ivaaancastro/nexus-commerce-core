@@ -81,7 +81,16 @@ jobs:
 
       - name: Run frontend tests
         working-directory: ./frontend
-        run: npx vitest run
+        run: npm run test:coverage
+
+      # Tarea 4.1 (R4): el informe se sube siempre, aunque los tests o el
+      # build fallen — justo cuando más se necesita ver dónde está el hueco.
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: frontend/coverage/
 
       - name: Build frontend
         working-directory: ./frontend

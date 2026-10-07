@@ -161,6 +161,24 @@ cd backend
 ./mvnw clean test
 ```
 
+### 2b. Frontend: tests y cobertura
+```bash
+cd frontend
+npx vitest run          # suite sin cobertura (lo que usa el watch)
+npm run test:coverage   # suite + informe + comprobación de umbrales
+```
+
+`npm run test:coverage` **no sólo informa, también protege**: aplica los umbrales
+congelados de `frontend/vitest.config.ts` y sale con código distinto de `0` si
+falla un test **o** si la cobertura baja del piso (77 % de sentencias, 76 % de
+ramas, 74 % de funciones y 79 % de líneas — medida real de la Tarea 4.1, no un
+objetivo impuesto). El informe queda en `frontend/coverage/` (`text` en consola,
+`html` navegable y `lcov`), y CI lo sube siempre como artefacto
+`coverage-report`, aunque el job falle.
+
+Los dos comandos son independientes: `npx vitest run` **no** evalúa umbrales,
+así que si quieres el check de cobertura hay que pasar por `test:coverage`.
+
 ### 3. Arrancar la Aplicación
 ```bash
 cd backend
