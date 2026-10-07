@@ -10,17 +10,19 @@
 | Campo | Valor |
 |:---|:---|
 | **Rama activa** | `main` |
-| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) |
+| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) |
 | **Tarea** | Sin tarea activa — pendiente definir la siguiente |
-| **Tarea siguiente** | **3.3 — Galería de Imágenes Responsive** · spec pendiente; después Fase 4 (4.1–4.3) |
-| **Pendiente** | Escribir `specs/gallery-responsive/plan.md` + `spec.md` y pedir aprobación (**bloqueo SDD**) |
-| **Actualizado** | 2026-10-06 |
+| **Tarea siguiente** | **Fase 4 (4.1–4.3)** |
+| **Pendiente** | Ningún bloqueo — el ciclo SDD está al día |
+| **Actualizado** | 2026-10-07 |
 
-> **Estado de pruebas**: **165 backend · 171 frontend** · ESLint **3 errores** (todos preexistentes; el de `page.tsx:22` desapareció al reescribir la portada en la 3.1) · CI verde en `main`.
-> **Mergeado**: Tarea 5.3 (PR #12, `cd9ca74`), fix de checkout (PR #13, `8704dff`), **Tarea 5.4** (PR #14, `136c584`), **Tarea 5.5** (PR #15, `e23b86c`), estado de 5.5 (PR #16, `2e2c2b6`), **Tarea 3.2** (PR #17, `3214502`), docs de 3.2 (PR #18, `e31c941`) y **Tarea 3.1** (PR #19, `bf7339c`).
+> **Estado de pruebas**: **165 backend · 206 frontend** · ESLint **3 errores** (todos preexistentes; el de `page.tsx:22` desapareció al reescribir la portada en la 3.1) · CI verde en `main`.
+> **Mergeado**: Tareas 5.3, 5.4 y 5.5 (Gestión de Usuarios), el fix de checkout, **Tarea 3.2** (Mercado y Divisa), **Tarea 3.1** (Familias y Filtros) y **Tarea 3.3** (Galería de Imágenes Responsive). **Los números de PR y los SHA no se llevan aquí**: viven en git y en GitHub (`gh pr list`, `git log`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 > **Decisión 3.2 (R8b, aprobada)**: el umbral de envío gratuito traduce la **moneda**, no el valor — `50` en todas las divisas. No existe como dato en BD.
 > **Decisiones 3.1**: filtrado **en backend** (Q2), no con `filter()` en cliente · la portada es un **menú editorial sin grid ni barra de búsqueda** (D1) y la semántica vive en `/search` · filtros en **columna lateral** + panel «Filtrar» en móvil, con **un solo `CatalogFilters`** para ambas (D2) · `useSearchParams` **dentro de `<Suspense>`** y `router.push` para que «atrás» recorra los filtros (D8) · el catálogo **nunca se pagina** (D10) · sin ADR.
+> **Decisiones 3.3**: imágenes **estáticas en `public/products/`** con manifiesto generado por `npm run images` — el backend **no se toca** (D1/D4) · **sin lightbox, carrusel ni zoom**: scroll vertical heredado de la 3.1 (D5) · `sizes` derivado del **ancho real medido** de la caja, redondeado siempre hacia arriba, y **primera fila `eager`** porque con cajas iguales el LCP se resuelve por un empate de pintado que `priority` no arreglaría (D7, está deprecado desde Next 16) · el orden del DOM es galería → compra → descripción **sin reordenar con CSS** (D5) · **sin ADR** y **sin PR de documentación de cierre** (D11).
+> **Convención de estado (D11)**: este bloque **se redacta dentro de la feature PR**, formulado para ser **verdad después del merge** y **sin números de PR ni SHA** — por eso no existe un PR de documentación de cierre.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
 > Léelo al iniciar sesión para contexto completo.
@@ -87,6 +89,7 @@
 ### Proceso
 11. **SIEMPRE** leer `AGENTS.md` antes de cada respuesta y verificar contra estas reglas
 12. **SIEMPRE** seguir el ciclo SDD de arriba antes de escribir código
+13. **SIEMPRE** redactar el bloque «ESTADO ACTUAL» dentro de la feature PR, formulado para ser **verdad después del merge** y **sin números de PR ni SHA** (viven en git y en GitHub). Consecuencia: **no existe PR de documentación de cierre**
 
 ---
 
@@ -337,6 +340,14 @@ Controller → Service → Repository → DB
 - Componentes reutilizables en `src/components/`.
 - Props tipadas con `interface`.
 - Prefijo `Header`, `ProductCard`, `SemanticSearchBar`.
+
+### 6.7. Imágenes de Producto
+- **Estáticas en `public/products/`**, nunca en la BD: `0432/021` → `0432-021-1.webp` … `-3.webp` (la `/` se sustituye por `-`). El backend no tiene ningún cambio para ellas.
+- Se resuelven con `getProductImages()` (`src/lib/product-images.ts`), que importa **estáticamente** el manifiesto `src/data/product-images.json`. **Sin `fetch` en tiempo de ejecución.**
+- Pintar siempre con **`ProductImage`**: mantiene el `aspect-[3/4]` (espacio reservado → sin CLS) y cae a `ProductThumb` si no hay manifiesto o la imagen falla — **cero 404**.
+- **`sizes` es obligatorio** en cada `<Image>`; sin él el navegador asume `100vw` y descarga de más. Las constantes (`CATALOG_CARD_SIZES`, `SEARCH_CARD_SIZES`, `GALLERY_SIZES`) están en `ProductCard` y `ProductGallery` y se derivan del ancho real medido.
+- LCP: la **primera fila** lleva `loading="eager"` + `fetchPriority="high"`. **Nunca `priority`** (deprecado desde Next 16) — y con cajas del mismo tamaño no basta con eager en la primera: el LCP se resuelve por un empate de pintado.
+- Tras añadir o quitar ficheros: `cd frontend && npm run images` para refrescar el manifiesto.
 
 ---
 
