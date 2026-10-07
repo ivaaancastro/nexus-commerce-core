@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/Header";
 import CatalogFilters from "@/components/CatalogFilters";
-import ProductCard from "@/components/ProductCard";
+import ProductCard, { EAGER_CARDS } from "@/components/ProductCard";
 import ProductCardSkeleton from "@/components/ProductCardSkeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { api } from "@/lib/api";
@@ -235,8 +235,12 @@ function CatalogContent() {
                             <ErrorBoundary>
                                 {/* La respuesta llega entera: scroll continuo, sin controles de paginación (D10) */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                                    {products.map((product) => (
-                                        <ProductCard key={product.id} product={product} />
+                                    {products.map((product, index) => (
+                                        <ProductCard
+                                            key={product.id}
+                                            product={product}
+                                            eager={index < EAGER_CARDS}
+                                        />
                                     ))}
                                 </div>
                             </ErrorBoundary>

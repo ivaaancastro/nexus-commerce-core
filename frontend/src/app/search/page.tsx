@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import SemanticSearchBar from "@/components/SemanticSearchBar";
-import ProductCard from "@/components/ProductCard";
+import ProductCard, { EAGER_CARDS, SEARCH_CARD_SIZES } from "@/components/ProductCard";
 import ProductCardSkeleton from "@/components/ProductCardSkeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { api } from "@/lib/api";
@@ -112,8 +112,13 @@ export default function SearchPage() {
         {!loading && hasSearched && (
             <ErrorBoundary>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {results.map((item) => (
-                    <ProductCard key={item.productId} semanticItem={item} />
+                {results.map((item, index) => (
+                    <ProductCard
+                        key={item.productId}
+                        semanticItem={item}
+                        sizes={SEARCH_CARD_SIZES}
+                        eager={index < EAGER_CARDS}
+                    />
                 ))}
               </div>
             </ErrorBoundary>
