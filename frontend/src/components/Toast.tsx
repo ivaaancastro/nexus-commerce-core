@@ -15,16 +15,33 @@ interface ToastProps {
  */
 export default function Toast({ message, isVisible, onClose, duration = 2500 }: ToastProps) {
     const [isAnimating, setIsAnimating] = useState(false);
+    const [prevVisible, setPrevVisible] = useState(isVisible);
+
+    // Ajuste de estado durante el render (react.dev, «Adjusting state when a
+    // prop changes»): al ocultarse, la animación de salida se deriva aquí mismo,
+    // en el render en que cambia la prop. Escribirla en el cuerpo del efecto es
+    // lo que prohíbe react-hooks/set-state-in-effect (renders en cascada).
+    if (isVisible !== prevVisible) {
+        setPrevVisible(isVisible);
+        if (!isVisible) {
+            setIsAnimating(false);
+        }
+    }
 
     useEffect(() => {
-        if (isVisible) {
-            setIsAnimating(true);
-            const timer = setTimeout(() => {
-                setIsAnimating(false);
-                setTimeout(onClose, 300);
-            }, duration);
-            return () => clearTimeout(timer);
-        }
+        if (!isVisible) return;
+        // Entrada y cierre: sólo dentro de un temporizador. El cuerpo del efecto
+        // no escribe estado, y la entrada sigue llegando tras el primer pintado,
+        // así que la transición de 300 ms se conserva igual que siempre.
+        const show = setTimeout(() => setIsAnimating(true), 0);
+        const hide = setTimeout(() => {
+            setIsAnimating(false);
+            setTimeout(onClose, 300);
+        }, duration);
+        return () => {
+            clearTimeout(show);
+            clearTimeout(hide);
+        };
     }, [isVisible, duration, onClose]);
 
     if (!isVisible && !isAnimating) return null;

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { api } from "@/lib/api";
-import { User, RegisterData, LoginData, AuthResponse } from "@/types/auth";
+import { User, RegisterData, LoginData } from "@/types/auth";
 
 interface AuthContextType {
     user: User | null;
@@ -26,15 +26,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        // Una sola cadena de promesa en lugar de un `if/else`: sin token la
+        // promesa ya resuelta hace `setUser(null)` (que es null de todos modos)
+        // y `finally` apaga `isLoading` igual que antes. Lo importante es que
+        // ningún `setState` se llama de forma síncrona en el cuerpo del efecto,
+        // que es lo que prohíbe react-hooks/set-state-in-effect.
         const token = localStorage.getItem("nexus-auth-token");
-        if (token) {
-            api.getCurrentUser()
-                .then(setUser)
-                .catch(() => localStorage.removeItem("nexus-auth-token"))
-                .finally(() => setIsLoading(false));
-        } else {
-            setIsLoading(false);
-        }
+        const session = token ? api.getCurrentUser() : Promise.resolve(null);
+        session
+            .then(setUser)
+            .catch(() => localStorage.removeItem("nexus-auth-token"))
+            .finally(() => setIsLoading(false));
     }, []);
 
     const login = async (data: LoginData) => {
