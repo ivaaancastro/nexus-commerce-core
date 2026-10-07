@@ -11,10 +11,10 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` (todo commiteado) |
-| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) |
+| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) |
 | **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
-| **Estado** | **165 backend + 206 frontend** · ESLint 3 (todos preexistentes) · `tsc --noEmit`, `npm run build` (14 rutas) y `vitest` en verde · prueba manual en 390/768/1440 con consola limpia |
-| **Pendiente** | **Fase 4 (4.1–4.3)** |
+| **Estado** | **165 backend + 270 frontend** · ESLint **0 errores, 0 warnings** · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida real 78.01 / 76.32 / 74.72 / 79.85) · `tsc --noEmit`, `npm run build` (14 rutas) y `vitest` en verde · prueba manual 390/768/1440 con consola limpia |
+| **Pendiente** | **Fase 4 (4.2–4.3)** |
 | **Última actualización** | 2026-10-07 |
 
 ---
@@ -75,6 +75,22 @@
   - ⚠️ **CLS medido**: 0.000 en 390px, 0.011 en 1440px y 0.039 en 768px — **ninguna fuente es una imagen**: precios y stock ATS llegan en peticiones posteriores y hacen crecer el panel de 473 a 680 px, arrastrando a la descripción. Todo por debajo de 0.1.
   - ⚠️ **`/search` no verificable en navegador**: sin `OPENAI_API_KEY` la semántica devuelve `500` (limitación preexistente); cubierto por `SearchPage.test.tsx` y por el mismo `ProductCard` verificado en `/catalog`.
   - ⚠️ **Preexistente observado** (fuera de alcance): el `nav` del `Header` no tiene `flex-wrap` ni breakpoint y desborda horizontalmente por debajo de ~560 px — `Header.tsx` está sin cambios vs `main`.
+
+### Fase 4 — Calidad Enterprise
+- [x] **Tarea 4.1 — Suite de Pruebas Unitarias de Componentes** — ✅ **cerrada 2026-10-07** · spec `specs/component-test-suite/`
+  - [x] **Alcance acordado con el usuario (D1)**: sólo **tests + cobertura + CI** — sin E2E ni rendimiento. Los **10 módulos sin test directo** + `AuthContext.test.tsx` nuevo: `CatalogFilters`, `CartItemRow`, `AddToCartButton`, `SemanticSearchBar`, `Toast`, `OrderStatusBadge`, `CartIcon`, `hooks/useLocalStorage`, `lib/utils`, `lib/checkout`.
+  - [x] Tests: **206 → 270 frontend** (27 → 38 ficheros); backend intacto en **165**.
+  - [x] **`@vitest/coverage-v8@^5.0.3`** (alineado con el major de Vitest) + script `npm run test:coverage`. Informe `text` + `html` + `lcov`, con `include: ["src/**/*.{ts,tsx}"]` para que entre también lo que ningún test importa (`lib/api.ts` al 20.77 %).
+  - [x] **Umbrales medidos y congelados (D4)**: **77 / 76 / 74 / 79** sobre la medida real **78.01 / 76.32 / 74.72 / 79.85** (base: 76.36 / 76.22 / 70.89 / 78.19). **No es un 90 impuesto**: el contrato es «esta cobertura no baja».
+  - [x] **Comprobación negativa**: `statements: 100` a propósito ⇒ `npm run test:coverage` sale con **EXIT=1** ⇒ revertido.
+  - [x] **ESLint 3 errores + 4 warnings → 0 y 0**, sin un solo `eslint-disable` (verificado con `grep`).
+  - [x] CI: job de frontend `npx vitest run` → `npm run test:coverage` + `upload-artifact` (`if: always()`, `coverage-report`, `frontend/coverage/`).
+  - ⚠️ **D5b reabierta en curso, como preveía R8**: la primera solución a `useLocalStorage` (lectura en `queueMicrotask`) pasaba el lint pero **rompía R8** — `CartContext.test` y `CartPage.test` perdían el valor persistido en el primer render. Descartado `useLayoutEffect` (la regla también lo prohíbe) y adoptado **`useSyncExternalStore`**: el valor llega síncrono, el SSR se resuelve con `getServerSnapshot` y el carrito/marcado se sincroniza **entre pestañas**. Contrato del hook intacto: `[storedValue, setValue, isHydrated] as const`.
+  - ⚠️ **Ningún test preexistente cambió su aserción** — los 206 originales siguen idénticos.
+  - ⚠️ **`all: true` ya no existe en Vitest 5** (`tsc` lo rechaza con `TS2769`): se retiró y el `include` explícito hace el trabajo; la cifra es idéntica con y sin ella.
+  - ⚠️ **Excepción documentada a R7**: el test «la confirmación desaparece sola a los 2500 ms» usa `fireEvent` — user-event v14 se cuelga con los temporizadores falsos de Vitest (4 combinaciones probadas). El resto del fichero usa `userEvent`.
+  - ⚠️ **Prueba manual**: `/profile` sin sesión → `/login` ✓ · carrito con 1 artículo **sobrevive a la recarga** ✓ · toast de devolución «DEVOLUCIÓN SOLICITADA · 79.95 EUR» **se cierra solo a los 2689 ms** ✓ · consola sin errores ni avisos de hidratado. Para llegar al flujo se pasó el pedido local `ORD-6DB9E249` a `DELIVERED` en la BD de desarrollo (dato local, no toca el repo).
+  - ⚠️ **R9/R10**: `git diff main` **no toca `backend/`** · **sin ADR** (tooling de desarrollo) · **sin PR de documentación de cierre** (D11).
 
 ### Fase 5 — Gestión de Usuarios (EN CURSO)
 - [x] Tarea 5.1 — Registro y Login
@@ -157,7 +173,7 @@
 - [x] **Tarea 3.3 cerrada** — ✅ **Fase 3 completa**
 
 ### Fase 4 — Calidad Enterprise
-- [ ] Tarea 4.1 — Suite de Pruebas Unitarias de Componentes
+- [x] **Tarea 4.1 cerrada** — ✅ **spec `specs/component-test-suite/` · 270 frontend · ESLint 0/0 · cobertura 77/76/74/79**
 - [ ] Tarea 4.2 — Test E2E con Playwright
 - [ ] Tarea 4.3 — Auditoría Core Web Vitals y Accesibilidad
 
