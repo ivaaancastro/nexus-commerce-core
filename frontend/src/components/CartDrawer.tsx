@@ -81,7 +81,7 @@ export default function CartDrawer() {
                 <div className="flex-1 overflow-y-auto px-6">
                     {items.length === 0 ? (
                         <div className="flex flex-col items-center justify-center h-full text-center">
-                            <p className="text-xs uppercase tracking-widest text-neutral-400">
+                            <p className="text-xs uppercase tracking-widest text-neutral-600">
                                 Tu bolsa está vacía
                             </p>
                         </div>

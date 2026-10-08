@@ -57,7 +57,7 @@ export default function ReceiptPage() {
         return (
             <div className="min-h-screen bg-neutral-50 flex flex-col">
                 <Header />
-                <div className="flex-1 flex items-center justify-center text-xs uppercase tracking-widest text-neutral-400">
+                <div className="flex-1 flex items-center justify-center text-xs uppercase tracking-widest text-neutral-600">
                     Cargando recibo...
                 </div>
             </div>
@@ -97,7 +97,7 @@ export default function ReceiptPage() {
 
                 <div className="bg-white border border-neutral-200 p-8">
                     <div className="text-center mb-8">
-                        <span className="text-[10px] uppercase tracking-widest text-neutral-400 block mb-2">
+                        <span className="text-[10px] uppercase tracking-widest text-neutral-600 block mb-2">
                             Recibo de Compra
                         </span>
                         <h1 className="text-2xl font-light uppercase tracking-wide text-neutral-900 mb-2">

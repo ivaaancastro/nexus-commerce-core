@@ -108,7 +108,7 @@ export default function CatalogFilters({
                             className={opcion(filters.family === item.family)}
                         >
                             {item.family}
-                            <span className="ml-2 text-[10px] text-neutral-400">
+                            <span className="ml-2 text-[10px] text-neutral-600">
                                 {item.productCount}
                             </span>
                         </button>

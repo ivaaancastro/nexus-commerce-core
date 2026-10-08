@@ -84,7 +84,7 @@ export default function CartItemRow({ item }: CartItemRowProps) {
             {/* Eliminar */}
             <button
                 onClick={handleRemove}
-                className="self-start text-neutral-400 hover:text-neutral-900 transition-colors"
+                className="self-start text-neutral-600 hover:text-neutral-900 transition-colors"
                 aria-label={`Eliminar ${item.name} del carrito`}
             >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
