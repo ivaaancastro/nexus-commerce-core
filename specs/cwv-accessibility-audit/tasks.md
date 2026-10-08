@@ -156,4 +156,4 @@
       con el código de la app idéntico** → umbrales recalibrados sobre las 2
       primeras corridas y **validados en las posteriores**, decisión del
       usuario, con la retractación de la primera escrita en `spec.md R3`)
-- [ ] Merge + borrar rama
+- [x] Merge + borrar rama (merge commit, como los anteriores)
