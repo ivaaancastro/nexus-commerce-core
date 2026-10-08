@@ -14,6 +14,14 @@
 - [x] Scripts `audit:a11y`, `audit:cwv` y `audit` en `package.json`
 - [x] Lighthouse resuelve el **Chrome for Testing de Playwright** vía `CHROME_PATH`
       (sin descargar navegador nuevo)
+- [x] `collect.settings.chromeFlags: "--no-sandbox"` — **CI**: sin él Chrome no
+      arranca en el runner (Ubuntu 24.04 + AppArmor). Probado en las dos
+      direcciones
+- [x] `scripts/lighthouse.mjs` **comprueba el puerto antes de lanzar** y aborta
+      con `exit 1` si algo ya escucha. Probado con el puerto ocupado (`exit 1`),
+      con `assert` (`exit 0`) y con una carrera completa (`exit 0`)
+- [x] Documentación de limpieza **corregida**: `pkill -f "next-server"`, no
+      `next start` (que no mata nada)
 - [x] `npx tsc --noEmit` → `0` con la config nueva
 - [x] `npx eslint` sobre los ficheros nuevos → **0 / 0**
 
@@ -129,6 +137,8 @@
 ## §8 — Cierre
 
 - [x] **Preguntar antes de cualquier commit, push y PR** ⛔
-- [ ] Rama `feat/cwv-accessibility-audit` → PR contra `main`
+- [x] Rama `feat/cwv-accessibility-audit` → PR contra `main`
 - [ ] Verificar los **3 jobs en CI** + el nuevo `cwv-audit`
+      (el primer intento: 3 verdes, `cwv-audit` rojo por `No usable sandbox!`
+      — arreglado con `chromeFlags: "--no-sandbox"`, **pendiente de re-validar**)
 - [ ] Merge + borrar rama
