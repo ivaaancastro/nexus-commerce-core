@@ -10,20 +10,21 @@
 | Campo | Valor |
 |:---|:---|
 | **Rama activa** | `main` |
-| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) · 4.2 — Test E2E con Playwright (**completada**) |
+| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) · 4.2 — Test E2E con Playwright (**completada**) · 4.3 — Auditoría CWV y Accesibilidad (**completada**) |
 | **Tarea** | Sin tarea activa — pendiente definir la siguiente |
-| **Tarea siguiente** | **Tarea 4.3 — Auditoría Core Web Vitals y Accesibilidad** |
+| **Tarea siguiente** | **Sin tarea definida**: con la 4.3 cerrada, **la Fase 4 queda completa** y las fases registradas no tienen pendientes — hay que definir la siguiente con el usuario |
 | **Pendiente** | Ningún bloqueo — el ciclo SDD está al día |
 | **Actualizado** | 2026-10-08 |
 
-> **Estado de pruebas**: **165 backend · 270 frontend** · ESLint **0 errores, 0 warnings** · **E2E: 5 pruebas × 3 navegadores** · CI verde en `main`.
-> **Mergeado**: Tareas 5.3, 5.4 y 5.5 (Gestión de Usuarios), el fix de checkout, **Tarea 3.2** (Mercado y Divisa), **Tarea 3.1** (Familias y Filtros), **Tarea 3.3** (Galería de Imágenes Responsive), **Tarea 4.1** (Suite de Pruebas y Cobertura) y **Tarea 4.2** (Test E2E con Playwright). **Los números de PR y los SHA no se llevan aquí**: viven en git y en GitHub (`gh pr list`, `git log`).
+> **Estado de pruebas**: **165 backend · 270 frontend** · ESLint **0 errores, 0 warnings** · **E2E: 5 pruebas de humo × 3 navegadores + 14 de axe (sólo Chromium)** · **Lighthouse en verde en 4 rutas** · CI verde en `main`.
+> **Mergeado**: Tareas 5.3, 5.4 y 5.5 (Gestión de Usuarios), el fix de checkout, **Tarea 3.2** (Mercado y Divisa), **Tarea 3.1** (Familias y Filtros), **Tarea 3.3** (Galería de Imágenes Responsive), **Tarea 4.1** (Suite de Pruebas y Cobertura), **Tarea 4.2** (Test E2E con Playwright) y **Tarea 4.3** (Auditoría CWV y Accesibilidad). **Los números de PR y los SHA no se llevan aquí**: viven en git y en GitHub (`gh pr list`, `git log`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 > **Decisión 3.2 (R8b, aprobada)**: el umbral de envío gratuito traduce la **moneda**, no el valor — `50` en todas las divisas. No existe como dato en BD.
 > **Decisiones 3.1**: filtrado **en backend** (Q2), no con `filter()` en cliente · la portada es un **menú editorial sin grid ni barra de búsqueda** (D1) y la semántica vive en `/search` · filtros en **columna lateral** + panel «Filtrar» en móvil, con **un solo `CatalogFilters`** para ambas (D2) · `useSearchParams` **dentro de `<Suspense>`** y `router.push` para que «atrás» recorra los filtros (D8) · el catálogo **nunca se pagina** (D10) · sin ADR.
 > **Decisiones 3.3**: imágenes **estáticas en `public/products/`** con manifiesto generado por `npm run images` — el backend **no se toca** (D1/D4) · **sin lightbox, carrusel ni zoom**: scroll vertical heredado de la 3.1 (D5) · `sizes` derivado del **ancho real medido** de la caja, redondeado siempre hacia arriba, y **primera fila `eager`** porque con cajas iguales el LCP se resuelve por un empate de pintado que `priority` no arreglaría (D7, está deprecado desde Next 16) · el orden del DOM es galería → compra → descripción **sin reordenar con CSS** (D5) · **sin ADR** y **sin PR de documentación de cierre** (D11).
 > **Decisiones 4.1**: alcance = **sólo tests, cobertura y CI** (los 10 módulos sin test + `AuthContext.test.tsx`) · el umbral se **mide y congela**, no se impone: **77 / 76 / 74 / 79** sobre la medida real **78.01 / 76.32 / 74.72 / 79.85** (D4) · los 3 errores de ESLint se arreglan **sin `eslint-disable`**, y **ningún test preexistente cambió su aserción** (R8) · **D5b reabierta en curso**: la lectura de `localStorage` en `queueMicrotask` rompía R8, así que `useLocalStorage` se reescribió con **`useSyncExternalStore`** (`isHydrated` pasa a ser snapshot servidor/cliente; el contrato del hook no cambia) · `Toast` deriva su estado de la animación **en el render** · **excepción documentada a R7**: `fireEvent` sólo en el test de temporizadores de `AddToCartButton`, porque user-event v14 se cuelga con los temporizadores falsos de Vitest · la opción `all` **ya no existe en Vitest 5**; el `include` explícito hace el trabajo · **sin ADR**.
 > **Decisiones 4.2**: los E2E van **contra backend real, nunca contra API mockeada** — los 270 unitarios ya mockean, así que el único valor nuevo es la cadena `fetch → rewrite → Spring → JPA → PostgreSQL` (D1) · alcance = **smoke**, 5 pruebas del camino crítico (D2) · `globalSetup` en 4 fases: sondeo de `GET /api/v1/markets` como *readiness* (**no hay Actuator** y añadirlo habría supuesto tocar `backend/`), usuario de prueba **verificado por la API leyendo `verification_code` de BD** (sin SMTP y **sin migración de semilla**), dirección por defecto, y **reset del stock a los valores exactos de `V1`** — la primera redacción decía «40, las cifras de V12» y era **falsa**, y la compra usa **talla M** porque la L no tiene ninguna fila de stock (D5) · `workers: 1` y **build de producción**, no `next dev` (D6) · CI con job `e2e-tests` **en paralelo** y espera de readiness **anterior** a Playwright, con volcado del log (D3) · **los 3 navegadores**: Firefox no arranca en headless en este macOS (aislado con A/B), y **no se baja a 2 para que quede verde en local** — se valida en CI sobre Ubuntu (D10) · `vitest.config.ts` gana `include` explícito para que los unitarios no capturen `e2e/` · **sin ADR**.
+> **Decisiones 4.3**: **dos puertas y en sitios distintos (D3)** — axe **dentro de `e2e-tests`** (el `testDir: "./e2e"` sin `testMatch` ya recoge `a11y.spec.ts`, **sin job propio**) sobre **14 rutas y sólo Chromium** (D5), y Lighthouse en **job propio `cwv-audit` en paralelo, sin `needs:`** · **presupuesto medido y congelado (D1)**: LCP ≤ **3 500 ms** · CLS ≤ **0,05** · TBT ≤ **100 ms** · perf ≥ **90** · a11y ≥ **95**, sobre lo peor medido (LCP 3 041 / CLS 0,000 / TBT 46 / perf 94 / a11y 100) con `numberOfRuns: 3` · **`aggregationMethod: "median-run"` hay que ponerlo a mano**: LHCI evalúa por defecto en `optimistic` (la **mejor** corrida), lo que habría dejado sin efecto D4 · **la INP no se congela porque no es medible (D8)**: Lighthouse 12 la trae sin `numericValue` y su perf incluye `max-potential-fid`, obsoleto → **TBT como proxy, dicho explícitamente** · **`CHROME_PATH = chromium.executablePath()`** en `scripts/lighthouse.mjs`, el mismo Chrome for Testing de los E2E, y **el mismo `npm run audit:cwv` en local y en CI** · **D6: corrección acotada** — las 14 rutas en rojo con **sólo 2 reglas**, causa raíz única `text-neutral-400` → **`text-neutral-600` en 46 líneas de 15 ficheros** (`neutral-500` se descarta **con dato**: 4,35 en `#f5f5f5`), **`group-hover:text-neutral-400` preservado** porque la tarjeta editorial se oscurece en hover, y `<h3>` → `<h2>` en `ProductCard` · **0 hallazgos descartados** · **comprobación negativa del gate**: umbrales congelados pasan, LCP forzado a 1000 **falla en las 4 rutas** · ⚠️ **`reuseExistingServer` es trampa local**: un `next start` colgado sirve el build viejo y hace que la auditoría miente en verde (en CI no puede pasar) · **sin ADR** · **sin PR de documentación de cierre** (D11).
 > **Convención de estado (D11)**: este bloque **se redacta dentro de la feature PR**, formulado para ser **verdad después del merge** y **sin números de PR ni SHA** — por eso no existe un PR de documentación de cierre.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
@@ -398,7 +399,41 @@ Controller → Service → Repository → DB
 - **CI**: job `e2e-tests`, en paralelo, con informe `playwright-report/`
   subido **siempre** (`if: always()`).
 
-### 7.4. Reglas de Testing
+### 7.4. Auditoría de Accesibilidad y Core Web Vitals
+- **Comandos**: `npm run audit:a11y` (axe, 14 rutas, sólo Chromium),
+  `npm run audit:cwv` (`next build` + Lighthouse, 4 rutas × 3 corridas) y
+  `npm run audit` (los dos). Config en `frontend/lighthouserc.json`, espec en
+  `specs/cwv-accessibility-audit/`.
+- **También necesitan el stack entero**: sin backend, axe audita la página de
+  error y Lighthouse mide un fallo de red. **Datos de laboratorio, no de
+  usuario real** (D9): sirven para comparar y para frenar regresiones, no para
+  saber lo que tarda la web en el móvil de nadie.
+- **axe bloquea en `critical` + `serious`; `moderate`/`minor` se informan** en
+  el log y **no se silencian** (D7). Sin suppressions: `axe.exclude()` y
+  `disableRules` están prohibidos.
+- **Los umbrales se miden y se congelan, no se eligen a ojo** (D1):
+  `lighthouserc.json` declara LCP ≤ 3 500 ms · CLS ≤ 0,05 · TBT ≤ 100 ms ·
+  perf ≥ 90 · a11y ≥ 95. Para moverlos hay que **re-medir** y escribir el
+  número nuevo en la spec (regla 3).
+- **`aggregationMethod: "median-run"` es obligatorio**: LHCI evalúa por
+  defecto en `optimistic` (**la mejor** de las 3 corridas), lo que convertiría
+  la mediana en decorativa.
+- **La INP no está cubierta y hay que decirlo**: Lighthouse 12 no produce un
+  valor de INP de laboratorio (`interaction-to-next-paint-insight` llega sin
+  `numericValue`), así que se gatea **`total-blocking-time` como proxy, en
+  voz alta**. Medirla de verdad exige datos de campo, y no hay despliegue.
+- **CHROME_PATH lo resuelve `scripts/lighthouse.mjs`** con
+  `chromium.executablePath()` — el Chrome for Testing de Playwright, sin
+  instalar otro navegador ni fijar rutas de máquina.
+- **CI**: axe corre dentro de `e2e-tests` (mismo `testDir`, sin job propio);
+  Lighthouse va en el job **`cwv-audit`**, en paralelo, con el backend
+  levantado y el informe subido **siempre** (`if: always()`).
+- ⚠️ **`reuseExistingServer: !process.env.CI` es trampa local**: un
+  `next start` colgado sirve el **build viejo** y la auditoría puede dar verde
+  sobre código que ya no es el tuyo. **`pkill -f "next start"` antes de
+  medir.** En CI no puede pasar.
+
+### 7.5. Reglas de Testing
 - Todo bug corregido **DEBE** tener un test que lo reproduzca.
 - Toda funcionalidad nueva **DEBE** tener tests antes de cerrar la rama.
 - Los tests deben ser deterministas y no depender de servicios externos.
@@ -530,6 +565,18 @@ cd frontend && npx vitest --watch
 
 # Tests + informe de cobertura + comprobación de umbrales
 cd frontend && npm run test:coverage
+
+# Tests end-to-end (3 navegadores; requieren el stack entero levantado)
+cd frontend && npm run test:e2e
+
+# Auditoría de accesibilidad (axe, 14 rutas, sólo Chromium)
+cd frontend && npm run audit:a11y
+
+# Auditoría de Core Web Vitals (build + Lighthouse, 4 rutas × 3 corridas)
+cd frontend && npm run audit:cwv
+
+# Las dos auditorías, en ese orden
+cd frontend && npm run audit
 
 # Desarrollo
 cd frontend && npm run dev
