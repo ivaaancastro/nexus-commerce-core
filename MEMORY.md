@@ -174,7 +174,7 @@
 
 ### Fase 4 — Calidad Enterprise
 - [x] **Tarea 4.1 cerrada** — ✅ **spec `specs/component-test-suite/` · 270 frontend · ESLint 0/0 · cobertura 77/76/74/79**
-- [ ] Tarea 4.2 — Test E2E con Playwright
+- [x] **Tarea 4.2 cerrada** — ✅ **spec `specs/e2e-playwright/` · 5 pruebas de humo × 3 navegadores · `globalSetup` idempotente (usuario verificado + dirección + reset de stock) · job `e2e-tests` en CI**. En local **10/10 en Chromium y WebKit en dos corridas consecutivas**; **Firefox se valida en CI** porque la build de Playwright no arranca en headless en este macOS (decisión **D10**). Baselines: `tsc` 0 · ESLint 0/0 · 270 tests · cobertura 78.01/76.32/74.72/79.85 · build 0 · **`backend/` intacto**
 - [ ] Tarea 4.3 — Auditoría Core Web Vitals y Accesibilidad
 
 ---

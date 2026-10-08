@@ -10,19 +10,20 @@
 | Campo | Valor |
 |:---|:---|
 | **Rama activa** | `main` |
-| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) |
+| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) · 4.2 — Test E2E con Playwright (**completada**) |
 | **Tarea** | Sin tarea activa — pendiente definir la siguiente |
-| **Tarea siguiente** | **Fase 4 (4.2–4.3)** |
+| **Tarea siguiente** | **Tarea 4.3 — Auditoría Core Web Vitals y Accesibilidad** |
 | **Pendiente** | Ningún bloqueo — el ciclo SDD está al día |
-| **Actualizado** | 2026-10-07 |
+| **Actualizado** | 2026-10-08 |
 
-> **Estado de pruebas**: **165 backend · 270 frontend** · ESLint **0 errores, 0 warnings** · CI verde en `main`.
-> **Mergeado**: Tareas 5.3, 5.4 y 5.5 (Gestión de Usuarios), el fix de checkout, **Tarea 3.2** (Mercado y Divisa), **Tarea 3.1** (Familias y Filtros), **Tarea 3.3** (Galería de Imágenes Responsive) y **Tarea 4.1** (Suite de Pruebas y Cobertura). **Los números de PR y los SHA no se llevan aquí**: viven en git y en GitHub (`gh pr list`, `git log`).
+> **Estado de pruebas**: **165 backend · 270 frontend** · ESLint **0 errores, 0 warnings** · **E2E: 5 pruebas × 3 navegadores** · CI verde en `main`.
+> **Mergeado**: Tareas 5.3, 5.4 y 5.5 (Gestión de Usuarios), el fix de checkout, **Tarea 3.2** (Mercado y Divisa), **Tarea 3.1** (Familias y Filtros), **Tarea 3.3** (Galería de Imágenes Responsive), **Tarea 4.1** (Suite de Pruebas y Cobertura) y **Tarea 4.2** (Test E2E con Playwright). **Los números de PR y los SHA no se llevan aquí**: viven en git y en GitHub (`gh pr list`, `git log`).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 > **Decisión 3.2 (R8b, aprobada)**: el umbral de envío gratuito traduce la **moneda**, no el valor — `50` en todas las divisas. No existe como dato en BD.
 > **Decisiones 3.1**: filtrado **en backend** (Q2), no con `filter()` en cliente · la portada es un **menú editorial sin grid ni barra de búsqueda** (D1) y la semántica vive en `/search` · filtros en **columna lateral** + panel «Filtrar» en móvil, con **un solo `CatalogFilters`** para ambas (D2) · `useSearchParams` **dentro de `<Suspense>`** y `router.push` para que «atrás» recorra los filtros (D8) · el catálogo **nunca se pagina** (D10) · sin ADR.
 > **Decisiones 3.3**: imágenes **estáticas en `public/products/`** con manifiesto generado por `npm run images` — el backend **no se toca** (D1/D4) · **sin lightbox, carrusel ni zoom**: scroll vertical heredado de la 3.1 (D5) · `sizes` derivado del **ancho real medido** de la caja, redondeado siempre hacia arriba, y **primera fila `eager`** porque con cajas iguales el LCP se resuelve por un empate de pintado que `priority` no arreglaría (D7, está deprecado desde Next 16) · el orden del DOM es galería → compra → descripción **sin reordenar con CSS** (D5) · **sin ADR** y **sin PR de documentación de cierre** (D11).
 > **Decisiones 4.1**: alcance = **sólo tests, cobertura y CI** (los 10 módulos sin test + `AuthContext.test.tsx`) · el umbral se **mide y congela**, no se impone: **77 / 76 / 74 / 79** sobre la medida real **78.01 / 76.32 / 74.72 / 79.85** (D4) · los 3 errores de ESLint se arreglan **sin `eslint-disable`**, y **ningún test preexistente cambió su aserción** (R8) · **D5b reabierta en curso**: la lectura de `localStorage` en `queueMicrotask` rompía R8, así que `useLocalStorage` se reescribió con **`useSyncExternalStore`** (`isHydrated` pasa a ser snapshot servidor/cliente; el contrato del hook no cambia) · `Toast` deriva su estado de la animación **en el render** · **excepción documentada a R7**: `fireEvent` sólo en el test de temporizadores de `AddToCartButton`, porque user-event v14 se cuelga con los temporizadores falsos de Vitest · la opción `all` **ya no existe en Vitest 5**; el `include` explícito hace el trabajo · **sin ADR**.
+> **Decisiones 4.2**: los E2E van **contra backend real, nunca contra API mockeada** — los 270 unitarios ya mockean, así que el único valor nuevo es la cadena `fetch → rewrite → Spring → JPA → PostgreSQL` (D1) · alcance = **smoke**, 5 pruebas del camino crítico (D2) · `globalSetup` en 4 fases: sondeo de `GET /api/v1/markets` como *readiness* (**no hay Actuator** y añadirlo habría supuesto tocar `backend/`), usuario de prueba **verificado por la API leyendo `verification_code` de BD** (sin SMTP y **sin migración de semilla**), dirección por defecto, y **reset del stock a los valores exactos de `V1`** — la primera redacción decía «40, las cifras de V12» y era **falsa**, y la compra usa **talla M** porque la L no tiene ninguna fila de stock (D5) · `workers: 1` y **build de producción**, no `next dev` (D6) · CI con job `e2e-tests` **en paralelo** y espera de readiness **anterior** a Playwright, con volcado del log (D3) · **los 3 navegadores**: Firefox no arranca en headless en este macOS (aislado con A/B), y **no se baja a 2 para que quede verde en local** — se valida en CI sobre Ubuntu (D10) · `vitest.config.ts` gana `include` explícito para que los unitarios no capturen `e2e/` · **sin ADR**.
 > **Convención de estado (D11)**: este bloque **se redacta dentro de la feature PR**, formulado para ser **verdad después del merge** y **sin números de PR ni SHA** — por eso no existe un PR de documentación de cierre.
 
 > **MEMORY.md** contiene el historial detallado, tareas completadas y decisiones.
@@ -373,7 +374,31 @@ Controller → Service → Repository → DB
   bajarlo. El informe va a `frontend/coverage/` y CI lo sube como artefacto
   `coverage-report` con `if: always()`.
 
-### 7.3. Reglas de Testing
+### 7.3. E2E (Playwright)
+- **Comandos**: `npm run test:e2e` (Chromium + Firefox + WebKit) y
+  `npm run test:e2e:quick` (sólo Chromium). Config en
+  `frontend/playwright.config.ts`, pruebas en `frontend/e2e/`.
+- **Requieren el stack entero levantado**: PostgreSQL + backend en `:8080` +
+  frontend. `e2e/global-setup.ts` espera al backend por `GET /api/v1/markets`
+  (que además **no responde hasta que Flyway ha migrado**, así que sirve de
+  *readiness*) y deja el entorno **idempotente**: usuario verificado,
+  dirección por defecto y stock restaurado.
+- **`testDir`/`include` explícitos en los dos runners**: `vitest.config.ts`
+  declara `include: ["src/__tests__/**"]` para que el patrón por defecto
+  `**/*.spec.ts` **no** capture `e2e/` — sin eso, la suite de unitarios
+  empezaría a lanzar navegadores.
+- **Estilo**: localizadores por **rol y label**, esperas condicionales, y
+  **`waitForTimeout` con espera fija prohibido**. Ninguna prueba depende de la
+  ejecución de otra.
+- **Estado compartido**: `workers: 1` — un solo usuario y una sola BD; compras
+  en paralelo competirían por el stock y por el token de sesión.
+- **Firefox en local**: la build de Playwright no arranca en headless en este
+  macOS, así que en local se valida en **Chromium y WebKit** y Firefox se
+  comprueba en CI (decisión **D10** de la 4.2). No se degrada a 2 navegadores.
+- **CI**: job `e2e-tests`, en paralelo, con informe `playwright-report/`
+  subido **siempre** (`if: always()`).
+
+### 7.4. Reglas de Testing
 - Todo bug corregido **DEBE** tener un test que lo reproduzca.
 - Toda funcionalidad nueva **DEBE** tener tests antes de cerrar la rama.
 - Los tests deben ser deterministas y no depender de servicios externos.
