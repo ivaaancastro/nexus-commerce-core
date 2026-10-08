@@ -58,12 +58,14 @@
 - [x] Rellenar `assert` en `lighthouserc.json` con esos valores
 - [x] `numberOfRuns: 3` (mediana) configurado
 - [x] Re-ejecutar → **verde**
-- [x] **Recalibración al ver CI**: 2 corridas de CI con **código idéntico** →
-      TBT **88** y **178** (×2), perf 0,94 y 0,90; **LCP/CLS/a11y estables**.
+- [x] **Recalibración al ver CI**: 3 corridas de CI con el **código de la app
+      idéntico** → TBT **88 / 178 / 192** (×2 entre runner tranquilo y
+      cargado), perf 0,94 / 0,91 / 0,90; **LCP/CLS/a11y estables**.
       Umbrales finales **LCP ≤ 3 750 · CLS ≤ 0,05 · TBT ≤ 250 · perf ≥ 85 ·
       a11y ≥ 95**. La retractación de la primera decisión (mantener TBT ≤ 100)
       queda escrita en `spec.md R3` — **una sola corrida verde no congela nada**
-- [x] Re-ejecutar → **verde** con los umbrales recalibrados
+- [x] Re-ejecutar → **verde** con los umbrales recalibrados (**corrida 3 de
+      CI**, margen real: LCP 581 ms · TBT 58 ms · perf 0,05)
 - [x] Las 4 rutas auditadas: `/`, `/catalog`, `/products/0432/021`, `/login`
 - [x] **Backend real levantado durante la medición** (no un estado de error)
 
@@ -144,14 +146,14 @@
 
 - [x] **Preguntar antes de cualquier commit, push y PR** ⛔
 - [x] Rama `feat/cwv-accessibility-audit` → PR contra `main`
-- [ ] Verificar los **3 jobs en CI** + el nuevo `cwv-audit`
+- [x] Verificar los **3 jobs en CI** + el nuevo `cwv-audit`
       (1er intento: `cwv-audit` rojo por `No usable sandbox!` → arreglado con
       `chromeFlags: "--no-sandbox"` · 2º intento: **4/4 verdes** · 3er intento:
-      rojo otra vez por **TBT** en un commit de sólo docs → **recalibrado**.
-      **Falta re-validar el head**)
+      rojo otra vez por **TBT** en un commit de sólo docs → **recalibrado** ·
+      4º intento: **4/4 verdes** con los umbrales recalibrados)
 - [x] Analizar los informes de CI y decidir los umbrales con los datos
-      (LCP/CLS/a11y estables entre local y CI; **TBT ×2 entre 2 corridas de CI
-      con código idéntico** → umbrales recalibrados sobre las 2 corridas,
-      decisión del usuario, con la retractación de la primera escrita en
-      `spec.md R3`)
+      (LCP/CLS/a11y estables entre local y CI; **TBT ×2 entre corridas de CI
+      con el código de la app idéntico** → umbrales recalibrados sobre 2
+      corridas y **validados en la 3ª**, decisión del usuario, con la
+      retractación de la primera escrita en `spec.md R3`)
 - [ ] Merge + borrar rama
