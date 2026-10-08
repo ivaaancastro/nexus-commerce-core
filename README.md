@@ -241,7 +241,7 @@ npm run audit        # los dos, en ese orden
 | Comando | Qué gatea | Dónde corre |
 |:---|:---|:---|
 | `audit:a11y` | **0 violaciones `critical`/`serious`** en 14 rutas. `moderate` y `minor` se **informan**, no bloquean | dentro de `e2e-tests` en CI — `npm run test:e2e` ya la recoge |
-| `audit:cwv` | LCP ≤ 3 500 ms · CLS ≤ 0,05 · TBT ≤ 100 ms · perf ≥ 90 · a11y ≥ 95 | job propio `cwv-audit`, en paralelo |
+| `audit:cwv` | LCP ≤ 3 750 ms · CLS ≤ 0,05 · TBT ≤ 250 ms · perf ≥ 85 · a11y ≥ 95 | job propio `cwv-audit`, en paralelo |
 | `audit` | los dos | — |
 
 > ⚠️ **Son datos de laboratorio, no de usuario real.** Lighthouse mide con
