@@ -271,7 +271,17 @@ cuando hay que abrirlos.
 > `reuseExistingServer: !process.env.CI`. Si tienes un `next start` colgado de
 > una iteración anterior, Playwright **reutiliza el build viejo** y la
 > auditoría puede dar verde sobre código que ya no es el que tienes. Ciérralo
-> antes (`pkill -f "next start"`). En CI no puede pasar.
+> antes — **ojo: el proceso se llama `next-server`, no `next start`**, así que
+> `pkill -f "next start"` no mata nada de nada:
+>
+>     pkill -f "next-server"
+>
+> Lo mismo afecta a Lighthouse, y ahí **ya no depende de que te acuerdes**:
+> `collect.startServerCommand` no puede bindear un puerto ocupado y, en vez de
+> fallar, LHCI **mide lo que haya escuchando** — que es un build que nadie
+> eligió. `scripts/lighthouse.mjs` comprueba el puerto antes de lanzar y
+> **aborta con `exit 1`** si está ocupado. En CI no puede pasar: nadie escucha
+> ahí.
 
 ### 3. Arrancar la Aplicación
 ```bash

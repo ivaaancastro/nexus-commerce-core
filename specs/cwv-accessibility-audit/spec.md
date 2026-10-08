@@ -36,6 +36,12 @@ configuración vive en un fichero revisable.
   - `audit` — ambos.
 - **Navegador reutilizado**: Lighthouse apunta al **Chrome for Testing que ya
   instala Playwright** (`CHROME_PATH`), **sin descargar navegador nuevo**.
+- **`chromeFlags: "--no-sandbox"` en `collect.settings`**: Playwright lanza
+  Chromium **sin sandbox de serie** (`chromiumSandbox: false` → `--no-sandbox`),
+  y en el runner de CI (Ubuntu 24.04, donde AppArmor restringe los *user
+  namespaces*) Chrome **se aborta** con `No usable sandbox!`. Es alinearse con
+  lo que ya hacen los E2E, no una degradación nueva. **Sólo se vio en CI**:
+  macOS arranca con sandbox y allí el gate se caía antes de medir nada.
 - `npm ci` en una máquina limpia instala todo sin pasos manuales.
 
 ### ⚠️ Compromiso conocido — dependencias de Lighthouse
@@ -59,6 +65,22 @@ Descubierto al instalar (información nueva respecto a la aprobación original) 
 **Se acepta** con criterio de producción: no se introduce ninguna
 vulnerabilidad que llegue al usuario final.
 
+### ⚠️ Trampa local — un puerto ocupado mide otro build
+
+Descubierto al verificar (nueva información respecto a la aprobación) y
+**caro**: `collect.startServerCommand` lanza `next start`; si el puerto ya está
+ocupado, ese proceso muere sin bindear, LHCI lo da por «servidor arrancado» y
+**mide lo que haya escuchando**, que es un build que nadie eligió.
+
+- Una corrida medida así dio **LCP 6 998 ms** sobre una página que en la
+  corrida limpia siguiente dio **3 057 ms**. También podría haber salido al
+  revés: en **verde**, sobre código que ya no es el nuestro.
+- Por eso `scripts/lighthouse.mjs` **comprueba el puerto antes de lanzar** y
+  aborta con `exit 1` si algo ya escucha en él. En CI es no-op, nadie escucha.
+- Y el comando que se documentaba para limpiar era **falso**:
+  `pkill -f "next start"` no mata nada, porque el proceso se llama
+  **`next-server`**. Estaba avisado en el README y aun así me mordió.
+
 ### Criterios de aceptación
 
 - [x] `@axe-core/playwright` y `@lhci/cli` están en `devDependencies`
@@ -69,6 +91,13 @@ vulnerabilidad que llegue al usuario final.
 - [x] `npx tsc --noEmit` → **0** con la config nueva incluida
 - [x] `npm audit --omit=dev` sigue en **2 high** (los preexistentes de
       `source-map-js`) — **ninguna vulnerabilidad nueva en producción**
+- [x] `collect.settings.chromeFlags` incluye **`--no-sandbox`**: sin él Chrome
+      **no arranca en el runner de CI** y el gate se cae antes de medir
+- [x] `scripts/lighthouse.mjs` **aborta con `exit 1`** si el puerto de la
+      auditoría ya está ocupado — probado en las dos direcciones:
+      `exit 1` con el puerto ocupado, `exit 0` con `assert` y con el puerto libre
+- [x] El comando de limpieza documentado es el **correcto**
+      (`pkill -f "next-server"`, no `next start`)
 
 ---
 
