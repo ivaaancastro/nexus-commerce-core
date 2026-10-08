@@ -179,6 +179,49 @@ objetivo impuesto). El informe queda en `frontend/coverage/` (`text` en consola,
 Los dos comandos son independientes: `npx vitest run` **no** evalúa umbrales,
 así que si quieres el check de cobertura hay que pasar por `test:coverage`.
 
+### 2c. Frontend: tests end-to-end (Playwright)
+
+A diferencia de los unitarios, los E2E **necesitan el stack entero levantado**:
+hablan con Spring de verdad, no con la API mockeada.
+
+```bash
+docker compose up -d                      # PostgreSQL
+cd backend && ./mvnw spring-boot:run      # API en :8080
+cd frontend
+npx playwright install                    # una vez: descarga los navegadores
+
+npm run test:e2e          # los 3 navegadores (Chromium, Firefox, WebKit)
+npm run test:e2e:quick    # sólo Chromium — iteración local rápida
+```
+
+Antes de la primera prueba, `e2e/global-setup.ts` deja el entorno listo y lo
+hace de forma **idempotente** (dos corridas seguidas pasan igual):
+
+1. Espera a que el backend responda en `GET /api/v1/markets` (hasta 120 s). Ese
+   endpoint sirve de *readiness* porque además no responde hasta que **Flyway
+   ha terminado de migrar** — el backend no tiene Actuator.
+2. Crea `e2e@nexus.dev` **verificado** por la API real: registra, lee el
+   `verification_code` de la tabla `users` y lo confirma en `/verify-email`.
+   **No hay SMTP** y **no existe ninguna migración de semilla**.
+3. Le da una dirección por defecto — el checkout exige `addressId`, y el
+   carrito la precoselecciona.
+4. Restaura el stock del SKU que se compra a sus valores de la semilla
+   (`843321900101`: 150/5 en `WH_ARTEIXO`, 80/0 en `WH_ZARAGOZA`). Sin esto,
+   cada compra descuenta y la serie se agotaría con el tiempo.
+
+Las credenciales de Postgres salen de las variables `PG*` (por defecto las de
+`application.properties`); en CI se sustituyen por las del servicio. El backend
+se habla directamente en `localhost:8080`, no a través del rewrite de Next.
+
+> **Firefox en macOS**: la build de Firefox que empaqueta Playwright no
+> arranca en modo headless en esta máquina, así que en local la suite se
+> valida en **Chromium y WebKit**; **Firefox se comprueba en CI**, sobre
+> Ubuntu (spec: `specs/e2e-playwright/plan.md`, decisión D10).
+
+El informe HTML queda en `frontend/playwright-report/` (ignorado por git) y CI
+lo sube siempre como artefacto `playwright-report`, con las trazas y capturas
+de los fallos.
+
 ### 3. Arrancar la Aplicación
 ```bash
 cd backend
