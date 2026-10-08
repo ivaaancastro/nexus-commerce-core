@@ -138,7 +138,10 @@
 
 - [x] **Preguntar antes de cualquier commit, push y PR** ⛔
 - [x] Rama `feat/cwv-accessibility-audit` → PR contra `main`
-- [ ] Verificar los **3 jobs en CI** + el nuevo `cwv-audit`
-      (el primer intento: 3 verdes, `cwv-audit` rojo por `No usable sandbox!`
-      — arreglado con `chromeFlags: "--no-sandbox"`, **pendiente de re-validar**)
+- [x] Verificar los **3 jobs en CI** + el nuevo `cwv-audit`
+      (primer intento: 3 verdes, `cwv-audit` rojo por `No usable sandbox!` —
+      arreglado con `chromeFlags: "--no-sandbox"`. **Re-validado: 4/4 verdes**)
+- [x] Analizar los informes de CI y decidir el umbral con los datos
+      (LCP coincide con local a ±40 ms; TBT 88 en local/40–46. **≤ 100 se
+      mantiene** — decisión del usuario)
 - [ ] Merge + borrar rama

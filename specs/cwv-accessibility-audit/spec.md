@@ -196,6 +196,34 @@ estable y el gate no puede bailar.
 | `categories:performance` | **≥ 90** | 94 (peor ruta) | −4 pts | por debajo de lo que hoy hace cualquier ruta |
 | `categories:accessibility` | **≥ 95** | 100 (las 4) | −5 pts | axe ya gatea a 0 violaciones; esto cubre el set de reglas distinto de Lighthouse |
 
+### 📊 Re-medición en CI — el runner donde vive el gate
+
+La medición anterior se hizo en **local (macOS)**; el gate corre en **CI
+(Ubuntu)**. La primera corrida de CI se analizó con los **12 informes** del
+artefacto `lighthouse-report/`. Mismo Chromium, misma versión (12.6.1) y mismo
+`throttlingMethod: simulate`.
+
+| Ruta | perf | a11y | **LCP** | **CLS** | **TBT** |
+|:---|---:|---:|---:|---:|---:|
+| `/` | 94 | 100 | 3 028 | 0.000 | 61 |
+| `/catalog` | 94 | 100 | **3 079** | 0,000 | **88** |
+| `/login` | 99 | 100 | 2 112 | 0,000 | 46 |
+| `/products/0432/021` | 94 | 100 | 3 029 | 0,000 | 38 |
+
+- **LCP coincide con local a ±40 ms** (3 079 frente a 3 041): la simulación de
+  Lantern se comporta como se esperaba y **D1 aguanta cruzando de sistema
+  operativo**.
+- **TBT es el único que se aleja**: 88 en CI frente a 40–46 en local. El TBT
+  mide bloqueo de CPU observado en la traza, y los runners de CI son
+  compartidos. **Ninguna de las 12 corridas superó 100** (máx. 93, en
+  `/catalog`, con 83 / 88 / 93), y el gate evalúa **mediana**: haría falta un
+  empuje sistemático de ~14 % en 2 de cada 3 corridas para que falle.
+- **El umbral no se mueve** (decisión del usuario): **≤ 100 se queda**. Es el
+  más sensible del conjunto — una regresión real de +30 ms de JS bloqueante
+  saldría roja, y con ≤ 150 se quedaría en verde. Si CI llega a flashear, **TBT
+  es el primero a re-medir**, y moverlo exige escribir el número nuevo aquí
+  (regla 3).
+
 ### ⚠️ INP — **no se congela porque no es medible** (**D8**)
 
 Lighthouse 12 **no produce un valor de INP de laboratorio**:
@@ -221,6 +249,10 @@ contrario sería presentar una cifra de laboratorio como métrica de usuario rea
 - [x] Las métricas congeladas y sus valores están **escritas en esta spec**
 - [x] El presupuesto de **LCP y CLS** está declarado en `lighthouserc.json`
 - [x] **Todo lo medido está por encima del presupuesto** (gate en verde)
+- [x] El presupuesto se ha verificado **también en CI**, sobre los 12 informes
+      del artefacto `lighthouse-report/` — no sólo en local
+- [x] Las diferencias entre local y CI están **medidas y explicadas**
+      (TBT), y el umbral se ha decidido **con los datos encima de la mesa**
 - [x] Si alguna métrica no es fiable en laboratorio, **queda dicho aquí**
       explícitamente en vez de silenciarse
 - [x] No se afirma ningún dato de campo / CrUX
