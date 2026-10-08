@@ -200,7 +200,7 @@ estable y el gate no puede bailar.
 
 La medición inicial se hizo en **local (macOS)**, pero el gate corre en **CI
 (Ubuntu)**. Se analizaron los **12 informes** de **cada corrida de CI**
-(artefacto `lighthouse-report/`). Las tres corridas de este bloque cambiaron
+(artefacto `lighthouse-report/`). Las cuatro corridas de este bloque cambiaron
 **sólo** configuración y documentación — **el código de la app es idéntico**.
 Mismo Chromium, misma versión (12.6.1), mismo `throttlingMethod: simulate`.
 
@@ -211,18 +211,19 @@ Peor mediana por ruta:
 | **Corrida 1** (verde, umbrales de local) | 3 079 | 0,000 | 88 | 0,94 | 1,00 |
 | **Corrida 2** (roja: TBT 178 > 100) | 3 193 | 0,000 | **178** | **0,91** (0,90 en una corrida) | 1,00 |
 | **Corrida 3** (verde, umbrales recalibrados) | 3 169 | 0,000 | **192** | 0,90 | 1,00 |
+| **Corrida 4** (verde, sólo docs) | 3 129 | 0,000 | 146 | 0,92 | 1,00 |
 | Local (macOS) | 3 035–3 057 | 0,000 | 40–46 | 0,94 | 1,00 |
 
-**Margen real de los umbrales sobre lo peor de las 3 corridas**: LCP **581 ms** ·
+**Margen real de los umbrales sobre lo peor de las 4 corridas**: LCP **557 ms** ·
 TBT **58 ms** · perf **0,05**. El TBT tiene dos platós — ~90 cuando el runner
-está tranquilo, ~190 cuando está cargado —, y **250 cubre el plató cargado con
-un +30 %**. Es el umbral más apretado del conjunto y el primero a vigilar.
+está tranquilo, ~150-190 cuando está cargado —, y **250 cubre el plató cargado
+con un +30 %**. Es el umbral más apretado del conjunto y el primero a vigilar.
 
 - **LCP, CLS y a11y son estables.** LCP coincide entre local y CI a ±114 ms,
   lo que confirma que la simulación de Lantern no se va con el sistema
   operativo. **D1 aguanta**.
 - **TBT varía ×2 entre corridas con el mismo código** (88 con el runner
-  tranquilo; 178 y 192 cargado) y arrastra a
+  tranquilo; 146–192 cargado) y arrastra a
   `perf` hasta el borde (0,90 frente a un umbral de 0,90). La causa no es
   azar: **D2 exige medir con el backend real**, así que en el mismo VM
   conviven PostgreSQL + Spring Boot + `next start` + Chrome, y las páginas
@@ -233,10 +234,10 @@ un +30 %**. Es el umbral más apretado del conjunto y el primero a vigilar.
   ayudan: la contención es sistemática **dentro** del job y distinta
   **entre** jobs.
 - **Consecuencia**: en este entorno el TBT **no puede ser un detector fino**.
-  Se recalibra con lo peor de las tres corridas más margen (**≤ 250** sobre
-  192) y queda dicho aquí. Sigue detectando una regresión grande de CPU (un
-  `await` bloqueante de 500 ms saldría rojo) pero no una de +30 ms — **y con
-  este entorno de medición no se puede pedir más**.
+  Se recalibra con lo peor observado más margen (**≤ 250** sobre 192, la
+  corrida 3) y queda dicho aquí. Sigue detectando una regresión grande de CPU
+  (un `await` bloqueante de 500 ms saldría rojo) pero no una de +30 ms — **y
+  con este entorno de medición no se puede pedir más**.
 - **Primera decisión y su retractación**: con la corrida 1 se propuso
   mantener TBT ≤ 100 y el usuario lo aprobó. La corrida 2, **con código
   idéntico**, la desmintió. Se recalibra con ambas. La lección queda escrita:
