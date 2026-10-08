@@ -44,3 +44,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Tarea 4.3 (CWV/a11y): informes de Lighthouse y temporal de LHCI. Ambos se
+# regeneran con `npm run audit:cwv`; no son fuente de verdad.
+/lighthouse-report/
+/.lighthouseci/

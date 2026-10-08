@@ -196,7 +196,7 @@ function ProfileContent() {
                                 disabled
                                 className="w-full border border-neutral-100 bg-neutral-50 px-3 py-2 text-sm text-neutral-500 cursor-not-allowed"
                             />
-                            <p className="text-[11px] text-neutral-400 mt-1">
+                            <p className="text-[11px] text-neutral-600 mt-1">
                                 El email no puede modificarse desde aquí.
                             </p>
                         </div>
@@ -321,9 +321,9 @@ function ProfileContent() {
                                         value={height}
                                         onChange={(e) => setHeight(e.target.value)}
                                         placeholder="175"
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-400"
                                     />
-                                    <p className="text-[11px] text-neutral-400 mt-1">Entre 100 y 250 cm</p>
+                                    <p className="text-[11px] text-neutral-600 mt-1">Entre 100 y 250 cm</p>
                                 </div>
 
                                 <div>
@@ -343,9 +343,9 @@ function ProfileContent() {
                                         value={weight}
                                         onChange={(e) => setWeight(e.target.value)}
                                         placeholder="70"
-                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400"
+                                        className="w-full border border-neutral-200 px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-600 focus:outline-none focus:border-neutral-400"
                                     />
-                                    <p className="text-[11px] text-neutral-400 mt-1">Entre 30 y 250 kg</p>
+                                    <p className="text-[11px] text-neutral-600 mt-1">Entre 30 y 250 kg</p>
                                 </div>
                             </div>
                         </div>

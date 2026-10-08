@@ -11,11 +11,11 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` (todo commiteado) |
-| **Fase actual** | Fase 5 (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) |
+| **Fase actual** | Fase 5 (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) · 4.2 — Test E2E con Playwright (**completada**) · 4.3 — Auditoría CWV y Accesibilidad (**completada**) |
 | **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
-| **Estado** | **165 backend + 270 frontend** · ESLint **0 errores, 0 warnings** · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida real 78.01 / 76.32 / 74.72 / 79.85) · `tsc --noEmit`, `npm run build` (14 rutas) y `vitest` en verde · prueba manual 390/768/1440 con consola limpia |
-| **Pendiente** | **Fase 4 (4.2–4.3)** |
-| **Última actualización** | 2026-10-07 |
+| **Estado** | **165 backend + 270 frontend** · ESLint **0 errores, 0 warnings** · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida real 78.01 / 76.32 / 74.72 / 79.85) · `tsc --noEmit`, `npm run build` (14 rutas) y `vitest` en verde · **E2E: 5 humo × 3 navegadores + 14 axe** · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** · prueba manual 390/768/1440 con consola limpia |
+| **Pendiente** | **Ninguno** — con la 4.3 cerrada, **la Fase 4 queda completa**; las fases registradas no tienen tareas abiertas |
+| **Última actualización** | 2026-10-08 |
 
 ---
 
@@ -91,6 +91,26 @@
   - ⚠️ **Excepción documentada a R7**: el test «la confirmación desaparece sola a los 2500 ms» usa `fireEvent` — user-event v14 se cuelga con los temporizadores falsos de Vitest (4 combinaciones probadas). El resto del fichero usa `userEvent`.
   - ⚠️ **Prueba manual**: `/profile` sin sesión → `/login` ✓ · carrito con 1 artículo **sobrevive a la recarga** ✓ · toast de devolución «DEVOLUCIÓN SOLICITADA · 79.95 EUR» **se cierra solo a los 2689 ms** ✓ · consola sin errores ni avisos de hidratado. Para llegar al flujo se pasó el pedido local `ORD-6DB9E249` a `DELIVERED` en la BD de desarrollo (dato local, no toca el repo).
   - ⚠️ **R9/R10**: `git diff main` **no toca `backend/`** · **sin ADR** (tooling de desarrollo) · **sin PR de documentación de cierre** (D11).
+- [x] **Tarea 4.3 — Auditoría Core Web Vitals y Accesibilidad** — ✅ **cerrada 2026-10-08** · spec `specs/cwv-accessibility-audit/`
+  - [x] **Dos puertas en sitios distintos (D3)**: **axe dentro de `e2e-tests`** (el `testDir: "./e2e"` sin `testMatch` ya recoge `e2e/a11y.spec.ts`, **sin job propio**) sobre **14 rutas y sólo Chromium** (D5, `test.skip` con motivo); **Lighthouse en job propio `cwv-audit`**, en paralelo y **sin `needs:`**.
+  - [x] **Presupuesto medido y congelado (D1)** — la medición inicial fue local (**LCP 3 041 ms · CLS 0,000 · TBT 46 ms · perf 94 · a11y 100**), pero **lo que manda es la de CI**: **LCP 3 193 · CLS 0,000 · TBT 192 · perf 0,90 · a11y 100** (peor de 4 corridas; las corridas 3 y 4 validan la recalibración). Umbrales finales: **LCP ≤ 3 750 · CLS ≤ 0,05 · TBT ≤ 250 · perf ≥ 85 · a11y ≥ 95**, escritos en `spec.md R3`.
+  - [x] **`aggregationMethod: "median-run"` puesto a mano**: LHCI evalúa por defecto en **`optimistic`** (la *mejor* de las 3 corridas), lo que habría dejado sin efecto D4 (*tres tomas y mediana*).
+  - [x] **⚠️ La INP no se congela porque no es medible (D8)**: Lighthouse 12 trae `interaction-to-next-paint-insight` con **`score: null` y sin `numericValue`**, y su perf incluye `max-potential-fid` (**obsoleto**). Se gatea **`total-blocking-time` como proxy, dicho explícitamente** — presentarlo como INP sería mentir (D9: no hay despliegue, luego no hay datos de campo).
+  - [x] **`scripts/lighthouse.mjs`**: `CHROME_PATH = chromium.executablePath()` — el **mismo Chrome for Testing** de los E2E, sin navegador extra (R1) y sin rutas de máquina. **`npm run audit:cwv` es idéntico en local y en CI**.
+  - [x] **Dos fallos que sólo se vieron al salir de mi máquina**:
+    - **CI: `No usable sandbox!`** — Ubuntu 24.04 restringe los *user namespaces* con AppArmor. Playwright **ya lanza Chromium sin sandbox de serie** (`chromiumSandbox: false` → `--no-sandbox`) y por eso los E2E pasaban en ese mismo runner; LHCI sólo transmite lo que hay en `collect.settings`. Añadido **`chromeFlags: "--no-sandbox"`**. El gate se caía **antes de medir**, no era un fallo de umbrales.
+    - **Local: midió un build que nadie eligió** — `startServerCommand` no puede bindear un puerto ocupado, LHCI **no falla** y mide lo que haya escuchando. Costó **LCP 6 998 ms** frente a 3 057 de la corrida limpia. Ahora el script **comprueba el puerto y aborta** con `exit 1`. Y el comando documentado era **falso**: `pkill -f "next start"` no mata nada, el proceso se llama **`next-server`**.
+  - [x] **La medición que manda es la de CI, no la del portátil** (12 informes por corrida, **4 corridas** con el código de la app idéntico): LCP/CLS/a11y coinciden entre local y CI (±114 ms en LCP → **D1 aguanta cruzando de SO**), pero **TBT baila ×2** — 88 con el runner tranquilo, **146-192** cargado —, arrastrando `perf` hasta 0,90. Motivo estructural: el job corre PostgreSQL + Spring Boot + `next start` + Chrome **en el mismo VM**, y el TBT mide bloqueo de CPU **observado** — contención autoinfligida por D2 (backend real). `median-run` no protege: en la corrida mala `/catalog` dio 187/178/162, las tres altas. → **Umbrales recalibrados sobre las 2 primeras corridas y validados en las posteriores**: **TBT ≤ 250** (margen 58 ms sobre 192), **perf ≥ 85** (0,05 sobre 0,90), **LCP ≤ 3 750** (557 ms sobre 3 193). **La retractación de la primera decisión (mantener ≤ 100) queda escrita en la spec**: una sola corrida verde de CI **no sirve para congelar nada**.
+  - [x] **🩺 Diagnóstico (D6)**: las 14 rutas en rojo con **sólo 2 reglas** — `color-contrast` (**serious**, 33 elementos, ratios **2,36–2,79** vs. 4,5) y `heading-order` (moderate, 1). **Causa raíz única: `text-neutral-400`** sobre fondos claros.
+  - [x] **Corrección acotada**: `text-neutral-400` → **`text-neutral-600`** en **46 líneas de 15 ficheros**, sustituyendo **todas** las ocurrencias de base (no sólo las medidas). **`neutral-500` se descarta con dato**: 4,74 / 4,54 / **4,35** en `#f5f5f5`; `neutral-600` da 7,82 / 7,49 / 7,17.
+  - [x] **El único caso no tocado**: `app/page.tsx:120` conserva `group-hover:text-neutral-400` — la tarjeta editorial se oscurece en hover y ahí el gris claro es el correcto.
+  - [x] **`heading-order`**: `<h3>` → `<h2>` en `ProductCard` (siempre tras `<h1>`); `CartItemRow` se dejó porque su jerarquía ya es correcta.
+  - [x] **Verificación**: axe **14/14 con 0 hallazgos** · **270/270 sin que ningún test preexistente cambiara** · `tsc` 0 · ESLint 0/0 **sin `eslint-disable`** · **`backend/` sin tocar** · **0 hallazgos descartados**.
+  - [x] **Comprobación negativa del gate**: umbrales congelados → `exit 0`; LCP forzado a `maxNumericValue: 1000` → **`exit 1` en las 4 rutas**, con `expected`/`found` en el log. **Un gate que no se ha visto fallar no es un gate.**
+  - [x] CI: job `cwv-audit` espejo de `e2e-tests` (servicio pgvector, override `SPRING_DATASOURCE_*` en el paso que lanza el backend, readiness con volcado de log, `playwright install --with-deps chromium`), informe **`if: always()`**; los 3 jobs previos **byte-idénticos a `main`**.
+  - ⚠️ **`reuseExistingServer: !process.env.CI` es trampa local**: un `next start` colgado sirve el **build viejo** y la auditoría dio verde sobre HTML con `text-neutral-400` tras el cambio. Detectado y documentado; **en CI no puede pasar**.
+  - ⚠️ **Baselines**: `git diff main -- backend/` **vacío** · 270 tests · cobertura **78.01 / 76.32 / 74.72 / 79.85** (sin moverse) · build 0 · **24 passed + 14 skipped** en local · **sin ADR** · **sin PR de documentación de cierre** (D11).
+  - ⚠️ **Cabo suelto de la 4.2 cerrado**: `specs/e2e-playwright/tasks.md:96` pasó a `[x]`.
 
 ### Fase 5 — Gestión de Usuarios (EN CURSO)
 - [x] Tarea 5.1 — Registro y Login
@@ -175,7 +195,7 @@
 ### Fase 4 — Calidad Enterprise
 - [x] **Tarea 4.1 cerrada** — ✅ **spec `specs/component-test-suite/` · 270 frontend · ESLint 0/0 · cobertura 77/76/74/79**
 - [x] **Tarea 4.2 cerrada** — ✅ **spec `specs/e2e-playwright/` · 5 pruebas de humo × 3 navegadores · `globalSetup` idempotente (usuario verificado + dirección + reset de stock) · job `e2e-tests` en CI**. En local **10/10 en Chromium y WebKit en dos corridas consecutivas**; **Firefox se valida en CI** porque la build de Playwright no arranca en headless en este macOS (decisión **D10**). Baselines: `tsc` 0 · ESLint 0/0 · 270 tests · cobertura 78.01/76.32/74.72/79.85 · build 0 · **`backend/` intacto**
-- [ ] Tarea 4.3 — Auditoría Core Web Vitals y Accesibilidad
+- [x] **Tarea 4.3 cerrada** — ✅ **spec `specs/cwv-accessibility-audit/` · axe 14/14 sin hallazgos · Lighthouse en verde en 4 rutas** (LCP ≤ 3 750 ms · CLS ≤ 0,05 · TBT ≤ 250 ms · perf ≥ 85 · a11y ≥ 95, **calibrados sobre 2 corridas de CI**) · job **`cwv-audit`** en CI. **Causa raíz única**: `text-neutral-400` → `text-neutral-600` en 46 líneas de 15 ficheros (los 33 `color-contrast`), `<h3>` → `<h2>` en `ProductCard`, **0 hallazgos descartados**. **La Fase 4 queda completa**. Baselines: `tsc` 0 · ESLint 0/0 · 270 tests · cobertura 78.01/76.32/74.72/79.85 · build 0 · **`backend/` intacto**
 
 ---
 

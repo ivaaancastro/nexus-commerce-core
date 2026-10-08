@@ -117,7 +117,7 @@ export default function HomePage() {
                       href={`/catalog?family=${encodeURIComponent(item.family)}`}
                       className="group min-h-[18rem] flex flex-col justify-between p-8 bg-white border border-neutral-200 hover:border-neutral-900 hover:bg-neutral-900 transition-all duration-300"
                   >
-                    <span className="text-[10px] uppercase tracking-widest text-neutral-400 group-hover:text-neutral-400">
+                    <span className="text-[10px] uppercase tracking-widest text-neutral-600 group-hover:text-neutral-400">
                       {item.productCount} {item.productCount === 1 ? "prenda" : "prendas"}
                     </span>
 

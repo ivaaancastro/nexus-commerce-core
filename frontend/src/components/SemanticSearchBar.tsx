@@ -38,14 +38,14 @@ export default function SemanticSearchBar({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Describe lo que buscas: estilo, tejido, corte u ocasión (ej: traje lino para boda)..."
-                        className="w-full text-base sm:text-lg bg-transparent outline-none placeholder:text-neutral-400 text-neutral-900 pr-24"
+                        className="w-full text-base sm:text-lg bg-transparent outline-none placeholder:text-neutral-600 text-neutral-900 pr-24"
                     />
                     <div className="absolute right-0 flex items-center space-x-2">
                         {activeQuery && (
                             <button
                                 type="button"
                                 onClick={handleReset}
-                                className="text-xs uppercase tracking-wider text-neutral-400 hover:text-black px-2 py-1 transition-colors"
+                                className="text-xs uppercase tracking-wider text-neutral-600 hover:text-black px-2 py-1 transition-colors"
                             >
                                 Limpiar
                             </button>
