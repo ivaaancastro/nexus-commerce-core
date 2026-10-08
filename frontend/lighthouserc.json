@@ -10,7 +10,8 @@
       "startServerCommand": "npm run start",
       "numberOfRuns": 3,
       "settings": {
-        "skipAudits": ["robots-txt"]
+        "skipAudits": ["robots-txt"],
+        "chromeFlags": "--no-sandbox"
       }
     },
     "assert": {
