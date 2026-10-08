@@ -21,11 +21,18 @@ interface CallOptions {
     method?: "GET" | "POST" | "DELETE";
     json?: unknown;
     token?: string;
+    /**
+     * Cabeceras adicionales. Existe por `Idempotency-Key` en el checkout —
+     * la única llamada del proyecto que exige una cabecera propia.
+     * Añadido en la Tarea 4.3; **adicional**, no cambia el comportamiento
+     * de ninguna llamada existente.
+     */
+    headers?: Record<string, string>;
 }
 
 export async function call(path: string, options: CallOptions = {}): Promise<Response> {
-    const { method = "GET", json, token } = options;
-    const headers: Record<string, string> = {};
+    const { method = "GET", json, token, headers: extra } = options;
+    const headers: Record<string, string> = { ...extra };
     if (json !== undefined) headers["Content-Type"] = "application/json";
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
