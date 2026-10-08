@@ -268,7 +268,7 @@ export default function OrderDetailPage() {
                     rows={3}
                     placeholder="Cuéntanos qué ha pasado con este artículo"
                     aria-invalid={reasonError ? true : undefined}
-                    className="w-full border border-neutral-200 p-3 text-sm text-neutral-900 placeholder:text-neutral-400 focus:border-neutral-900 outline-none resize-none"
+                    className="w-full border border-neutral-200 p-3 text-sm text-neutral-900 placeholder:text-neutral-600 focus:border-neutral-900 outline-none resize-none"
                 />
                 {reasonError && (
                     <p role="alert" className="mt-2 text-xs text-red-700">
@@ -308,7 +308,7 @@ export default function OrderDetailPage() {
                     <BackLink href="/orders" />
                     <p
                         role="status"
-                        className="mt-8 text-center text-xs uppercase tracking-widest text-neutral-400"
+                        className="mt-8 text-center text-xs uppercase tracking-widest text-neutral-600"
                     >
                         Cargando pedido...
                     </p>
@@ -369,7 +369,7 @@ export default function OrderDetailPage() {
                 <div className="bg-white border border-neutral-200 p-8">
                     {/* ── 2 y 3. Cabecera + banner de confirmación (§5.7) ───── */}
                     <header className="mb-8">
-                        <span className="text-[10px] uppercase tracking-widest text-neutral-400 block mb-2">
+                        <span className="text-[10px] uppercase tracking-widest text-neutral-600 block mb-2">
                             {justCheckedOut ? "Pedido confirmado" : "Detalle del pedido"}
                         </span>
                         <h1 className="text-2xl font-light uppercase tracking-wide text-neutral-900 mb-4">
@@ -404,7 +404,7 @@ export default function OrderDetailPage() {
                         {/* Fechas: compra y límite de devolución (R4) */}
                         <dl className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <dt className="text-[10px] uppercase tracking-widest text-neutral-400">
+                                <dt className="text-[10px] uppercase tracking-widest text-neutral-600">
                                     Fecha de compra
                                 </dt>
                                 <dd className="mt-1 text-xs text-neutral-900">
@@ -413,7 +413,7 @@ export default function OrderDetailPage() {
                             </div>
                             {order.returnDeadline && (
                                 <div>
-                                    <dt className="text-[10px] uppercase tracking-widest text-neutral-400">
+                                    <dt className="text-[10px] uppercase tracking-widest text-neutral-600">
                                         Límite de devolución
                                     </dt>
                                     <dd className="mt-1 text-xs text-neutral-900" data-testid="return-deadline">
@@ -458,7 +458,7 @@ export default function OrderDetailPage() {
                                     <p className="text-xs text-neutral-900">
                                         {PAYMENT_METHOD_LABELS[order.paymentMethod]}
                                     </p>
-                                    <p className="text-[10px] leading-relaxed text-neutral-400 mt-2">
+                                    <p className="text-[10px] leading-relaxed text-neutral-600 mt-2">
                                         Preferencia declarada al comprar: no se procesó ningún pago.
                                     </p>
                                 </div>
@@ -487,7 +487,7 @@ export default function OrderDetailPage() {
                                         <p className="text-[11px] text-neutral-500 mt-1">
                                             {item.productFamily} · Talla {item.size} · {item.color}
                                         </p>
-                                        <p className="text-[11px] text-neutral-400 mt-1">
+                                        <p className="text-[11px] text-neutral-600 mt-1">
                                             Referencia {item.skuCode} · Cantidad {item.quantity}
                                         </p>
                                     </div>
@@ -553,7 +553,7 @@ export default function OrderDetailPage() {
                                 ))}
                             </ul>
 
-                            <p className="mt-4 text-[10px] leading-relaxed text-neutral-400">
+                            <p className="mt-4 text-[10px] leading-relaxed text-neutral-600">
                                 El reembolso queda registrado como crédito pendiente: este
                                 establecimiento no procesa devoluciones de pago.
                             </p>

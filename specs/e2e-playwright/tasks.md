@@ -93,4 +93,5 @@
       redactado en la PR (verdad tras el merge, **sin PR ni SHA**)
 - [x] `MEMORY.md` — Tarea 4.2 completada
 - [x] **Sin PR de documentación de cierre** (D11 de la 3.3)
-- [ ] **Preguntar al usuario antes** de cualquier commit y PR ⛔ *pendiente*
+- [x] **Preguntar al usuario antes** de cualquier commit y PR ⛔ *cerrado en la
+      Tarea 4.3: se preguntó y se mergeó*

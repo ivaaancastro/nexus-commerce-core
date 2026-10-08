@@ -222,6 +222,67 @@ El informe HTML queda en `frontend/playwright-report/` (ignorado por git) y CI
 lo sube siempre como artefacto `playwright-report`, con las trazas y capturas
 de los fallos.
 
+### 2d. Auditoría de accesibilidad y Core Web Vitals
+
+Dos puertas distintas (spec: `specs/cwv-accessibility-audit/`). **Las dos
+necesitan el stack entero levantado**, como los E2E: sin backend, axe auditaría
+la página de error y Lighthouse mediría un fallo de red.
+
+```bash
+docker compose up -d                      # PostgreSQL
+cd backend && ./mvnw spring-boot:run      # API en :8080
+cd frontend
+
+npm run audit:a11y   # axe-core sobre 14 rutas, sólo Chromium
+npm run audit:cwv    # `next build` + Lighthouse sobre 4 rutas (3 corridas)
+npm run audit        # los dos, en ese orden
+```
+
+| Comando | Qué gatea | Dónde corre |
+|:---|:---|:---|
+| `audit:a11y` | **0 violaciones `critical`/`serious`** en 14 rutas. `moderate` y `minor` se **informan**, no bloquean | dentro de `e2e-tests` en CI — `npm run test:e2e` ya la recoge |
+| `audit:cwv` | LCP ≤ 3 750 ms · CLS ≤ 0,05 · TBT ≤ 250 ms · perf ≥ 85 · a11y ≥ 95 | job propio `cwv-audit`, en paralelo |
+| `audit` | los dos | — |
+
+> ⚠️ **Son datos de laboratorio, no de usuario real.** Lighthouse mide con
+> throttling simulado sobre un perfil de móvil y un entorno controlado: sirven
+> para **comparar entre sí** y para detectar regresiones, **no** para saber lo
+> que tarda tu web en el móvil de alguien. En particular **la INP no se mide
+> aquí** — Lighthouse 12 no produce un valor de INP de laboratorio, así que el
+> gate la sustituye por `total-blocking-time` **sabiendo que es un proxy**.
+> Medir la INP real exige datos de campo (CrUX o RUM), y no hay despliegue.
+
+**Los umbrales están congelados sobre lo medido**, no elegidos a ojo: se
+midieron las 4 rutas con `numberOfRuns: 3` y se fijaron con holgura sobre ese
+número (los valores y su justificación están en
+`specs/cwv-accessibility-audit/spec.md`, R3). Para cambiarlos hay que
+re-medir, no apretar el número.
+
+**El navegador**: `scripts/lighthouse.mjs` apunta a **`CHROME_PATH` =
+`chromium.executablePath()`**, el mismo Chrome for Testing que usan los E2E —
+ni instala otro navegador ni fija una ruta de máquina concreta. Si falta,
+`npx playwright install chromium` lo resuelve.
+
+Los informes quedan en `frontend/lighthouse-report/` (ignorado por git) y CI
+los sube **siempre**, también cuando el presupuesto no pasa — que es justo
+cuando hay que abrirlos.
+
+> ⚠️ **Trampa local**: `playwright.config.ts` usa
+> `reuseExistingServer: !process.env.CI`. Si tienes un `next start` colgado de
+> una iteración anterior, Playwright **reutiliza el build viejo** y la
+> auditoría puede dar verde sobre código que ya no es el que tienes. Ciérralo
+> antes — **ojo: el proceso se llama `next-server`, no `next start`**, así que
+> `pkill -f "next start"` no mata nada de nada:
+>
+>     pkill -f "next-server"
+>
+> Lo mismo afecta a Lighthouse, y ahí **ya no depende de que te acuerdes**:
+> `collect.startServerCommand` no puede bindear un puerto ocupado y, en vez de
+> fallar, LHCI **mide lo que haya escuchando** — que es un build que nadie
+> eligió. `scripts/lighthouse.mjs` comprueba el puerto antes de lanzar y
+> **aborta con `exit 1`** si está ocupado. En CI no puede pasar: nadie escucha
+> ahí.
+
 ### 3. Arrancar la Aplicación
 ```bash
 cd backend

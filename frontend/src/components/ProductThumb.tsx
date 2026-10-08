@@ -38,7 +38,7 @@ export default function ProductThumb({
             data-product-name={name}
             className={`bg-neutral-100 flex-shrink-0 overflow-hidden flex items-center justify-center ${className}`}
         >
-            <span className="text-[10px] uppercase tracking-wider text-neutral-400 text-center leading-tight px-2">
+            <span className="text-[10px] uppercase tracking-wider text-neutral-600 text-center leading-tight px-2">
                 {size ? `${family} · ${size}` : family}
             </span>
         </div>

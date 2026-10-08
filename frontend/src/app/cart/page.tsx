@@ -252,7 +252,7 @@ export default function CartPage() {
                                         </select>
                                     )}
 
-                                    <p className="text-[10px] text-neutral-400 mt-2 leading-relaxed">
+                                    <p className="text-[10px] text-neutral-600 mt-2 leading-relaxed">
                                         Se guardará en el pedido tal y como está ahora.
                                     </p>
                                 </div>
@@ -286,7 +286,7 @@ export default function CartPage() {
                                         ))}
                                     </div>
 
-                                    <p className="text-[10px] text-neutral-400 mt-2 leading-relaxed">
+                                    <p className="text-[10px] text-neutral-600 mt-2 leading-relaxed">
                                         Solo se guarda tu preferencia: no se pide ningún número
                                         de tarjeta ni se cobra nada.
                                     </p>
@@ -332,7 +332,7 @@ export default function CartPage() {
                                     {isProcessing ? "Procesando..." : "Tramitar pedido"}
                                 </button>
 
-                                <p className="text-[10px] text-neutral-400 mt-4 leading-relaxed">
+                                <p className="text-[10px] text-neutral-600 mt-4 leading-relaxed">
                                     Impuestos calculados al {market.taxRate}% (mercado {market.code}).
                                     El cálculo final se realizará en el checkout.
                                 </p>

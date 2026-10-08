@@ -24,7 +24,7 @@ function OrderCard({ order }: { order: OrderSummary }) {
         <article className="bg-white border border-neutral-200 p-6 flex flex-col gap-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                    <p className="text-[10px] uppercase tracking-widest text-neutral-400 mb-1">
+                    <p className="text-[10px] uppercase tracking-widest text-neutral-600 mb-1">
                         Pedido
                     </p>
                     <p className="text-sm font-medium tracking-wide text-neutral-900">
@@ -65,7 +65,7 @@ function OrderCard({ order }: { order: OrderSummary }) {
                                 {item.size && <> · Talla {item.size}</>}
                                 {item.color && <> · {item.color}</>}
                             </p>
-                            <p className="text-[10px] text-neutral-400">
+                            <p className="text-[10px] text-neutral-600">
                                 {item.quantity} {item.quantity === 1 ? "unidad" : "unidades"}
                             </p>
                         </div>
@@ -78,19 +78,19 @@ function OrderCard({ order }: { order: OrderSummary }) {
 
             <div className="flex flex-wrap gap-x-8 gap-y-2 text-xs text-neutral-600">
                 <div>
-                    <span className="block text-[10px] uppercase tracking-widest text-neutral-400">
+                    <span className="block text-[10px] uppercase tracking-widest text-neutral-600">
                         Fecha
                     </span>
                     <span className="text-neutral-900">{purchaseDate}</span>
                 </div>
                 <div>
-                    <span className="block text-[10px] uppercase tracking-widest text-neutral-400">
+                    <span className="block text-[10px] uppercase tracking-widest text-neutral-600">
                         Artículos
                     </span>
                     <span className="text-neutral-900">{order.itemCount}</span>
                 </div>
                 <div>
-                    <span className="block text-[10px] uppercase tracking-widest text-neutral-400">
+                    <span className="block text-[10px] uppercase tracking-widest text-neutral-600">
                         Total
                     </span>
                     <span className="text-neutral-900">
@@ -170,7 +170,7 @@ function OrderHistoryContent() {
             {loading ? (
                 <p
                     role="status"
-                    className="py-12 text-center text-xs uppercase tracking-widest text-neutral-400"
+                    className="py-12 text-center text-xs uppercase tracking-widest text-neutral-600"
                 >
                     Cargando pedidos...
                 </p>
