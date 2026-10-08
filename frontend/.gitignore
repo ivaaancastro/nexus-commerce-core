@@ -13,6 +13,11 @@
 # testing
 /coverage
 
+# playwright (Tarea 4.2): informe HTML y resultados con adjuntos. Son
+# artefactos de ejecución — nunca se versionan; CI los sube como artefacto.
+/playwright-report/
+/test-results/
+
 # next.js
 /.next/
 /out/
