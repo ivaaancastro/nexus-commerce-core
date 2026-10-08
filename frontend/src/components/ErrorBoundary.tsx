@@ -43,7 +43,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
             return (
                 <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center px-6">
                     <div className="max-w-md w-full bg-white border border-neutral-200 p-8 text-center">
-                        <span className="text-[10px] uppercase tracking-widest text-neutral-400 block mb-2">
+                        <span className="text-[10px] uppercase tracking-widest text-neutral-600 block mb-2">
                             Error de Renderizado
                         </span>
                         <h1 className="text-lg font-medium uppercase tracking-wider text-neutral-900 mb-4">

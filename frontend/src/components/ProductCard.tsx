@@ -107,7 +107,7 @@ export default function ProductCard({
             <div className="flex flex-1 flex-col justify-between p-6">
                 <div>
                     <div className="flex items-start justify-between mb-4">
-                        <span className="text-[10px] tracking-widest uppercase text-neutral-400">
+                        <span className="text-[10px] tracking-widest uppercase text-neutral-600">
                             REF. {reference}
                         </span>
                         {similarity !== undefined && (
@@ -121,9 +121,9 @@ export default function ProductCard({
                         <span className="text-[11px] uppercase tracking-wider text-neutral-500 block mb-1">
                             {family}
                         </span>
-                        <h3 className="text-base font-medium tracking-tight text-neutral-900 group-hover:text-black">
+                        <h2 className="text-base font-medium tracking-tight text-neutral-900 group-hover:text-black">
                             {name}
-                        </h3>
+                        </h2>
                     </div>
 
                     {description && (
@@ -136,7 +136,7 @@ export default function ProductCard({
                 <div>
                     {product?.skus && product.skus.length > 0 && (
                         <div className="pt-4 border-t border-neutral-100">
-                            <span className="text-[10px] uppercase tracking-wider text-neutral-400 block mb-2">
+                            <span className="text-[10px] uppercase tracking-wider text-neutral-600 block mb-2">
                                 Tallas Disponibles
                             </span>
                             <div className="flex flex-wrap gap-1.5">

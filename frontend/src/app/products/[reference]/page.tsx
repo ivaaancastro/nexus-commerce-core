@@ -159,7 +159,7 @@ export default function ProductDetailPage() {
                             data-testid="purchase-panel"
                         >
                             <div>
-                                <span className="text-[11px] uppercase tracking-widest text-neutral-400 block mb-2">
+                                <span className="text-[11px] uppercase tracking-widest text-neutral-600 block mb-2">
                                     REF. {product.referenceCode} / {product.family}
                                 </span>
                                 <h1 className="text-2xl sm:text-3xl font-light uppercase tracking-wide text-neutral-900 mb-6">
@@ -173,7 +173,7 @@ export default function ProductDetailPage() {
                                             {pricing ? `${pricing.finalPrice.toFixed(2)} ${pricing.currency}` : "---"}
                                         </span>
                                         {pricing?.hasDiscount && (
-                                            <span className="text-xs text-neutral-400 line-through">
+                                            <span className="text-xs text-neutral-600 line-through">
                                                 {pricing.originalPrice.toFixed(2)} {pricing.currency}
                                             </span>
                                         )}
@@ -184,7 +184,7 @@ export default function ProductDetailPage() {
                                         </span>
                                     ) : (
                                         pricing && (
-                                            <span className="text-[11px] text-neutral-400 block mt-1 tracking-wider uppercase">
+                                            <span className="text-[11px] text-neutral-600 block mt-1 tracking-wider uppercase">
                                                 Impuestos ({pricing.taxRate}%): {pricing.taxAmount.toFixed(2)} {pricing.currency} (Base: {pricing.netAmount.toFixed(2)} {pricing.currency})
                                             </span>
                                         )
@@ -212,7 +212,7 @@ export default function ProductDetailPage() {
                                         ))}
                                     </div>
                                     {selectedSku && (
-                                        <span className="text-[10px] text-neutral-400 font-mono block mt-2">
+                                        <span className="text-[10px] text-neutral-600 font-mono block mt-2">
                                             Barcode: {selectedSku.barcode}
                                         </span>
                                     )}
@@ -227,7 +227,7 @@ export default function ProductDetailPage() {
                                 {/* Desglose de Stock Omnicanal */}
                                 {stock && (
                                     <div className="pt-6 border-t border-neutral-100">
-                                        <span className="text-[10px] uppercase tracking-widest text-neutral-400 block mb-3">
+                                        <span className="text-[10px] uppercase tracking-widest text-neutral-600 block mb-3">
                                             Disponibilidad Omnicanal en Tiempo Real (ATS)
                                         </span>
                                         <div className="space-y-2">
@@ -271,7 +271,7 @@ export default function ProductDetailPage() {
                                 />
 
                                 <div className="mt-4 text-center">
-                                    <span className="text-[10px] uppercase tracking-wider text-neutral-400 block">
+                                    <span className="text-[10px] uppercase tracking-wider text-neutral-600 block">
                                         Envío gratuito en pedidos superiores a 50 {market.currency}
                                     </span>
                                 </div>
@@ -285,7 +285,7 @@ export default function ProductDetailPage() {
                         >
                             <div className="space-y-4 text-xs leading-relaxed text-neutral-600 font-light">
                                 <p>{product.description}</p>
-                                <p className="text-[11px] text-neutral-400 italic">
+                                <p className="text-[11px] text-neutral-600 italic">
                                     Prenda confeccionada bajo control de calidad de hilatura. Acabados manuales en costuras y forro interior completo.
                                 </p>
                             </div>

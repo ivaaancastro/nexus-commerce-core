@@ -172,7 +172,7 @@ function CatalogContent() {
             <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
                 <header className="mb-8 pb-4 border-b border-neutral-200 flex flex-wrap items-end justify-between gap-4">
                     <div>
-                        <p className="text-[10px] uppercase tracking-widest text-neutral-400 mb-2">
+                        <p className="text-[10px] uppercase tracking-widest text-neutral-600 mb-2">
                             Colección
                         </p>
                         <h1 className="text-lg font-medium uppercase tracking-widest text-neutral-900">
@@ -251,7 +251,7 @@ function CatalogContent() {
                                 <p className="text-sm text-neutral-500 uppercase tracking-wider">
                                     Sin resultados
                                 </p>
-                                <p className="text-xs text-neutral-400 mt-2">
+                                <p className="text-xs text-neutral-600 mt-2">
                                     Ninguna prenda coincide con los filtros seleccionados.
                                 </p>
                                 <button

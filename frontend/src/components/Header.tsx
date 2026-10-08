@@ -21,7 +21,7 @@ export default function Header() {
                     >
                         Nexus Core
                     </Link>
-                    <span className="text-xs tracking-wider text-neutral-400 uppercase hidden sm:inline">
+                    <span className="text-xs tracking-wider text-neutral-600 uppercase hidden sm:inline">
                         Edition 2026 / Editorial Retail
                     </span>
                 </div>
@@ -35,7 +35,7 @@ export default function Header() {
                     </Link>
                     <div className="h-4 w-px bg-neutral-200" />
                     {markets.length > 0 && (
-                        <span className="relative inline-flex items-center text-neutral-400">
+                        <span className="relative inline-flex items-center text-neutral-600">
                             <select
                                 aria-label="Mercado y divisa"
                                 value={market.code}
@@ -79,7 +79,7 @@ export default function Header() {
                             </Link>
                             <button
                                 onClick={logout}
-                                className="text-neutral-400 hover:text-black transition-colors"
+                                className="text-neutral-600 hover:text-black transition-colors"
                             >
                                 Cerrar sesión
                             </button>
