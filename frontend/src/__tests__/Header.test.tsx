@@ -41,6 +41,7 @@ const baseUser: User = {
     height: 175,
     weight: 70,
     emailVerified: true,
+    role: "USER",
 };
 
 function renderHeader() {
@@ -137,5 +138,41 @@ describe("Header", () => {
         // THEN — sin lista no hay <select>: ni parpadeo ni «undefined / undefined»
         expect(await screen.findByRole("link", { name: /pedidos/i }));
         expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    });
+
+    // ── Tarea 7.1: el enlace al panel sólo para ADMIN ────────────────────────
+
+    it("7.1 — con rol ADMIN aparece el enlace «Admin» apuntando a /admin", async () => {
+        // GIVEN — el backend devuelve role: "ADMIN" en /users/me
+        vi.mocked(api.getCurrentUser).mockResolvedValue({ ...baseUser, role: "ADMIN" });
+
+        // WHEN
+        renderHeader();
+
+        // THEN
+        expect(await screen.findByRole("link", { name: /admin/i }))
+            .toHaveAttribute("href", "/admin");
+    });
+
+    it("7.1 — con rol USER el enlace «Admin» no se pinta", async () => {
+        // GIVEN — baseUser ya tiene role: "USER"
+        renderHeader();
+
+        // THEN — ni siquiera se ve: el 403 de la API es el otro lado de la puerta
+        await screen.findByRole("link", { name: /pedidos/i });
+        expect(screen.queryByRole("link", { name: /admin/i })).not.toBeInTheDocument();
+    });
+
+    it("7.1 — sin sesión no aparece el enlace «Admin»", async () => {
+        // GIVEN — sin token guardado
+        localStorage.removeItem("nexus-auth-token");
+
+        // WHEN
+        renderHeader();
+
+        // THEN
+        expect(await screen.findByRole("link", { name: /iniciar sesión/i }))
+            .toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /admin/i })).not.toBeInTheDocument();
     });
 });

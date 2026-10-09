@@ -75,6 +75,7 @@ const mockUser: User = {
     birthDate: "1995-04-12",
     gender: "FEMALE",
     emailVerified: true,
+    role: "USER",
 };
 
 /** Simula una sesión activa: sin token `AuthProvider` arranca en anónimo. */

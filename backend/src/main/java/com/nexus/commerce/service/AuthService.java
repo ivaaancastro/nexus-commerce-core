@@ -133,8 +133,8 @@ public class AuthService {
     }
 
     private AuthResponse buildAuthResponse(User user) {
-        String token = jwtService.generateToken(user.getId(), user.getEmail());
-        String refreshToken = jwtService.generateRefreshToken(user.getId(), user.getEmail());
+        String token = jwtService.generateToken(user.getId(), user.getEmail(), user.getRole());
+        String refreshToken = jwtService.generateRefreshToken(user.getId(), user.getEmail(), user.getRole());
         return new AuthResponse(token, refreshToken, mapToUserResponse(user));
     }
 
@@ -149,7 +149,8 @@ public class AuthService {
                 user.getGender(),
                 user.getHeight(),
                 user.getWeight(),
-                user.isEmailVerified()
+                user.isEmailVerified(),
+                user.getRole()
         );
     }
 

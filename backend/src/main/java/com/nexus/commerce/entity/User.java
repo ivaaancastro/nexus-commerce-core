@@ -57,6 +57,16 @@ public class User {
     @Column(name = "verification_code", length = 6)
     private String verificationCode;
 
+    /**
+     * Rol de autorización (Tarea 7.1, migración {@code V13}, columna NOT NULL
+     * con DEFAULT 'USER'). Aquí se asume {@code USER} en toda construcción que
+     * no lo declare — mínimo privilegio: olvidar el rol nunca puede dar ADMIN.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private Role role = Role.USER;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Address> addresses = new ArrayList<>();

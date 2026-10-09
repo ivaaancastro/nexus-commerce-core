@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.nexus.commerce.dto.*;
 import com.nexus.commerce.entity.Gender;
+import com.nexus.commerce.entity.Role;
 import com.nexus.commerce.service.AddressService;
 import com.nexus.commerce.service.SizeRecommendationService;
 import com.nexus.commerce.service.UserService;
@@ -83,7 +84,7 @@ class UserControllerTest {
     private UserResponse sampleProfile() {
         return new UserResponse(
                 1L, EMAIL, "Ana", "García", "612345678",
-                LocalDate.of(1990, 5, 20), Gender.FEMALE, 175.0, 70.0, true);
+                LocalDate.of(1990, 5, 20), Gender.FEMALE, 175.0, 70.0, true, Role.USER);
     }
 
     private AddressResponse sampleAddress(long id, boolean isDefault) {
@@ -118,7 +119,7 @@ class UserControllerTest {
         when(userService.updateProfile(eq(EMAIL), any(ProfileUpdateRequest.class)))
                 .thenReturn(new UserResponse(
                         1L, EMAIL, "Ana María", "López", "699999999",
-                        LocalDate.of(1991, 3, 10), Gender.OTHER, 172.0, 68.0, true));
+                        LocalDate.of(1991, 3, 10), Gender.OTHER, 172.0, 68.0, true, Role.USER));
 
         // WHEN / THEN
         mockMvc.perform(asUser(put("/api/v1/users/me"))

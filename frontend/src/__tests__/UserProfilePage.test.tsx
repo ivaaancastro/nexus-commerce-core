@@ -37,6 +37,7 @@ const baseUser: User = {
     height: 175,
     weight: 70,
     emailVerified: true,
+    role: "USER",
 };
 
 function renderProfile() {
