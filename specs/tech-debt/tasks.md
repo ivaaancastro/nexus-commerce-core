@@ -204,7 +204,7 @@ La R4 lo listaba como método representativo, pero **no existe un
 - [x] Bloque «ESTADO ACTUAL» de `AGENTS.md` redactado **dentro de la PR** (R6, hereda D11)
 - [x] **Sin ADR** (D8) · **sin PR de documentación de cierre**
 - [x] `/spec-check tech-debt` → aprobado *(reporte R1–R6 ejecutado en la sesión: 30 CA verificados con evidencia, 0 pendientes)*
-- [ ] **Preguntar al usuario antes de cualquier commit y PR** ⛔
+- [x] **Preguntar al usuario antes de cualquier commit y PR** ⛔ — *aprobado por el usuario (commit por tarea + PR); rama `fix/tech-debt` pushada y PR hacia `main` creada — números en GitHub*
 
 ---
 
