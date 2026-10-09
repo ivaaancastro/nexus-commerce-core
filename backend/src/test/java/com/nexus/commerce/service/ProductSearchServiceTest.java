@@ -220,6 +220,8 @@ class ProductSearchServiceTest {
         assertThat(result.name()).isEqualTo("Blazer Cruzada Estructura");
         // Sin similitud que declarar: el score se omite, no se miente con un 0.
         assertThat(result.similarityScore()).isNull();
+        // R3: la respuesta declara el modo con el que se resolvió.
+        assertThat(result.searchMode()).isEqualTo("TEXT");
 
         verifyNoInteractions(vectorStore);
     }
@@ -313,6 +315,7 @@ class ProductSearchServiceTest {
         // THEN
         assertThat(results).hasSize(1);
         assertThat(results.getFirst().similarityScore()).isEqualTo(0.89);
+        assertThat(results.getFirst().searchMode()).isEqualTo("SEMANTIC");
         verify(vectorStore).similaritySearch(any(SearchRequest.class));
         verifyNoInteractions(productRepository);
     }

@@ -47,7 +47,7 @@ class ProductSearchControllerTest {
     void shouldReturnSemanticSearchResults() throws Exception {
         ProductSearchResultResponse response = new ProductSearchResultResponse(
                 1L, "0432/021", "Blazer Lino", "OUTERWEAR",
-                "Chaqueta formal", 0.92, List.of()
+                "Chaqueta formal", 0.92, List.of(), "SEMANTIC"
         );
 
         when(productSearchService.searchSimilar(any(ProductSearchRequest.class)))
@@ -92,5 +92,22 @@ class ProductSearchControllerTest {
                 .andExpect(jsonPath("$.error").value("Service Unavailable"))
                 .andExpect(jsonPath("$.code").value("SEMANTIC_SEARCH_UNAVAILABLE"))
                 .andExpect(jsonPath("$.message").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("R3 - La respuesta semántica declara searchMode: SEMANTIC en el JSON")
+    void respuestaSemanticaDeclaraSuModo() throws Exception {
+        // GIVEN
+        when(productSearchService.searchSimilar(any(ProductSearchRequest.class)))
+                .thenReturn(List.of(new ProductSearchResultResponse(
+                        1L, "0432/021", "Blazer Lino", "OUTERWEAR",
+                        "Chaqueta formal", 0.92, List.of(), "SEMANTIC"
+                )));
+
+        // WHEN / THEN: el campo viaja siempre — no es opcional en la respuesta.
+        mockMvc.perform(get("/api/v1/products/search/semantic").param("query", "blazer"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].searchMode").value("SEMANTIC"));
     }
 }

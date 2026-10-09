@@ -46,7 +46,9 @@ class ProductSearchFallbackTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].name").value("Blazer Cruzada Estructura"))
                 .andExpect(jsonPath("$[0].referenceCode").value("0432/021"))
-                .andExpect(jsonPath("$[0].family").value("OUTERWEAR"));
+                .andExpect(jsonPath("$[0].family").value("OUTERWEAR"))
+                // R3: la respuesta por texto declara su modo.
+                .andExpect(jsonPath("$[0].searchMode").value("TEXT"));
     }
 
     @Test
