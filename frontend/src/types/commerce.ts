@@ -50,8 +50,11 @@ export interface SemanticSearchResult {
     name: string;
     family: string;
     description: string;
-    similarityScore: number;
+    /** La búsqueda por texto no declara similitud: el campo no viaja (Tarea 6.2). */
+    similarityScore?: number;
     tags: string[];
+    /** Cómo se resolvió la búsqueda (Tarea 6.3, R3). */
+    searchMode: "SEMANTIC" | "TEXT";
 }
 
 export interface PriceBreakdown {

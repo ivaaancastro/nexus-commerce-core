@@ -2,6 +2,8 @@ package com.nexus.commerce.controller;
 
 import com.nexus.commerce.dto.ProductSearchRequest;
 import com.nexus.commerce.dto.ProductSearchResultResponse;
+import com.nexus.commerce.exception.AiFeatureUnavailableException;
+import com.nexus.commerce.exception.GlobalExceptionHandler;
 import com.nexus.commerce.service.ProductSearchService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +18,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -44,7 +47,7 @@ class ProductSearchControllerTest {
     void shouldReturnSemanticSearchResults() throws Exception {
         ProductSearchResultResponse response = new ProductSearchResultResponse(
                 1L, "0432/021", "Blazer Lino", "OUTERWEAR",
-                "Chaqueta formal", 0.92, List.of()
+                "Chaqueta formal", 0.92, List.of(), "SEMANTIC"
         );
 
         when(productSearchService.searchSimilar(any(ProductSearchRequest.class)))
@@ -67,5 +70,44 @@ class ProductSearchControllerTest {
                 .andExpect(jsonPath("$.message").isNotEmpty());
 
         verify(productSearchService).indexAllProducts();
+    }
+
+    @Test
+    @DisplayName("R2 - POST /search/index sin clave de OpenAI devuelve 503 con code estructurado")
+    void indexSinClaveDevuelve503ConCodigo() throws Exception {
+        // GIVEN: MockMvc con el handler global, como en los controllers que
+        // ya prueban el mapeo de excepciones (UserOrder, Inventory).
+        MockMvc mockMvcConAdvice = MockMvcBuilders.standaloneSetup(productSearchController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+        doThrow(new AiFeatureUnavailableException(
+                "SEMANTIC_SEARCH_UNAVAILABLE",
+                "La indexación vectorial requiere una clave de OPENAI_API_KEY válida"))
+                .when(productSearchService).indexAllProducts();
+
+        // WHEN / THEN
+        mockMvcConAdvice.perform(post("/api/v1/products/search/index"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.error").value("Service Unavailable"))
+                .andExpect(jsonPath("$.code").value("SEMANTIC_SEARCH_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("R3 - La respuesta semántica declara searchMode: SEMANTIC en el JSON")
+    void respuestaSemanticaDeclaraSuModo() throws Exception {
+        // GIVEN
+        when(productSearchService.searchSimilar(any(ProductSearchRequest.class)))
+                .thenReturn(List.of(new ProductSearchResultResponse(
+                        1L, "0432/021", "Blazer Lino", "OUTERWEAR",
+                        "Chaqueta formal", 0.92, List.of(), "SEMANTIC"
+                )));
+
+        // WHEN / THEN: el campo viaja siempre — no es opcional en la respuesta.
+        mockMvc.perform(get("/api/v1/products/search/semantic").param("query", "blazer"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].searchMode").value("SEMANTIC"));
     }
 }

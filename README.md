@@ -85,6 +85,15 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 
 > Los endpoints marcados con 🔒 requieren cabecera `Authorization: Bearer {access token}`.
 
+### Seguridad y Modelo de Autorización
+
+> **Regla**: `SecurityConfig` termina en `anyRequest().denyAll()` — **lo que no está listado, no funciona**. Un endpoint nuevo nace cerrado (`401`/`403`), nunca abierto por accidente. La lista completa, con el orden «primera coincidencia gana», está comentada en `security/SecurityConfig.java`.
+
+* **Públicos (sin sesión)**: `/auth/**`, `/health`, `/markets`, `GET /products/**`, `GET /inventory/**`, `/pricing/**`, SpringDoc (`/v3/api-docs/**`, `/swagger-ui/**`) y `/error`.
+* **Con sesión (🔒)**: `/users/**`, `/orders/**` y los tres POST que cambian estado — `POST /inventory/reserve`, `POST /products/search/index` y `POST /products/enrich`. **El frontend no llama por HTTP a ninguno de los tres**: la reserva del checkout ocurre en proceso vía `OrderService`.
+* **6.4(i) — decisión documentada**: `GET /api/v1/inventory/skus/{id}` y `GET /api/v1/pricing/skus/{id}` son **públicos a propósito** — son la información que la propia vitrina publica sin sesión (stock y precio de la ficha y del carrito). Queda escrito aquí para que el comprador lo tenga documentado, no descubierto.
+* **Health check**: `GET /api/v1/health` $\rightarrow$ `200 {"status":"UP"}` con BD sana, `503 {"status":"DOWN"}` si el `SELECT 1` falla. Público y **sin Actuator** (D7): es una dependencia y una superficie de ataque de más para dos datos.
+
 ### Autenticación y Sesión
 * `POST /api/v1/auth/register` $\rightarrow$ Crea la cuenta y envía un código de verificación de 6 dígitos al email (`200` sin cuerpo). La contraseña se almacena con BCrypt.
 * `POST /api/v1/auth/verify-email?email={email}&code={code}` $\rightarrow$ Verifica el email. **Obligatorio antes del login.** El código caduca en 15 minutos.
@@ -99,7 +108,7 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 * `GET /api/v1/products/families` $\rightarrow$ Taxonomía real del catálogo: `[{ family, productCount }]` ordenada por familia. **Público** (sin sesión) y calculada en BD con `SELECT family, COUNT(*)`, contando **productos y no SKUs**. Es la única fuente del menú de familias: la portada y la columna de filtros se pintan de esta respuesta, nunca de un `Set` derivado de la lista de productos.
 * `GET /api/v1/products?family={familia}&size={talla}&color={color}&sort={orden}` $\rightarrow$ Lista de productos filtrada **en backend** y combinada con **AND**. `family` exige que el producto pertenezca a esa familia; `size` y `color` exigen que coincidan **en el mismo SKU**, de modo que `?size=M&color=Negro` no sirve para mezclar variantes de prendas distintas. `sort` admite `default` \| `name-asc` \| `name-desc` (cualquier otro valor → `400` con los valores admitidos); una familia inexistente → `200 []`. **Sin paginación**: la respuesta siempre llega entera.
 * `GET /api/v1/products/search?reference={ref}` $\rightarrow$ Búsqueda exacta por código comercial (ej: `0432/021`).
-* `POST /api/v1/products/enrich?reference={ref}` $\rightarrow$ Clasificación y enriquecimiento taxonómico mediante LLM.
+* 🔒 `POST /api/v1/products/enrich?reference={ref}` $\rightarrow$ Clasificación y enriquecimiento taxonómico mediante LLM. Responde `503` con `code: ENRICHMENT_UNAVAILABLE` si no hay `OPENAI_API_KEY` válida.
 
 ### Mercados y Precios Multimercado
 * `GET /api/v1/markets` $\rightarrow$ Lista los mercados activos con su divisa y tipo impositivo (`code`, `name`, `currency`, `taxRate`), ordenados por código. **Público** (sin sesión) y sin lógica de negocio: solo `findAll` + mapeo a `MarketResponse`. Es la única fuente de la lista del selector de mercado del frontend.
@@ -107,11 +116,11 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 
 ### Inventario y Stock
 * `GET /api/v1/inventory/skus/{skuId}` $\rightarrow$ Consulta agregada del stock omnicanal y desglose por almacén.
-* `POST /api/v1/inventory/reserve` $\rightarrow$ Reserva atómica de existencias. Devuelve `409 Conflict` si el ATS es insuficiente.
+* 🔒 `POST /api/v1/inventory/reserve` $\rightarrow$ Reserva atómica de existencias. Devuelve `409 Conflict` si el ATS es insuficiente.
 
 ### Búsqueda y Enriquecimiento
-* `GET /api/v1/products/search/semantic?query={q}&family={f}&limit={n}` $\rightarrow$ Búsqueda por similitud semántica mediante embeddings vectoriales (HNSW). El filtro `family` se inyecta en la expresión de filtro **sólo** si la familia existe en el catálogo (`existsByFamily`) y no contiene comillas; si no, la búsqueda **devuelve `200 []` sin consultar el vector store**. No admite filtro por precio.
-* `POST /api/v1/products/search/index` $\rightarrow$ Dispara la reindexación vectorial completa del catálogo.
+* `GET /api/v1/products/search/semantic?query={q}&family={f}&limit={n}` $\rightarrow$ Búsqueda por similitud semántica mediante embeddings vectoriales (HNSW). El filtro `family` se inyecta en la expresión de filtro **sólo** si la familia existe en el catálogo (`existsByFamily`) y no contiene comillas; si no, la búsqueda **devuelve `200 []` sin consultar el vector store**. No admite filtro por precio. Cada resultado declara su **`searchMode`**: `SEMANTIC` con clave `OPENAI_API_KEY` válida (trae `similarityScore`), o `TEXT` cuando no la hay — fallback `ILIKE` **sin score**, para que la UI nunca muestre un «Match %» inventado.
+* 🔒 `POST /api/v1/products/search/index` $\rightarrow$ Dispara la reindexación vectorial completa del catálogo. Responde `503` con `code: SEMANTIC_SEARCH_UNAVAILABLE` si no hay `OPENAI_API_KEY` válida.
 
 ### Pedidos y Checkout
 * 🔒 `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID) y los campos `addressId` y `paymentMethod` (`CARD` | `BIZUM` | `PAYPAL` | `BANK_TRANSFER`). Reserva existencias, congela precios y genera la orden (`201 Created`). La dirección indicada se copia a la orden como **snapshot inmutable**: editarla después no cambia el pedido.
