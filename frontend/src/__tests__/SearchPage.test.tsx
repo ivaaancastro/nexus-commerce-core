@@ -46,6 +46,18 @@ const RESULTADO: SemanticSearchResult = {
     description: "Blazer de lino para ceremonia",
     similarityScore: 0.89,
     tags: ["boda", "verano"],
+    searchMode: "SEMANTIC",
+};
+
+/** Respuesta del fallback por texto (Tarea 6.3): sin score, modo TEXT. */
+const RESULTADO_TEXTO: SemanticSearchResult = {
+    productId: 3,
+    referenceCode: "0815/004",
+    name: "Jersey Punto Lana",
+    family: "KNITWEAR",
+    description: "Jersey de punto fino con cuello redondo",
+    tags: [],
+    searchMode: "TEXT",
 };
 
 function renderSearch() {
@@ -198,5 +210,37 @@ describe("SearchPage (búsqueda semántica)", () => {
         // Rejilla de /search: 1 / sm:2 / lg:3, sin columna lateral
         expect(image).toHaveAttribute("sizes", SEARCH_CARD_SIZES);
         expect(image).not.toHaveAttribute("sizes", CATALOG_CARD_SIZES);
+    });
+
+    it("R3 — en modo SEMANTIC el subtítulo promete proximidad y no muestra la nota de OPENAI_API_KEY", async () => {
+        // GIVEN
+        vi.mocked(api.searchSemantic).mockResolvedValue([RESULTADO]);
+
+        // WHEN
+        renderSearch();
+        await buscar("traje lino para boda");
+
+        // THEN
+        expect(await screen.findByText(/por proximidad vectorial/i))
+            .toBeInTheDocument();
+        // La nota es exclusiva del modo TEXT: aquí no debe aparecer.
+        expect(screen.queryByText(/OPENAI_API_KEY/i)).not.toBeInTheDocument();
+    });
+
+    it("R3 — en modo TEXT el subtítulo no promete proximidad y muestra la nota discreta", async () => {
+        // GIVEN: respuesta del fallback — sin score y searchMode: TEXT
+        vi.mocked(api.searchSemantic).mockResolvedValue([RESULTADO_TEXTO]);
+
+        // WHEN
+        renderSearch();
+        await buscar("lana");
+
+        // THEN
+        expect(await screen.findByText("Jersey Punto Lana")).toBeInTheDocument();
+        expect(screen.getByText(/1 artículos encontrados/i)).toBeInTheDocument();
+        expect(screen.queryByText(/proximidad vectorial/i)).not.toBeInTheDocument();
+        expect(
+            screen.getByText(/búsqueda por texto — configura OPENAI_API_KEY para la búsqueda semántica/i)
+        ).toBeInTheDocument();
     });
 });

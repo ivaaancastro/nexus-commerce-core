@@ -27,6 +27,12 @@ export default function SearchPage() {
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Tarea 6.3, R3: el backend declara en cada resultado cómo se buscó. Con
+  // resultados vacíos el modo no viaja (no hay resultado que lo porte), así
+  // que el subtítulo no reclama proximidad ni se muestra la nota: no se afirma
+  // nada que no se sepa.
+  const searchMode = results[0]?.searchMode;
+
   const handleSearch = async (query: string) => {
     try {
       setLoading(true);
@@ -83,13 +89,20 @@ export default function SearchPage() {
             <p className="text-xs text-neutral-500 mt-1">
               {/* Con un error no se puede afirmar que haya «0 artículos»: sería
                   mentir sobre el resultado de una petición que ni siquiera
-                  terminó. */}
+                  terminó. La promesa de «proximidad vectorial» sólo aparece
+                  cuando el backend declara SEMANTIC: en modo TEXT (o sin
+                  resultados, donde el modo no viaja) el subtítulo no la afirma. */}
               {error
                   ? "La búsqueda no se ha podido completar"
                   : hasSearched
-                      ? `${results.length} artículos encontrados por proximidad vectorial`
+                      ? `${results.length} artículos encontrados${searchMode === "SEMANTIC" ? " por proximidad vectorial" : ""}`
                       : "Describe lo que buscas: se compara por significado, no por palabra exacta"}
             </p>
+            {!error && hasSearched && searchMode === "TEXT" && (
+                <p className="text-[11px] text-neutral-500 mt-1">
+                    Búsqueda por texto — configura OPENAI_API_KEY para la búsqueda semántica
+                </p>
+            )}
           </div>
           {hasSearched && (
               <button

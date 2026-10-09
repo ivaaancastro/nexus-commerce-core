@@ -141,7 +141,8 @@ public class ProductSearchService {
                 product.getFamily(),
                 product.getDescription(),
                 null,
-                List.of()
+                List.of(),
+                "TEXT"
         );
     }
 
@@ -206,7 +207,8 @@ public class ProductSearchService {
                 family,
                 doc.getText(),
                 score,
-                List.of()
+                List.of(),
+                "SEMANTIC"
         );
     }
 }

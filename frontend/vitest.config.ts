@@ -36,6 +36,20 @@ export default defineConfig({
                 branches: 76,
                 functions: 74,
                 lines: 79,
+                // Tarea 6.3b (D5): umbral **por fichero**, medido y congelado
+                // con el mismo criterio que los globales — un punto por debajo
+                // de la medida real el 2026-10-09: **100 / 100 / 100 / 100**
+                // (77 stmts · 27 branches · 29 funcs · 73 líneas). `api.ts` es
+                // la única puerta a la API y era el fichero con peor cobertura
+                // del proyecto (20,77 %): cualquier regreso hacia ese valle
+                // queda fuera del umbral. Las comprobaciones negativas están
+                // anotadas en `specs/tech-debt/tasks.md` (R4.5).
+                "src/lib/api.ts": {
+                    statements: 99,
+                    branches: 99,
+                    functions: 99,
+                    lines: 99,
+                },
             },
         },
     },
