@@ -2,6 +2,7 @@ package com.nexus.commerce.service;
 
 import com.nexus.commerce.dto.ProductEnrichmentResponse;
 import com.nexus.commerce.entity.Product;
+import com.nexus.commerce.exception.AiFeatureUnavailableException;
 import com.nexus.commerce.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,11 +12,13 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -94,5 +97,21 @@ class ProductEnrichmentServiceTest {
         assertThat(response).isEmpty();
         verify(productRepository).findByReferenceCode("UNKNOWN");
         verifyNoInteractions(chatClient);
+    }
+
+    @Test
+    @DisplayName("R2 - Sin clave de OpenAI el enriquecimiento lanza AiFeatureUnavailableException (503)")
+    void enrichSinClaveLanzaNoDisponible() {
+        // GIVEN
+        ReflectionTestUtils.setField(enrichmentService, "openAiApiKey", "mock-key");
+
+        // WHEN / THEN: ni se mira el producto — la funcionalidad no puede correr.
+        AiFeatureUnavailableException ex = catchThrowableOfType(
+                () -> enrichmentService.enrichProductByReference("0432/021"),
+                AiFeatureUnavailableException.class);
+
+        assertThat(ex).isNotNull();
+        assertThat(ex.getCode()).isEqualTo("ENRICHMENT_UNAVAILABLE");
+        verifyNoInteractions(productRepository, chatClient);
     }
 }
