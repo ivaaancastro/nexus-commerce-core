@@ -37,6 +37,23 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    /**
+     * 503 de IA (Tarea 6.2): falta la clave de OpenAI y la funcionalidad
+     * (indexación vectorial o enriquecimiento) no puede ejecutarse. Lleva
+     * {@code code} para que el cliente distinga cuál de las dos es, igual
+     * que el 409 de devoluciones se distingue del de stock.
+     */
+    @ExceptionHandler(AiFeatureUnavailableException.class)
+    public ResponseEntity<Map<String, Object>> handleAiFeatureUnavailable(AiFeatureUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "error", "Service Unavailable",
+                "code", ex.getCode(),
+                "message", ex.getMessage()
+        ));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(

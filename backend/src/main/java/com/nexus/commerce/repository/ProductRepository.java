@@ -1,6 +1,7 @@
 package com.nexus.commerce.repository;
 
 import com.nexus.commerce.entity.Product;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -91,4 +92,35 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> buscarConFiltros(@Param("family") String family,
                                    @Param("size") String size,
                                    @Param("color") String color);
+
+    /**
+     * Fallback de búsqueda por texto (Tarea 6.2, R2).
+     *
+     * <p>Es lo que responde cuando <strong>no hay clave de OpenAI</strong>
+     * (o la semántica falla pese a la clave): {@code ILIKE} sobre nombre,
+     * descripción y referencia, con el mismo contrato de {@code family} y
+     * {@code limit} que la vía semántica. El patrón se bindea como parámetro,
+     * nunca se concatena, así que la consulta es inmune a inyección; los
+     * comodines {@code %}/{@code _} que traiga el usuario actúan como tales
+     * (búsqueda «contiene», igual que en cualquier buscador).</p>
+     *
+     * <p>Los OR van entre paréntesis a propósito: sin él, el {@code AND} del
+     * filtro de familia se agruparía sólo a la última rama y un producto de
+     * otra familia aparecería si su nombre casara.</p>
+     *
+     * @param query    texto libre (se busca «contiene», sin distinguir mayúsculas)
+     * @param family   familia exacta opcional; {@code null} no filtra
+     * @param pageable porta el {@code limit}; se usa sólo el tamaño, sin orden
+     */
+    @Query("""
+            SELECT p FROM Product p
+            WHERE ( LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))
+                 OR LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))
+                 OR LOWER(p.referenceCode) LIKE LOWER(CONCAT('%', :query, '%')) )
+              AND (:family IS NULL OR p.family = :family)
+            ORDER BY p.name
+            """)
+    List<Product> buscarPorTexto(@Param("query") String query,
+                                 @Param("family") String family,
+                                 Pageable pageable);
 }
