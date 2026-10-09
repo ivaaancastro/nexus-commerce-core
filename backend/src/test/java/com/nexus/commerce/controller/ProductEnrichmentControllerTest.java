@@ -1,6 +1,8 @@
 package com.nexus.commerce.controller;
 
 import com.nexus.commerce.dto.ProductEnrichmentResponse;
+import com.nexus.commerce.exception.AiFeatureUnavailableException;
+import com.nexus.commerce.exception.GlobalExceptionHandler;
 import com.nexus.commerce.service.ProductEnrichmentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +17,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,5 +66,26 @@ class ProductEnrichmentControllerTest {
 
         mockMvc.perform(post("/api/v1/products/enrich").param("reference", "UNKNOWN"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("R2 - POST /products/enrich sin clave de OpenAI devuelve 503 con code estructurado")
+    void enrichSinClaveDevuelve503ConCodigo() throws Exception {
+        // GIVEN
+        MockMvc mockMvcConAdvice = MockMvcBuilders.standaloneSetup(enrichmentController)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+        doThrow(new AiFeatureUnavailableException(
+                "ENRICHMENT_UNAVAILABLE",
+                "El enriquecimiento con IA requiere una clave de OPENAI_API_KEY válida"))
+                .when(enrichmentService).enrichProductByReference("0432/021");
+
+        // WHEN / THEN
+        mockMvcConAdvice.perform(post("/api/v1/products/enrich").param("reference", "0432/021"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.error").value("Service Unavailable"))
+                .andExpect(jsonPath("$.code").value("ENRICHMENT_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").isNotEmpty());
     }
 }

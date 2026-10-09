@@ -11,11 +11,11 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` (todo commiteado) |
-| **Fase actual** | Fase 5 (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) · 4.2 — Test E2E con Playwright (**completada**) · 4.3 — Auditoría CWV y Accesibilidad (**completada**) |
-| **Tarea actual** | Sin tarea activa — pendiente definir la siguiente |
-| **Estado** | **165 backend + 270 frontend** · ESLint **0 errores, 0 warnings** · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida real 78.01 / 76.32 / 74.72 / 79.85) · `tsc --noEmit`, `npm run build` (14 rutas) y `vitest` en verde · **E2E: 5 humo × 3 navegadores + 14 axe** · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** · prueba manual 390/768/1440 con consola limpia |
-| **Pendiente** | **Ninguno** — con la 4.3 cerrada, **la Fase 4 queda completa**; las fases registradas no tienen tareas abiertas |
-| **Última actualización** | 2026-10-08 |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa) completada 2026-10-09** · Fase 7 (panel de administración) siguiente · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **7.1 — Roles y permisos (`ADMIN`/`USER`)** — spec `specs/admin-roles/` ✅ aprobada (pendiente renumerar cabeceros 6.1→7.1 y escribir `tasks.md`) |
+| **Estado** | **191 backend + 297 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 100/100/100/100, antes 20,77 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox se valida en CI, D10) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
+| **Pendiente** | Renumerar specs `admin-roles` a 7.1 y escribir `tasks.md`; arrancar Fase 7 |
+| **Última actualización** | 2026-10-09 |
 
 ---
 
@@ -112,7 +112,7 @@
   - ⚠️ **Baselines**: `git diff main -- backend/` **vacío** · 270 tests · cobertura **78.01 / 76.32 / 74.72 / 79.85** (sin moverse) · build 0 · **24 passed + 14 skipped** en local · **sin ADR** · **sin PR de documentación de cierre** (D11).
   - ⚠️ **Cabo suelto de la 4.2 cerrado**: `specs/e2e-playwright/tasks.md:96` pasó a `[x]`.
 
-### Fase 5 — Gestión de Usuarios (EN CURSO)
+### Fase 5 — Gestión de Usuarios ✅ completada
 - [x] Tarea 5.1 — Registro y Login
   - [x] Backend: Entidades, repositorios, seguridad JWT, AuthService, AuthController
   - [x] Frontend: AuthContext, páginas login/register/verify-email/forgot-password
@@ -182,20 +182,67 @@
 
 ---
 
-## Tareas Pendiente
+### Fase 6 — Deuda técnica (previa) ✅ **completada 2026-10-09**
+*Ejecutada en una sola rama `fix/tech-debt` con una sola PR (D9). Spec `specs/tech-debt/`.*
+- [x] **Tarea 6.1 — Header responsive** — fix en `Header.tsx` (`min-h-16` + `flex-wrap` + `gap-*`, **sin hamburguesa**, D1)
+  - [x] **14/14 rutas sin desborde a 390 px** (con y sin sesión), sin desborde en 320/545/560/640/768/1440, **byte-idéntico a 1440**
+  - [x] `e2e/responsive.spec.ts` (D2): métrica `documentElement.scrollWidth > innerWidth` + **comprobación negativa 6/6** con el fix retirado
+  - ⚠️ **CA con matiz a 768 px**: `main` ya desbordaba 2 px **antes** del fix — «no cambiar apariencia» era imposible ahí; anotado en `tasks.md`
+- [x] **Tarea 6.2 — Búsqueda sin `OPENAI_API_KEY`** — nunca un `500`
+  - [x] Fallback **`ILIKE`** con la regla única `config/OpenAiKey.isUsable()`; los POST que cambian estado responden **503 con `code` estructurado**
+  - [x] `@JsonInclude(NON_NULL)` en el DTO → sin «Match 0 %» falso · **+15 tests → 181 backend**
+  - [x] Test de integración con `spring.ai.openai.api-key=mock-key` **determinista en CI**
+- [x] **Tarea 6.3 (+6.3b) — `searchMode` declarado y `api.ts` congelado**
+  - [x] `searchMode: "SEMANTIC"|"TEXT"` en DTO y tipo frontend (`similarityScore` pasa a **opcional**); subtítulo según modo y nota de `OPENAI_API_KEY` **sólo en TEXT** · **+2 tests → 297 frontend**
+  - [x] `Api.test.ts` (25 tests con `fetch` mockeado): `src/lib/api.ts` del **20,77 %** al **100/100/100/100**; `thresholds["src/lib/api.ts"] = 99` (umbral por fichero, un punto bajo lo medido); **globales 77/76/74/79 intactos**; comprobación negativa anotada (EXIT 1 sin el fichero de tests)
+- [x] **Tarea 6.4 — Higiene de seguridad y operabilidad**
+  - [x] `SecurityConfig` con **`anyRequest().denyAll()`** (D6) y lista comentada: los 3 POST con estado (`inventory/reserve`, `search/index`, `products/enrich`) **antes** de los GET públicos; **inventario de endpoints** como tabla en `tasks.md`
+  - [x] **`GET /api/v1/health`** (`200 UP` / `503 DOWN`, sonda `SELECT 1`, **sin Actuator**, D7) · **6.4(i)**: `GET /inventory/**` y `/pricing/**` **públicos y documentados en el README**
+  - [x] **+10 tests → 191 backend** · en vivo: 401 sin token en los 3 POST, negocio con token, checkout E2E con `Idempotency-Key` **sin duplicar** (reserva en proceso intacta)
+- **Cierre**: `CHANGELOG.md` (4 entradas) · `MEMORY.md` · bloque de estado en `AGENTS.md` **dentro de la PR** (D11) · **sin ADR** (D8, ADR-0006 → 7.1) · **sin PR de documentación de cierre**
 
-### Fase 5 — Gestión de Usuarios
-- [x] **Tarea 5.5 cerrada** — PR #15 mergeado en `main` (`e23b86c`, 2026-10-06). ✅ La Fase 5 no tiene pendientes
+## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
-### Fase 3 — Experiencia Editorial
-- [x] **Tarea 3.1 cerrada** — PR **#19** mergeado en `main` (`bf7339c`, 2026-10-06) · 10/10 · CI verde
-- [x] **Tarea 3.2 cerrada** — PR **#17** mergeado en `main` (`3214502`, 2026-10-06) · 10/10 · CI verde
-- [x] **Tarea 3.3 cerrada** — ✅ **Fase 3 completa**
+> **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
+> **Modelo**: venta única con licencia · **personalización baja-media** (marca + configuración + catálogo, sin tocar código) · **precio objetivo $1.499–$2.499** · **soporte 30 días incluidos**.
+> **Orden de ejecución**: 6 → 7 → 8 → 9 → 10. Aprobado el 2026-10-09 (con la **Fase 6 — Deuda técnica como previa**, aprobada el mismo día, «para no arrastrarla»).
 
-### Fase 4 — Calidad Enterprise
-- [x] **Tarea 4.1 cerrada** — ✅ **spec `specs/component-test-suite/` · 270 frontend · ESLint 0/0 · cobertura 77/76/74/79**
-- [x] **Tarea 4.2 cerrada** — ✅ **spec `specs/e2e-playwright/` · 5 pruebas de humo × 3 navegadores · `globalSetup` idempotente (usuario verificado + dirección + reset de stock) · job `e2e-tests` en CI**. En local **10/10 en Chromium y WebKit en dos corridas consecutivas**; **Firefox se valida en CI** porque la build de Playwright no arranca en headless en este macOS (decisión **D10**). Baselines: `tsc` 0 · ESLint 0/0 · 270 tests · cobertura 78.01/76.32/74.72/79.85 · build 0 · **`backend/` intacto**
-- [x] **Tarea 4.3 cerrada** — ✅ **spec `specs/cwv-accessibility-audit/` · axe 14/14 sin hallazgos · Lighthouse en verde en 4 rutas** (LCP ≤ 3 750 ms · CLS ≤ 0,05 · TBT ≤ 250 ms · perf ≥ 85 · a11y ≥ 95, **calibrados sobre 2 corridas de CI**) · job **`cwv-audit`** en CI. **Causa raíz única**: `text-neutral-400` → `text-neutral-600` en 46 líneas de 15 ficheros (los 33 `color-contrast`), `<h3>` → `<h2>` en `ProductCard`, **0 hallazgos descartados**. **La Fase 4 queda completa**. Baselines: `tsc` 0 · ESLint 0/0 · 270 tests · cobertura 78.01/76.32/74.72/79.85 · build 0 · **`backend/` intacto**
+### Fase 6 — Deuda técnica (previa) ✅ **completada 2026-10-09**
+*Pagar lo que el análisis dejó marcado antes de construir encima. Spec `specs/tech-debt/` — ver detalle en «Tareas Completadas».*
+- [x] **6.1 — Header responsive** (desborde del `nav` < 560 px + pasada en 390 px)
+- [x] **6.2 — Búsqueda sin `OPENAI_API_KEY`** (degradación elegante, nunca un 500)
+- [x] **6.3 — Cobertura de `api.ts`** (20,77 % → umbral por fichero medido y congelado) + `searchMode` declarado (R3)
+- [x] **6.4 — Higiene de seguridad y operabilidad** — lista explícita en `SecurityConfig` (sin `anyRequest().permitAll()`), stock/precios **públicos y documentados** (decisión 6.4(i) aprobada), endpoint de **health check**
+
+### Fase 7 — Panel de administración (el corazón del producto)
+*Convierte el backend en un producto operable sin tocar código. Spec `specs/admin-roles/` para la 7.1.*
+- [ ] **7.1 — Roles (`ADMIN`/`USER`) + protección de rutas admin** — spec `specs/admin-roles/` ✅ *aprobada (renumerada desde 6.1)*
+- [ ] 7.2 — CRUD de productos, SKUs, variantes, imágenes
+- [ ] 7.3 — Gestión de stock y precios (multimercado)
+- [ ] 7.4 — Gestión de pedidos (ver, cambiar estado, tracking)
+- [ ] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol)
+- [ ] 7.6 — Dashboard con métricas (ventas, productos, usuarios)
+
+### Fase 8 — Instalación y configuración (reduce la fricción del comprador)
+- [ ] 8.1 — Dockerfile de producción (backend + frontend + Postgres)
+- [ ] 8.2 — `.env.example` documentado + seed de producción (productos demo, usuario admin)
+- [ ] 8.3 — Script de instalación en un comando (`npm run setup`)
+- [ ] 8.4 — Guía de despliegue Vercel (frontend) + Railway/Render (backend)
+
+### Fase 9 — Documentación y landing (lo que vende)
+- [ ] 9.1 — README de producto (qué hace, cómo instalar, cómo extender)
+- [ ] 9.2 — Documentación de arquitectura (para el equipo del comprador)
+- [ ] 9.3 — Landing page estática (Next.js) con screenshots y features
+- [ ] 9.4 — Demo en vivo desplegado con datos de ejemplo
+- [ ] 9.5 — Licencia de uso + términos de venta
+
+### Fase 10 — Calidad y tests (lo que da confianza)
+- [ ] 10.1 — Tests de integración del panel admin
+- [ ] 10.2 — Tests E2E: admin crea producto → usuario compra
+- [ ] 10.3 — Cobertura > 80 % backend y frontend
+- [ ] 10.4 — CI/CD completo (lint, test, build, coverage gates)
+
+> **Deuda técnica identificada en el análisis (2026-10-09), no planificada como fase**: header desborda < 560 px · `/search` devuelve 500 sin `OPENAI_API_KEY` · `api.ts` al 20,77 % de cobertura · `GET /inventory/**` y `GET /pricing/**` públicos · sin wishlist, sin reviews, sin cupones, sin notificaciones transaccionales de pedido.
 
 ---
 
@@ -255,4 +302,4 @@
 
 ---
 
-*Última actualización: 2026-10-05 por agente IA — Tarea 5.4 mergeada (PR #14, `136c584`); abierta la Tarea 5.5 en `feat/order-detail-redesign`.*
+*Última actualización: 2026-10-09 por agente IA — Hoja de ruta 6–9 aprobada (producto vendible en marketplace, venta única, personalización baja-media); arrancando la Tarea 6.1 (roles y permisos).*

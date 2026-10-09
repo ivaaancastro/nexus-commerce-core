@@ -9,15 +9,16 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `main` |
-| **Fase** | 5 — Gestión de Usuarios (**completada**) · 3.2 — Mercado y Divisa (**completada**) · 3.1 — Familias y Filtros (**completada**) · 3.3 — Galería de Imágenes (**completada**) · 4.1 — Suite de Pruebas y Cobertura (**completada**) · 4.2 — Test E2E con Playwright (**completada**) · 4.3 — Auditoría CWV y Accesibilidad (**completada**) |
-| **Tarea** | Sin tarea activa — pendiente definir la siguiente |
-| **Tarea siguiente** | **Sin tarea definida**: con la 4.3 cerrada, **la Fase 4 queda completa** y las fases registradas no tienen pendientes — hay que definir la siguiente con el usuario |
-| **Pendiente** | Ningún bloqueo — el ciclo SDD está al día |
-| **Actualizado** | 2026-10-08 |
+| **Rama activa** | `main` *(specs de la 7.1 en `specs/admin-roles/`, escritas antes de renumerar — ver nota en tasks)* |
+| **Fase** | **Hoja de ruta 6–10 (producto vendible) — aprobada** — **Fase 6 Deuda técnica (previa) completada** · **Fase 7 panel de administración arranca** (empieza por 7.1) · fases 1–5 y 3.x/4.x completadas |
+| **Tarea** | **7.1 — Roles y permisos (`ADMIN`/`USER`)** — spec `specs/admin-roles/` **aprobada** (cabeceros aún dicen «Tarea 6.1»: renumerar), `tasks.md` pendiente |
+| **Tarea siguiente** | **7.2 — CRUD de productos, SKUs, variantes, imágenes** |
+| **Pendiente** | Renumerar specs de 7.1 (6.1 → 7.1) y escribir su `tasks.md` — punto de bloqueo SDD |
+| **Actualizado** | 2026-10-09 |
 
-> **Estado de pruebas**: **165 backend · 270 frontend** · ESLint **0 errores, 0 warnings** · **E2E: 5 pruebas de humo × 3 navegadores + 14 de axe (sólo Chromium)** · **Lighthouse en verde en 4 rutas** · CI verde en `main`.
-> **Mergeado**: Tareas 5.3, 5.4 y 5.5 (Gestión de Usuarios), el fix de checkout, **Tarea 3.2** (Mercado y Divisa), **Tarea 3.1** (Familias y Filtros), **Tarea 3.3** (Galería de Imágenes Responsive), **Tarea 4.1** (Suite de Pruebas y Cobertura), **Tarea 4.2** (Test E2E con Playwright) y **Tarea 4.3** (Auditoría CWV y Accesibilidad). **Los números de PR y los SHA no se llevan aquí**: viven en git y en GitHub (`gh pr list`, `git log`).
+> **Estado de pruebas**: **191 backend · 297 frontend** · ESLint **0 errores, 0 warnings** · **E2E: 5 pruebas de humo × 3 navegadores + 14 de axe (sólo Chromium)** · **Lighthouse en verde en 4 rutas** · CI verde en `main`.
+> **Mergeado**: Tareas 5.3, 5.4 y 5.5 (Gestión de Usuarios), el fix de checkout, **Tarea 3.2** (Mercado y Divisa), **Tarea 3.1** (Familias y Filtros), **Tarea 3.3** (Galería de Imágenes Responsive), **Tarea 4.1** (Suite de Pruebas y Cobertura), **Tarea 4.2** (Test E2E con Playwright), **Tarea 4.3** (Auditoría CWV y Accesibilidad) y la **Fase 6 — Deuda técnica (6.1 header responsive · 6.2 búsqueda sin `OPENAI_API_KEY` · 6.3 `searchMode` + cobertura de `api.ts` · 6.4 seguridad `denyAll` + health check)**. **Los números de PR y los SHA no se llevan aquí**: viven en git y en GitHub (`gh pr list`, `git log`).
+> **Decisiones Fase 6 (`specs/tech-debt/`)**: una rama **`fix/tech-debt` + una PR** para las 4 tareas (D9) · header con `flex-wrap`+`min-h-16` y **sin hamburguesa** (D1), desborde medido como `scrollWidth > innerWidth` en Playwright (D2) · fallback **`ILIKE`** con regla única `OpenAiKey.isUsable()`, `searchMode` declarado y nota de `OPENAI_API_KEY` **sólo en modo TEXT** · **`api.ts` con umbral por fichero 99 sobre medida 100** (globales 77/76/74/79 intactos) · **`anyRequest().denyAll()`** (D6) + **`GET /api/v1/health` sin Actuator** (D7) · **6.4(i): `GET /inventory/**` y `GET /pricing/**` son públicos a propósito y quedan documentados en el README** · sin ADR (D8, ADR-0006 → 7.1) · sin PR de documentación de cierre (D11).
 > **Decisión del fix**: *el checkout requiere sesión* — sin `permitAll` en `/api/v1/orders/checkout`.
 > **Decisión 3.2 (R8b, aprobada)**: el umbral de envío gratuito traduce la **moneda**, no el valor — `50` en todas las divisas. No existe como dato en BD.
 > **Decisiones 3.1**: filtrado **en backend** (Q2), no con `filter()` en cliente · la portada es un **menú editorial sin grid ni barra de búsqueda** (D1) y la semántica vive en `/search` · filtros en **columna lateral** + panel «Filtrar» en móvil, con **un solo `CatalogFilters`** para ambas (D2) · `useSearchParams` **dentro de `<Suspense>`** y `router.push` para que «atrás» recorra los filtros (D8) · el catálogo **nunca se pagina** (D10) · sin ADR.
