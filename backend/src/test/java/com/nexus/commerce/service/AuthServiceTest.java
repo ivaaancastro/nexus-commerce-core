@@ -2,6 +2,7 @@ package com.nexus.commerce.service;
 
 import com.nexus.commerce.dto.*;
 import com.nexus.commerce.entity.Gender;
+import com.nexus.commerce.entity.Role;
 import com.nexus.commerce.entity.User;
 import com.nexus.commerce.repository.UserRepository;
 import com.nexus.commerce.security.JwtService;
@@ -148,8 +149,8 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
-        when(jwtService.generateToken(1L, "test@example.com")).thenReturn("access-token");
-        when(jwtService.generateRefreshToken(1L, "test@example.com")).thenReturn("refresh-token");
+        when(jwtService.generateToken(1L, "test@example.com", Role.USER)).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(1L, "test@example.com", Role.USER)).thenReturn("refresh-token");
 
         // WHEN
         AuthResponse response = authService.login(request);

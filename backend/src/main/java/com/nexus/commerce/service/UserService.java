@@ -104,7 +104,8 @@ public class UserService {
                 user.getGender(),
                 user.getHeight(),
                 user.getWeight(),
-                user.isEmailVerified()
+                user.isEmailVerified(),
+                user.getRole()
         );
     }
 }

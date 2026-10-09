@@ -9,6 +9,8 @@ export interface User {
     height?: number;
     weight?: number;
     emailVerified: boolean;
+    /** Rol de autorización (7.1). El backend lo envía siempre en login, refresh y /users/me. */
+    role: "USER" | "ADMIN";
 }
 
 export interface RegisterData {

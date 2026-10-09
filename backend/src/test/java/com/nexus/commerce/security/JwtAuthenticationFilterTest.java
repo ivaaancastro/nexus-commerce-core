@@ -1,5 +1,6 @@
 package com.nexus.commerce.security;
 
+import com.nexus.commerce.entity.Role;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -91,5 +93,64 @@ class JwtAuthenticationFilterTest {
         // THEN
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    @DisplayName("Con rol ADMIN en el token, el contexto lleva ROLE_USER y ROLE_ADMIN")
+    void shouldGrantAdminAuthorityWithAdminToken() throws Exception {
+        // GIVEN
+        request.addHeader("Authorization", "Bearer token-admin");
+        lenient().when(jwtService.extractEmail("token-admin")).thenReturn(EMAIL);
+        lenient().when(jwtService.extractUserId("token-admin")).thenReturn(7L);
+        lenient().when(jwtService.extractRole("token-admin")).thenReturn(Role.ADMIN);
+
+        // WHEN
+        filter.doFilter(request, response, chain);
+
+        // THEN
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(authentication).isNotNull();
+        assertThat(authentication.getAuthorities())
+                .extracting(GrantedAuthority::getAuthority)
+                .containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+    }
+
+    @Test
+    @DisplayName("Con rol USER el contexto lleva ROLE_USER y nunca ROLE_ADMIN")
+    void shouldGrantOnlyUserRoleWithUserToken() throws Exception {
+        // GIVEN
+        request.addHeader("Authorization", "Bearer token-user");
+        lenient().when(jwtService.extractEmail("token-user")).thenReturn(EMAIL);
+        lenient().when(jwtService.extractUserId("token-user")).thenReturn(7L);
+        lenient().when(jwtService.extractRole("token-user")).thenReturn(Role.USER);
+
+        // WHEN
+        filter.doFilter(request, response, chain);
+
+        // THEN
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(authentication).isNotNull();
+        assertThat(authentication.getAuthorities())
+                .extracting(GrantedAuthority::getAuthority)
+                .containsExactly("ROLE_USER");
+    }
+
+    @Test
+    @DisplayName("Sin el claim role (extractRole devuelve null) se queda en ROLE_USER")
+    void shouldDefaultToUserRoleWithoutClaim() throws Exception {
+        // GIVEN — token sin stub de extractRole: Mockito devuelve null
+        request.addHeader("Authorization", "Bearer token-antiguo");
+        lenient().when(jwtService.extractEmail("token-antiguo")).thenReturn(EMAIL);
+        lenient().when(jwtService.extractUserId("token-antiguo")).thenReturn(7L);
+
+        // WHEN
+        filter.doFilter(request, response, chain);
+
+        // THEN — mínimo privilegio: el claim ausente nunca otorga ADMIN
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertThat(authentication).isNotNull();
+        assertThat(authentication.getAuthorities())
+                .extracting(GrantedAuthority::getAuthority)
+                .containsExactly("ROLE_USER");
     }
 }

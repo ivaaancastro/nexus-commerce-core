@@ -1,6 +1,7 @@
 package com.nexus.commerce.dto;
 
 import com.nexus.commerce.entity.Gender;
+import com.nexus.commerce.entity.Role;
 
 import java.time.LocalDate;
 
@@ -14,5 +15,6 @@ public record UserResponse(
         Gender gender,
         Double height,
         Double weight,
-        boolean emailVerified
+        boolean emailVerified,
+        Role role
 ) {}

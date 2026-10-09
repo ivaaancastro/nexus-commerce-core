@@ -1,5 +1,6 @@
 package com.nexus.commerce.security;
 
+import com.nexus.commerce.entity.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -30,17 +31,24 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(Long userId, String email) {
+    /**
+     * Emite el access token con el claim {@code role} (Tarea 7.1). El rol lo
+     * decide quien llama — AuthService lo lee del usuario —; jamás se deduce
+     * de la request.
+     */
+    public String generateToken(Long userId, String email, Role role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("email", email);
+        claims.put("role", role.name());
         return createToken(claims, email, expiration);
     }
 
-    public String generateRefreshToken(Long userId, String email) {
+    public String generateRefreshToken(Long userId, String email, Role role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("email", email);
+        claims.put("role", role.name());
         return createToken(claims, email, refreshExpiration);
     }
 
@@ -68,6 +76,25 @@ public class JwtService {
 
     public Long extractUserId(String token) {
         return extractClaims(token).get("userId", Long.class);
+    }
+
+    /**
+     * Rol contenido en el token (claim {@code role} de la 7.1).
+     *
+     * <p>Un token emitido antes de la 7.1 no trae el claim — o un valor
+     * desconocido — y en ese caso se asume {@code USER}: mínimo privilegio,
+     * jamás ADMIN (plan D2).</p>
+     */
+    public Role extractRole(String token) {
+        String role = extractClaims(token).get("role", String.class);
+        if (role == null) {
+            return Role.USER;
+        }
+        try {
+            return Role.valueOf(role);
+        } catch (IllegalArgumentException e) {
+            return Role.USER;
+        }
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
