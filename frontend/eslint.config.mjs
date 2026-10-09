@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Tarea 6.1 (hallazgo): informe generado por `npm run test:coverage`
+    // (gitignored). Sin esta línea, un `npm run lint` local tras medir
+    // cobertura informa 2 warnings de los ficheros generados.
+    "coverage/**",
   ]),
 ]);
 

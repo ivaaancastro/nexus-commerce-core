@@ -13,8 +13,13 @@ export default function Header() {
 
     return (
         <header className="border-b border-neutral-200 bg-white sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                <div className="flex items-center space-x-8">
+            {/* Tarea 6.1: `flex-wrap` + `min-h-16` en lugar de `h-16` fijo.
+                La fila derecha sumaba ~690 px con sesión y, al no poder envolver,
+                Chrome ensanchaba la maqueta a esa anchura (zoom-out forzoso) y
+                cortaba el nav por debajo de ~560 px. Con envoltura el header crece
+                en vertical en móvil y mantiene la fila única en escritorio. */}
+            <div className="max-w-7xl mx-auto px-6 min-h-16 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-1">
+                <div className="flex items-center gap-x-8">
                     <Link
                         href="/"
                         className="text-xl font-semibold tracking-widest uppercase text-neutral-900"
@@ -26,7 +31,7 @@ export default function Header() {
                     </span>
                 </div>
 
-                <div className="flex items-center space-x-6 text-xs uppercase tracking-wider text-neutral-600 font-medium">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-neutral-600 font-medium">
                     <Link href="/catalog" className="hover:text-black transition-colors">
                         Colección
                     </Link>
@@ -70,7 +75,7 @@ export default function Header() {
                     )}
 
                     {isAuthenticated ? (
-                        <div className="flex items-center space-x-4">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                             <Link href="/orders" className="hover:text-black transition-colors">
                                 Pedidos
                             </Link>
