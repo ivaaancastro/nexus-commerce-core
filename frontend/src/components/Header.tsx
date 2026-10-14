@@ -8,7 +8,7 @@ import { useMarket } from "@/context/MarketContext";
 
 export default function Header() {
     const { openDrawer } = useCartDrawer();
-    const { isAuthenticated, logout } = useAuth();
+    const { isAuthenticated, logout, user } = useAuth();
     const { markets, market, setMarketCode } = useMarket();
 
     return (
@@ -76,6 +76,14 @@ export default function Header() {
 
                     {isAuthenticated ? (
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            {/* Tarea 7.1: el enlace al panel sólo existe para
+                                role === "ADMIN" — un USER ni siquiera lo ve
+                                (el 403 de la API es el otro lado de la puerta). */}
+                            {user?.role === "ADMIN" && (
+                                <Link href="/admin" className="hover:text-black transition-colors">
+                                    Admin
+                                </Link>
+                            )}
                             <Link href="/orders" className="hover:text-black transition-colors">
                                 Pedidos
                             </Link>

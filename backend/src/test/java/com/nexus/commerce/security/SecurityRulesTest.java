@@ -1,5 +1,6 @@
 package com.nexus.commerce.security;
 
+import com.nexus.commerce.entity.Role;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,9 @@ class SecurityRulesTest {
 
     @BeforeEach
     void mintearToken() {
-        token = jwtService.generateToken(999L, "seguridad@nexus.test");
+        // Firma con rol USER (aridad nueva de la 7.1); los tests de /admin/ping
+        // mintean su propio token ADMIN más abajo.
+        token = jwtService.generateToken(999L, "seguridad@nexus.test", Role.USER);
     }
 
     @Test
@@ -128,5 +131,36 @@ class SecurityRulesTest {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openapi").exists());
+    }
+
+    // ── Tarea 7.1: /api/v1/admin/** exige hasRole(ADMIN) ────────────────────
+
+    @Test
+    @DisplayName("Sin token - GET /admin/ping -> 401")
+    void adminPingSinToken401() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/ping"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Rol USER - GET /admin/ping -> 403")
+    void adminPingRolUser403() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/ping")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Rol ADMIN - GET /admin/ping -> 200 con email y rol")
+    void adminPingRolAdmin200() throws Exception {
+        // GIVEN — mismo usuario, pero con el claim role=ADMIN
+        String adminToken = jwtService.generateToken(999L, "seguridad@nexus.test", Role.ADMIN);
+
+        // WHEN / THEN — el denyAll no lo bloquea: la regla hasRole va antes
+        mockMvc.perform(get("/api/v1/admin/ping")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("seguridad@nexus.test"))
+                .andExpect(jsonPath("$.role").value("ADMIN"));
     }
 }

@@ -32,6 +32,7 @@ const USUARIO: User = {
     birthDate: "1990-01-01",
     gender: "OTHER",
     emailVerified: true,
+    role: "USER",
 };
 
 function Sonda() {

@@ -85,6 +85,7 @@ const mockUser: User = {
     birthDate: "1995-04-12",
     gender: "FEMALE",
     emailVerified: true,
+    role: "USER",
 };
 
 /** Dirección que el selector de R1 necesita para habilitar «Tramitar pedido». */
