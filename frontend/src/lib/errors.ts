@@ -94,6 +94,14 @@ export function getFriendlyErrorMessage(error: unknown): string {
     }
 
     // Códigos HTTP del proyecto (AGENTS.md §4.5)
+    if (isHttpStatus(message, 400)) {
+        // Validación de DTO: el backend ya redacta el fallo de campo en
+        // español («referenceCode: La referencia debe tener el formato…»),
+        // así que se muestra tal cual en el formulario.
+        const serverMessage = extractServerMessage(message);
+        if (serverMessage) return serverMessage;
+        return "Revisa los datos del formulario.";
+    }
     if (isHttpStatus(message, 401)) {
         return "Tu sesión ha caducado. Inicia de nuevo para continuar.";
     }
@@ -104,10 +112,11 @@ export function getFriendlyErrorMessage(error: unknown): string {
         return "No encontramos lo que buscas.";
     }
     if (isHttpStatus(message, 409)) {
-        // El backend devuelve 409 tanto para stock como para devoluciones
-        // (Tarea 5.4). Solo el de devoluciones trae `code`, y su mensaje ya está
-        // redactado para el usuario («Ha pasado el plazo de 30 días…»).
-        if (message.includes('"RETURN_NOT_ALLOWED"')) {
+        // El backend devuelve 409 para stock, devoluciones (Tarea 5.4) y
+        // catálogo (Tarea 7.2). Los dos últimos traen `code` y su mensaje ya
+        // está redactado para el usuario («Ha pasado el plazo de 30 días…»,
+        // «No se puede borrar el producto 0432/021: tiene pedidos asociados»).
+        if (message.includes('"RETURN_NOT_ALLOWED"') || message.includes('"CATALOG_CONFLICT"')) {
             const serverMessage = extractServerMessage(message);
             if (serverMessage) return serverMessage;
         }

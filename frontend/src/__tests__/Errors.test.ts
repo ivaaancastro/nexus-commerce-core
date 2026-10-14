@@ -154,4 +154,55 @@ describe("getFriendlyErrorMessage", () => {
             ).toContain("formato del email");
         });
     });
+
+    // ── Tarea 7.2 (admin-product-crud) ──────────────────────────────────────
+
+    describe("400 de validación (Tarea 7.2, R2.1)", () => {
+        it("muestra el mensaje de campo que redacta el backend", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(
+                    400,
+                    '{"message":"referenceCode: La referencia debe tener el formato NNNN/NNN (ej. 0432/021)"}'
+                )
+            );
+
+            expect(mensaje).toBe(
+                "referenceCode: La referencia debe tener el formato NNNN/NNN (ej. 0432/021)"
+            );
+            expect(mensaje).not.toContain("API Error");
+        });
+
+        it("sin message utilizable cae a un aviso de formulario", () => {
+            expect(getFriendlyErrorMessage(apiError(400, "{}"))).toBe(
+                "Revisa los datos del formulario."
+            );
+        });
+    });
+
+    describe("409 de catálogo CATALOG_CONFLICT (Tarea 7.2, R3)", () => {
+        it("usa el mensaje del backend en lugar del de stock", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(
+                    409,
+                    '{"timestamp":"2026-10-14T12:00:00+02:00","status":409,' +
+                        '"error":"Conflict","code":"CATALOG_CONFLICT",' +
+                        '"message":"No se puede borrar el producto 0432/021: tiene pedidos asociados"}'
+                )
+            );
+
+            expect(mensaje).toBe(
+                "No se puede borrar el producto 0432/021: tiene pedidos asociados"
+            );
+            expect(mensaje).not.toBe("No queda stock suficiente para completar el pedido.");
+            expect(mensaje).not.toContain("CATALOG_CONFLICT");
+        });
+
+        it("con `CATALOG_CONFLICT` pero sin message cae al mensaje genérico de 409", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(409, '{"status":409,"error":"Conflict","code":"CATALOG_CONFLICT"}')
+            );
+
+            expect(mensaje).toBe("No queda stock suficiente para completar el pedido.");
+        });
+    });
 });

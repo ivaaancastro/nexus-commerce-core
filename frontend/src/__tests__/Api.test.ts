@@ -383,4 +383,117 @@ describe("api — puerta única a la API (R4)", () => {
             expect(JSON.parse(lastInit()?.body as string)).toEqual({ productId: 42 });
         });
     });
+
+    describe("admin · catálogo (Tarea 7.2)", () => {
+        beforeEach(() => {
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        it("listAdminProducts: GET con Authorization y sin caché", async () => {
+            fetchMock.mockResolvedValue(jsonResponse([]));
+
+            await api.listAdminProducts();
+
+            expect(lastUrl()).toContain("/api/v1/admin/products");
+            expect(lastInit()?.method).toBeUndefined();
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("getAdminProduct: GET del detalle con Authorization", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ id: 7 }));
+
+            const producto = await api.getAdminProduct(7);
+
+            expect(producto.id).toBe(7);
+            expect(lastUrl()).toContain("/api/v1/admin/products/7");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+        });
+
+        it("createAdminProduct: POST con payload y Content-Type", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ id: 9 }, 201));
+
+            await api.createAdminProduct({
+                referenceCode: "7201/001",
+                name: "Blazer Prueba 72",
+                family: "OUTERWEAR",
+            });
+
+            expect(lastInit()?.method).toBe("POST");
+            expect(lastUrl()).toContain("/api/v1/admin/products");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                referenceCode: "7201/001",
+                name: "Blazer Prueba 72",
+                family: "OUTERWEAR",
+            });
+        });
+
+        it("updateAdminProduct: PUT al id correcto", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ id: 4 }));
+
+            await api.updateAdminProduct(4, {
+                name: "Blazer Actualizado",
+                family: "KNITWEAR",
+            });
+
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/products/4");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                name: "Blazer Actualizado",
+                family: "KNITWEAR",
+            });
+        });
+
+        it("deleteAdminProduct: DELETE con 204 sin cuerpo ni parseo", async () => {
+            fetchMock.mockResolvedValue(response(204, "No Content", ""));
+
+            await expect(api.deleteAdminProduct(3)).resolves.toBeUndefined();
+
+            expect(lastInit()?.method).toBe("DELETE");
+            expect(lastUrl()).toContain("/api/v1/admin/products/3");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+        });
+
+        it("createAdminSku: POST anidado bajo el producto", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ id: 20 }, 201));
+
+            await api.createAdminSku(4, {
+                barcode: "720100000001",
+                color: "Marino",
+                size: "M",
+            });
+
+            expect(lastInit()?.method).toBe("POST");
+            expect(lastUrl()).toContain("/api/v1/admin/products/4/skus");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                barcode: "720100000001",
+                color: "Marino",
+                size: "M",
+            });
+        });
+
+        it("updateAdminSku: PUT al SKU concreto dentro del producto", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ id: 20 }));
+
+            await api.updateAdminSku(4, 20, { color: "Camel", size: "L" });
+
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/products/4/skus/20");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                color: "Camel",
+                size: "L",
+            });
+        });
+
+        it("deleteAdminSku: DELETE anidado con 204 sin cuerpo", async () => {
+            fetchMock.mockResolvedValue(response(204, "No Content", ""));
+
+            await expect(api.deleteAdminSku(4, 20)).resolves.toBeUndefined();
+
+            expect(lastInit()?.method).toBe("DELETE");
+            expect(lastUrl()).toContain("/api/v1/admin/products/4/skus/20");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+        });
+    });
 });
