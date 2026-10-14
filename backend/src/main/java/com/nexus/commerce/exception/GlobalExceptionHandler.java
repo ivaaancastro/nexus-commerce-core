@@ -2,6 +2,7 @@ package com.nexus.commerce.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -51,6 +52,42 @@ public class GlobalExceptionHandler {
                 "error", "Service Unavailable",
                 "code", ex.getCode(),
                 "message", ex.getMessage()
+        ));
+    }
+
+    /**
+     * 409 de catálogo (Tarea 7.2): borrado bloqueado por pedidos existentes o
+     * unicidad violada (referencia de producto / código de barras). Lleva
+     * {@code code} para que el panel pueda distinguirlo de otros 409.
+     */
+    @ExceptionHandler(CatalogConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleCatalogConflict(CatalogConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "error", "Conflict",
+                "code", "CATALOG_CONFLICT",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /**
+     * 400 de validación de DTO: sin este handler la respuesta por defecto de
+     * Spring no incluye {@code message} (server.error.include-message nunca),
+     * y el frontend no podría traducir el error. Devuelve el primer fallo de
+     * campo, ya redactado en español por la anotación.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
+        String mensaje = ex.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .orElse("Datos inválidos");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.BAD_REQUEST.value(),
+                "error", "Bad Request",
+                "message", mensaje
         ));
     }
 

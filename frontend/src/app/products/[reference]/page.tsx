@@ -196,25 +196,38 @@ export default function ProductDetailPage() {
                                     <span className="text-[11px] uppercase tracking-widest text-neutral-500 block mb-3">
                                         Seleccionar Talla
                                     </span>
-                                    <div className="grid grid-cols-4 gap-2">
-                                        {product.skus.map((sku) => (
-                                            <button
-                                                key={sku.id}
-                                                onClick={() => setSelectedSku(sku)}
-                                                className={`py-3 text-xs uppercase tracking-wider border transition-all ${
-                                                    selectedSku?.id === sku.id
-                                                        ? "border-neutral-900 bg-neutral-900 text-white"
-                                                        : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-400"
-                                                }`}
-                                            >
-                                                {sku.size}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    {selectedSku && (
-                                        <span className="text-[10px] text-neutral-600 font-mono block mt-2">
-                                            Barcode: {selectedSku.barcode}
-                                        </span>
+                                    {product.skus.length === 0 ? (
+                                        /*
+                                         * 7.2/D9: un producto recién creado desde el panel
+                                         * todavía no tiene variantes — la vitrina lo dice en
+                                         * vez de romperse con `selectedSku!.id`.
+                                         */
+                                        <p className="text-xs uppercase tracking-wider text-neutral-600">
+                                            Sin variantes disponibles todavía
+                                        </p>
+                                    ) : (
+                                        <>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {product.skus.map((sku) => (
+                                                    <button
+                                                        key={sku.id}
+                                                        onClick={() => setSelectedSku(sku)}
+                                                        className={`py-3 text-xs uppercase tracking-wider border transition-all ${
+                                                            selectedSku?.id === sku.id
+                                                                ? "border-neutral-900 bg-neutral-900 text-white"
+                                                                : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-400"
+                                                        }`}
+                                                    >
+                                                        {sku.size}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            {selectedSku && (
+                                                <span className="text-[10px] text-neutral-600 font-mono block mt-2">
+                                                    Barcode: {selectedSku.barcode}
+                                                </span>
+                                            )}
+                                        </>
                                     )}
                                 </div>
 
@@ -253,22 +266,29 @@ export default function ProductDetailPage() {
 
                             {/* Acción de Compra Idempotente */}
                             <div className="pt-6">
-                                <AddToCartButton
-                                    productId={product.id}
-                                    referenceCode={product.referenceCode}
-                                    name={product.name}
-                                    family={product.family}
-                                    skuId={selectedSku!.id}
-                                    size={selectedSku!.size}
-                                    color={selectedSku!.color}
-                                    unitPrice={pricing?.finalPrice ?? 0}
-                                    currency={pricing?.currency ?? market.currency}
-                                    disabled={
-                                        priceUnavailable ||
-                                        !stock?.inStock ||
-                                        !stock?.breakdown.some(w => w.netAvailable > 0)
-                                    }
-                                />
+                                {selectedSku ? (
+                                    <AddToCartButton
+                                        productId={product.id}
+                                        referenceCode={product.referenceCode}
+                                        name={product.name}
+                                        family={product.family}
+                                        skuId={selectedSku.id}
+                                        size={selectedSku.size}
+                                        color={selectedSku.color}
+                                        unitPrice={pricing?.finalPrice ?? 0}
+                                        currency={pricing?.currency ?? market.currency}
+                                        disabled={
+                                            priceUnavailable ||
+                                            !stock?.inStock ||
+                                            !stock?.breakdown.some(w => w.netAvailable > 0)
+                                        }
+                                    />
+                                ) : (
+                                    /* Sin SKUs aún no hay nada que añadir a la bolsa (7.2/D9). */
+                                    <p className="text-[11px] uppercase tracking-widest text-neutral-600 text-center">
+                                        No comprable hasta que tenga al menos un SKU con precio y stock
+                                    </p>
+                                )}
 
                                 <div className="mt-4 text-center">
                                     <span className="text-[10px] uppercase tracking-wider text-neutral-600 block">

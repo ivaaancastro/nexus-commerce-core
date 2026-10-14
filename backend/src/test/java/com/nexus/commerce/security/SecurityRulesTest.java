@@ -163,4 +163,53 @@ class SecurityRulesTest {
                 .andExpect(jsonPath("$.email").value("seguridad@nexus.test"))
                 .andExpect(jsonPath("$.role").value("ADMIN"));
     }
+
+    // ── Tarea 7.2: /admin/products hereda la misma regla, sin cambios ──────
+
+    @Test
+    @DisplayName("Sin token - GET y POST /admin/products -> 401")
+    void adminProductsSinToken401() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/products"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/admin/products")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Rol USER - GET y POST /admin/products -> 403")
+    void adminProductsRolUser403() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/products")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(post("/api/v1/admin/products")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Rol ADMIN - GET /admin/products -> 200 y POST vacío -> 400 (pasó la puerta)")
+    void adminProductsRolAdmin200() throws Exception {
+        // GIVEN — mismo usuario, claim role=ADMIN (patrón de la 7.1)
+        String adminToken = jwtService.generateToken(999L, "seguridad@nexus.test", Role.ADMIN);
+
+        // WHEN / THEN — el listado responde con su array
+        mockMvc.perform(get("/api/v1/admin/products")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+
+        // POST vacío: si la autorización fallase sería 403; el 400 de validación
+        // demuestra que llegó a la capa de DTO sin escribir nada en BD.
+        mockMvc.perform(post("/api/v1/admin/products")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
 }

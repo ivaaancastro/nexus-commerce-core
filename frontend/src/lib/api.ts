@@ -1,5 +1,6 @@
 import {
     Product,
+    Sku,
     FamilyResponse,
     ProductFilters,
     SemanticSearchResult,
@@ -11,6 +12,10 @@ import {
     OrderPage,
     ProductReturn,
     CreateReturnPayload,
+    ProductCreateData,
+    ProductUpdateData,
+    SkuCreateData,
+    SkuUpdateData,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation } from "@/types/auth";
 
@@ -286,5 +291,82 @@ export const api = {
             body: JSON.stringify({ productId }),
         });
         return handleResponse<SizeRecommendation>(res);
+    },
+
+    // ── Admin · Catálogo (Tarea 7.2) ───────────────────────────────────────
+    // Zona /api/v1/admin/**: sin el header de sesión el backend responde 401
+    // y con rol USER, 403. Las lecturas devuelven los mismos Product/Sku de
+    // la vitrina; los borrados toleran el 204 sin cuerpo (regla 8).
+
+    listAdminProducts: async (): Promise<Product[]> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<Product[]>(res);
+    },
+
+    getAdminProduct: async (id: number): Promise<Product> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products/${id}`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<Product>(res);
+    },
+
+    createAdminProduct: async (data: ProductCreateData): Promise<Product> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<Product>(res);
+    },
+
+    updateAdminProduct: async (id: number, data: ProductUpdateData): Promise<Product> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<Product>(res);
+    },
+
+    deleteAdminProduct: async (id: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        await handleResponse(res);
+    },
+
+    createAdminSku: async (productId: number, data: SkuCreateData): Promise<Sku> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products/${productId}/skus`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<Sku>(res);
+    },
+
+    updateAdminSku: async (
+        productId: number,
+        skuId: number,
+        data: SkuUpdateData
+    ): Promise<Sku> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products/${productId}/skus/${skuId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<Sku>(res);
+    },
+
+    deleteAdminSku: async (productId: number, skuId: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/products/${productId}/skus/${skuId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        await handleResponse(res);
     },
 };
