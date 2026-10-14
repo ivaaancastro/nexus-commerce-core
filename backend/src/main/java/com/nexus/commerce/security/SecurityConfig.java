@@ -73,7 +73,15 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/orders/**").authenticated()
 
-                // 7) Cualquier cosa no listada: NO funciona (D6).
+                // 7) Zona admin (Tarea 7.1): exige ROLE_ADMIN en el
+                //    SecurityContext, que el filtro sólo concede con el claim
+                //    `role` del JWT (sin claim → USER, mínimo privilegio).
+                //    Va ANTES de anyRequest().denyAll(): la primera
+                //    coincidencia gana y SIN esta regla el denyAll dejaría
+                //    /api/v1/admin/** cerrado también para el ADMIN.
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+
+                // 8) Cualquier cosa no listada: NO funciona (D6).
                 .anyRequest().denyAll()
             )
             .exceptionHandling(ex -> ex.authenticationEntryPoint(new JsonAuthenticationEntryPoint()))

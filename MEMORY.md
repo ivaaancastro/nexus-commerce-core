@@ -11,10 +11,10 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` (todo commiteado) |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa) completada 2026-10-09** · Fase 7 (panel de administración) siguiente · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **7.1 — Roles y permisos (`ADMIN`/`USER`)** — spec `specs/admin-roles/` ✅ aprobada (pendiente renumerar cabeceros 6.1→7.1 y escribir `tasks.md`) |
-| **Estado** | **191 backend + 297 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 100/100/100/100, antes 20,77 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox se valida en CI, D10) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | Renumerar specs `admin-roles` a 7.1 y escribir `tasks.md`; arrancar Fase 7 |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa) y 7.1 completadas 2026-10-09** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **7.2 — CRUD de productos, SKUs, variantes, imágenes** — spec pendiente (`plan.md` → `spec.md` → aprobación) |
+| **Estado** | **204 backend + 306 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **82.93 / 79.06 / 81.54 / 84.8**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 100/100/100/100, antes 20,77 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
+| **Pendiente** | Escribir spec de 7.2 y pedir aprobación |
 | **Última actualización** | 2026-10-09 |
 
 ---
@@ -201,6 +201,18 @@
   - [x] **+10 tests → 191 backend** · en vivo: 401 sin token en los 3 POST, negocio con token, checkout E2E con `Idempotency-Key` **sin duplicar** (reserva en proceso intacta)
 - **Cierre**: `CHANGELOG.md` (4 entradas) · `MEMORY.md` · bloque de estado en `AGENTS.md` **dentro de la PR** (D11) · **sin ADR** (D8, ADR-0006 → 7.1) · **sin PR de documentación de cierre**
 
+---
+
+### Tarea 7.1 — Roles y permisos (`ADMIN`/`USER`) ✅ **completada 2026-10-09**
+*Spec `specs/admin-roles/` (renumerada 6.1 → 7.1) · `tasks.md` propio · **ADR-0006**.*
+- [x] **Migración `V13`**: `role VARCHAR(20) NOT NULL DEFAULT 'USER'` + `IF NOT EXISTS` — clasifica los existentes **sin `UPDATE`** y permite reejecutar el fichero; **semilla admin** (`admin@nexus.dev`, `email_verified = TRUE`, hash BCrypt coste 12 **generado con la propia `BCryptPasswordEncoder`** del proyecto) idempotente con `ON CONFLICT DO NOTHING`. Decisión: credenciales documentadas **sólo en el README** — `.env.example` no existe y un `.env` no cambiaría el literal de la migración
+- [x] **Claim `role` en el JWT** (access y refresh) + `JwtService.extractRole` con asunción **`USER` sin claim o con basura** (mínimo privilegio, D2) · `JwtAuthenticationFilter` → `ROLE_USER` siempre, `ROLE_ADMIN` sólo si el claim lo dice · `AuthResponse`/`UserResponse` con `user.role`
+- [x] **`hasRole("ADMIN")` ANTES de `anyRequest().denyAll()`** — sin la regla, el `denyAll` de la 6.4 dejaría `/admin/**` cerrado **también al ADMIN** · `GET /api/v1/admin/ping` devuelve `email` + `role` del llamante
+- [x] **Frontend**: `User.role: "USER" | "ADMIN"` (espejo del DTO) · `AdminRoute` (carga accesible `role="status"` → `/login` sin sesión → `/` con USER) · `/admin` semilla con saludo y aviso honesto 7.2–7.6 (**D6: sin maqueta**) · enlace «Admin» en el `Header` sólo con `role === "ADMIN"`
+- [x] **+13 tests → 204 backend** (claim en access/refresh, sin claim → `USER`, filtro ×3, `/admin/ping` 401/403/200, `V13` reejecutable ×2) · **+9 tests → 306 frontend** (`AdminRoute` 4, `Header` +3, `/admin` +2) · **ningún test preexistente cambió su aserción** (sólo firmas: `generateToken(+role)`, `UserResponse(+role)` y fixtures con el campo `role`) · `tsc` 0 · ESLint 0/0 · `test:coverage` EXIT 0 · `build` 0
+- [x] **Verificación en vivo**: admin sembrado **loguea** (hash válido), ve «ADMIN», entra en `/admin` y `ping` responde **200 desde el navegador** · `e2e@nexus.dev` **no ve el enlace** y `/admin` lo **redirige a `/`** · API: `401`/`403`/`200` + `reserve` con USER sigue en `200` · **E2E local 36/14/0** (Chromium+WebKit; FF = fallo ambiental D10, en CI)
+- [x] **Cierre**: ADR-0006 (+registro en `docs/adr/README.md`) · `CHANGELOG` · README (credenciales + zona admin) · bloque de estado en `AGENTS.md` **dentro de la PR** (D11) · **sin PR de documentación de cierre**
+
 ## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
 > **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
@@ -216,7 +228,7 @@
 
 ### Fase 7 — Panel de administración (el corazón del producto)
 *Convierte el backend en un producto operable sin tocar código. Spec `specs/admin-roles/` para la 7.1.*
-- [ ] **7.1 — Roles (`ADMIN`/`USER`) + protección de rutas admin** — spec `specs/admin-roles/` ✅ *aprobada (renumerada desde 6.1)*
+- [x] **7.1 — Roles (`ADMIN`/`USER`) + protección de rutas admin** ✅ **completada 2026-10-09** — spec `specs/admin-roles/` · ADR-0006 · 204/306 tests
 - [ ] 7.2 — CRUD de productos, SKUs, variantes, imágenes
 - [ ] 7.3 — Gestión de stock y precios (multimercado)
 - [ ] 7.4 — Gestión de pedidos (ver, cambiar estado, tracking)
@@ -254,7 +266,7 @@
 | **Commits/Pushes** | Preguntar siempre antes |
 | **Ramas** | Una por tarea, merge a rama padre |
 | **Estilo UI** | Estilo editorial Zara (neutral-*, uppercase, tracking-widest) |
-| **Auth** | JWT + BCrypt, roles: solo USER por ahora |
+| **Auth** | JWT + BCrypt, roles `USER`/`ADMIN` desde la 7.1 (claim `role` en el JWT, ADR-0006) |
 | **Email** | Mailtrap (desarrollo), SendGrid (producción) |
 | **Validación** | Frontend: simple y robusta; Backend: completa |
 | **Mercado 3.2** | Se persiste el **objeto entero** en `localStorage["nexus-market"]` (no solo el código) para pintar con divisa y tasa correctas desde el primer render |
