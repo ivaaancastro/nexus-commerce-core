@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AdminPage from "@/app/admin/page";
 import { AuthProvider } from "@/context/AuthContext";
@@ -35,20 +35,6 @@ const admin: User = {
     role: "ADMIN",
 };
 
-const user: User = {
-    id: 2,
-    email: "ana@example.com",
-    firstName: "Ana",
-    lastName: "García",
-    phone: "612345678",
-    birthDate: "1990-05-20",
-    gender: "FEMALE",
-    height: 175,
-    weight: 70,
-    emailVerified: true,
-    role: "USER",
-};
-
 /** Mismo árbol que layout.tsx (MarketProvider envuelve a CartProvider). */
 function renderAdminPage() {
     return render(
@@ -75,7 +61,7 @@ describe("AdminPage (/admin)", () => {
         localStorage.clear();
     });
 
-    it("con rol ADMIN muestra el saludo, el rol y el aviso honesto de «en construcción»", async () => {
+    it("con rol ADMIN muestra el saludo, el rol, el enlace a Productos y el aviso honesto", async () => {
         // GIVEN
         vi.mocked(api.getCurrentUser).mockResolvedValue(admin);
 
@@ -88,24 +74,18 @@ describe("AdminPage (/admin)", () => {
         expect(screen.getByText("admin@nexus.dev")).toBeInTheDocument();
         expect(screen.getByText("ADMIN")).toBeInTheDocument();
         expect(screen.getByText(/en construcción/i)).toBeInTheDocument();
-        // El aviso nombra las tareas que traerán el contenido de verdad
-        expect(screen.getByText(/7\.2–7\.6/)).toBeInTheDocument();
+        // El aviso nombra SÓLO lo que falta: la 7.2 ya existe (R6.1)
+        expect(screen.getByText(/7\.3–7\.6/)).toBeInTheDocument();
+        // La sección real de la 7.2 enlaza a su listado
+        expect(screen.getByRole("link", { name: /productos/i })).toHaveAttribute(
+            "href",
+            "/admin/products"
+        );
         expect(replace).not.toHaveBeenCalled();
     });
 
-    it("con rol USER la puerta redirige a / y no pinta el panel", async () => {
-        // GIVEN — misma sesión, rol sin privilegio
-        vi.mocked(api.getCurrentUser).mockResolvedValue(user);
-
-        // WHEN
-        renderAdminPage();
-
-        // THEN
-        await waitFor(() => {
-            expect(replace).toHaveBeenCalledWith("/");
-        });
-        expect(
-            screen.queryByRole("heading", { name: /panel de administración/i })
-        ).not.toBeInTheDocument();
-    });
+    // La puerta `AdminRoute` vive desde la 7.2 en `app/admin/layout.tsx` (E.1):
+    // su redirección de USER/anónimo se verifica en `AdminLayout.test.tsx`,
+    // y el componente en `AdminRoute.test.tsx` — aquí sólo se prueba el
+    // contenido de la portada, que ya no decide la autorización.
 });

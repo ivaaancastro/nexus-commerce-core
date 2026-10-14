@@ -326,3 +326,38 @@ export type CartAction =
     | { type: "CLEAR_CART" }
     | { type: "REPRICE"; payload: RepriceResult[] }
     | { type: "HYDRATE"; payload: CartItem[] };
+// ── Admin · Catálogo (Tarea 7.2) ───────────────────────────────────────────
+//
+// Sólo los **payloads de escritura**: las lecturas del panel reutilizan
+// `Product`/`Sku`, que ya reflejan `ProductResponse`/`SkuResponse`.
+
+/** Payload de creación — `POST /api/v1/admin/products`. */
+export interface ProductCreateData {
+    referenceCode: string;
+    name: string;
+    family: string;
+    description?: string;
+}
+
+/**
+ * Payload de actualización. **No incluye `referenceCode`**: es inmutable
+ * (spec R2.4) y el backend lo ignora aunque llegue en el cuerpo.
+ */
+export interface ProductUpdateData {
+    name: string;
+    family: string;
+    description?: string;
+}
+
+/** Payload de creación de SKU (variante) — `POST .../products/{id}/skus`. */
+export interface SkuCreateData {
+    barcode: string;
+    color: string;
+    size: string;
+}
+
+/** Payload de actualización de SKU — **sin `barcode`** (inmutable, R2.4). */
+export interface SkuUpdateData {
+    color: string;
+    size: string;
+}

@@ -291,3 +291,48 @@ describe("ProductDetailPage — galería responsive (spec gallery-responsive)", 
         expect(description).toHaveClass("md:row-start-2");
     });
 });
+
+/**
+ * Tarea 7.2 (D9) — la vitrina con un producto recién creado desde el panel:
+ * nace **sin SKUs**, así que el panel de compra no puede usar `selectedSku!`.
+ *
+ * Regresión del `TypeError: Cannot read properties of null (reading 'id')`
+ * que rompía la ficha entera al abrir `/products/7201%2F005`.
+ */
+describe("ProductDetailPage — producto sin SKUs (Tarea 7.2)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        vi.mocked(api.searchByReference).mockResolvedValue({
+            ...mockProduct,
+            referenceCode: "7201/005",
+            name: "Abrigo Lana Verificación",
+            skus: [],
+        });
+        vi.mocked(api.getMarkets).mockResolvedValue(MARKETS);
+        vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("no crashea, anuncia que no hay variantes y oculta el botón de compra", async () => {
+        // GIVEN / WHEN
+        renderPage();
+
+        // THEN — la ficha se pinta entera con su galería y descripción
+        expect(await screen.findByText("Abrigo Lana Verificación")).toBeInTheDocument();
+        expect(screen.getByText("Sin variantes disponibles todavía")).toBeInTheDocument();
+        expect(
+            screen.getByText(/no comprable hasta que tenga al menos un sku/i)
+        ).toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: /añadir a la bolsa/i })
+        ).not.toBeInTheDocument();
+
+        // Sin SKU seleccionado no se piden ni precio ni stock
+        expect(api.getPrice).not.toHaveBeenCalled();
+        expect(api.getStock).not.toHaveBeenCalled();
+    });
+});

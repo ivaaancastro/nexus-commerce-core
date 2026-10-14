@@ -123,4 +123,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> buscarPorTexto(@Param("query") String query,
                                  @Param("family") String family,
                                  Pageable pageable);
+
+    /**
+     * Unicidad de la referencia (Tarea 7.2, R2.3): comprobación <strong>previa</strong>
+     * al INSERT para devolver un 409 claro; la carrera con otra escritura la
+     * cubre la restricción {@code UNIQUE} de BD (capturada en el servicio).
+     */
+    boolean existsByReferenceCode(String referenceCode);
+
+    /**
+     * Guarda de borrado (Tarea 7.2, R3): ¿algún {@code order_items} referencia
+     * a un SKU de este producto? El FK {@code order_items.sku_id} es
+     * {@code NO ACTION}, así que borrar un producto vendido violaría la
+     * integridad — se comprueba <strong>antes</strong> de borrar, y la carrera
+     * (pedido que llega entre la guarda y el DELETE) se captura como
+     * {@code DataIntegrityViolationException} → 409.
+     */
+    @Query("SELECT CASE WHEN COUNT(oi) > 0 THEN true ELSE false END "
+            + "FROM OrderItem oi WHERE oi.sku.product.id = :productId")
+    boolean tienePedidos(@Param("productId") Long productId);
 }
