@@ -580,4 +580,91 @@ describe("api — puerta única a la API (R4)", () => {
             });
         });
     });
+
+    describe("admin · pedidos (Tarea 7.4)", () => {
+        beforeEach(() => {
+            // El beforeEach global limpia localStorage: el token se siembra aquí
+            // (mismo criterio que el resto de tests con Authorization)
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        it("getAdminOrders: GET a la lista con Authorization, sin caché y sin query vacía", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    orders: [],
+                    page: 0,
+                    size: 20,
+                    totalElements: 0,
+                    totalPages: 0,
+                })
+            );
+
+            const listado = await api.getAdminOrders();
+
+            expect(listado.totalElements).toBe(0);
+            expect(lastUrl()).toBe(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/admin/orders`);
+            expect(lastInit()?.method).toBeUndefined();
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("getAdminOrders: manda los filtros como query params (el servidor filtra, R1.2)", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ orders: [], page: 2, size: 20, totalElements: 0, totalPages: 0 })
+            );
+
+            await api.getAdminOrders({ page: 2, status: "SHIPPED", q: "ORD-1" });
+
+            expect(lastUrl()).toContain("/api/v1/admin/orders?page=2&status=SHIPPED&q=ORD-1");
+        });
+
+        it("getAdminOrder: GET al detalle con Authorization y sin caché", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ order: { orderNumber: "ORD-1" }, userEmail: null, returnRequested: false })
+            );
+
+            const detalle = await api.getAdminOrder("ORD-1");
+
+            expect(detalle.userEmail).toBeNull();
+            expect(lastUrl()).toContain("/api/v1/admin/orders/ORD-1");
+            expect(lastInit()?.method).toBeUndefined();
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("updateAdminOrderStatus: PUT al /status con el payload tipado (R3)", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ order: { orderNumber: "ORD-1", status: "SHIPPED" } })
+            );
+
+            await api.updateAdminOrderStatus("ORD-1", { status: "SHIPPED" });
+
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/orders/ORD-1/status");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({ status: "SHIPPED" });
+        });
+
+        it("updateAdminOrderTracking: PUT al /tracking con full-replace (R5.2)", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    order: { orderNumber: "ORD-1", carrier: "", trackingNumber: null },
+                })
+            );
+
+            await api.updateAdminOrderTracking("ORD-1", {
+                carrier: "",
+                trackingNumber: "",
+            });
+
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/orders/ORD-1/tracking");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                carrier: "",
+                trackingNumber: "",
+            });
+        });
+    });
 });

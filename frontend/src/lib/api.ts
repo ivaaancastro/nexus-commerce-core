@@ -21,6 +21,11 @@ import {
     StockUpdateData,
     SkuPrice,
     PriceUpdateData,
+    OrderStatus,
+    AdminOrderPage,
+    AdminOrderDetail,
+    AdminOrderStatusData,
+    AdminOrderTrackingData,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation } from "@/types/auth";
 
@@ -419,5 +424,62 @@ export const api = {
             body: JSON.stringify(data),
         });
         return handleResponse<SkuPrice>(res);
+    },
+
+    // ── Admin · Pedidos (Tarea 7.4) ────────────────────────────────────────
+    // Misma zona /api/v1/admin/**: 401 sin sesión, 403 con rol USER. Los PUTs
+    // devuelven el detalle actualizado para refrescar el panel sin re-fetch.
+
+    /**
+     * Listado paginado con filtros opcionales (R1). `q` en blanco se omite en
+     * la URL — quien filtra es el servidor (R1.3), no hay filtrado en cliente.
+     */
+    getAdminOrders: async (params?: {
+        page?: number;
+        status?: OrderStatus;
+        q?: string;
+    }): Promise<AdminOrderPage> => {
+        const query = new URLSearchParams();
+        if (params?.page !== undefined) query.set("page", String(params.page));
+        if (params?.status) query.set("status", params.status);
+        if (params?.q) query.set("q", params.q);
+        const qs = query.toString();
+        const res = await fetch(`${BASE_URL}/api/v1/admin/orders${qs ? `?${qs}` : ""}`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<AdminOrderPage>(res);
+    },
+
+    getAdminOrder: async (orderNumber: string): Promise<AdminOrderDetail> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/orders/${orderNumber}`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<AdminOrderDetail>(res);
+    },
+
+    updateAdminOrderStatus: async (
+        orderNumber: string,
+        data: AdminOrderStatusData
+    ): Promise<AdminOrderDetail> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/orders/${orderNumber}/status`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<AdminOrderDetail>(res);
+    },
+
+    updateAdminOrderTracking: async (
+        orderNumber: string,
+        data: AdminOrderTrackingData
+    ): Promise<AdminOrderDetail> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/orders/${orderNumber}/tracking`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<AdminOrderDetail>(res);
     },
 };

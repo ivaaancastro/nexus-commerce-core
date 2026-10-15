@@ -232,4 +232,36 @@ describe("getFriendlyErrorMessage", () => {
             expect(mensaje).toBe("No queda stock suficiente para completar el pedido.");
         });
     });
+
+    describe("409 de transiciones de pedido ORDER_CONFLICT (Tarea 7.4, R3)", () => {
+        it("usa el mensaje del backend (máquina de transiciones) sin tocar el de stock", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(
+                    409,
+                    '{"timestamp":"2026-10-15T10:00:00+02:00","status":409,' +
+                        '"error":"Conflict","code":"ORDER_CONFLICT",' +
+                        '"message":"Transición no permitida: un pedido Pendiente no puede ' +
+                        'pasar a Enviado (sólo se puede mover a Confirmado, Cancelado)."}'
+                )
+            );
+
+            expect(mensaje).toBe(
+                "Transición no permitida: un pedido Pendiente no puede pasar a Enviado " +
+                    "(sólo se puede mover a Confirmado, Cancelado)."
+            );
+            expect(mensaje).not.toBe("No queda stock suficiente para completar el pedido.");
+            expect(mensaje).not.toContain("ORDER_CONFLICT");
+        });
+
+        it("con `ORDER_CONFLICT` pero sin message cae a su fallback propio, no al de stock", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(409, '{"status":409,"error":"Conflict","code":"ORDER_CONFLICT"}')
+            );
+
+            expect(mensaje).toBe(
+                "Ese cambio de estado ya no está disponible. Recarga el pedido e inténtalo de nuevo."
+            );
+            expect(mensaje).not.toBe("No queda stock suficiente para completar el pedido.");
+        });
+    });
 });

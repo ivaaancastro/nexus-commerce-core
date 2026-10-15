@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/admin-stock-pricing` — 7.3 completa en working tree, **sin commits** (regla: preguntar antes) |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2 y 7.3 completadas 2026-10-15** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** — spec pendiente (`plan.md` → `spec.md` → aprobación) |
-| **Estado** | **249 backend + 359 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **84.54 / 80.19 / 82.34 / 86.76**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 100/100/100/100) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | **Commit + PR de `feat/admin-stock-pricing` (⛔ preguntar primero)** → después, spec de la 7.4 |
+| **Rama actual** | `feat/admin-orders` — 7.4 completa en working tree, **sin commits** (regla: preguntar antes) |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3 y 7.4 completadas 2026-10-15** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **7.5 — Gestión de usuarios (ver, suspender, cambiar rol)** — spec pendiente (`plan.md` → `spec.md` → aprobación) |
+| **Estado** | **287 backend + 389 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.58 / 81.6 / 83.3 / 87.71**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 110/110 = 100 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
+| **Pendiente** | **Commit + PR de `feat/admin-orders` (⛔ preguntar primero)** → después, spec de la 7.5 |
 | **Última actualización** | 2026-10-15 |
 
 ---
@@ -237,6 +237,19 @@
 - [x] **E2E local 36/14/0** (Chromium+WebKit) · **verificación en navegador**: matriz con datos reales · `409` «No se puede fijar 4 unidades: hay 5 reservadas…» con el **ATS intacto** · stock 40→35→40 reflejado en el inventario público · descuento ES → PDP **tacho 69,95** → restaurado **79,95** · producto nuevo sin precio («— / NO DISPONIBLE EN ESPAÑA») → precio **59,90** → PDP → matriz **`0/0/0`** → upsert crea la fila (ATS 25) → borrado en cascada dejando el **catálogo en 4** · USER redirigida de `/admin/stock` a **`/`** · **BD sin restos**
 - [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` **dentro de la PR** (D11) · **sin ADR** y **sin PR de documentación de cierre** (D9/D11)
 
+### Tarea 7.4 — Gestión de pedidos (ver, cambiar estado, tracking) ✅ **completada 2026-10-15**
+*Spec `specs/admin-orders/` (plan D1–D9, spec R1–R9 aprobada) · `tasks.md` propio · **sin ADR** (D9).*
+- [x] **4 endpoints bajo `/api/v1/admin/orders/**`** con **cero cambios en `SecurityConfig`** (D1): `GET` listado paginado (0/20, `createdAt DESC`) con filtros `status`+`q`, `GET /{orderNumber}` detalle, `PUT /{orderNumber}/status`, `PUT /{orderNumber}/tracking`
+- [x] **Listado sin N+1** (D2): `LEFT JOIN FETCH user` (to-one) + **`countQuery` explícito sin FETCH**, items por `@BatchSize`; `q` **recortado en servidor** y matcheado en `LOWER` contra nº de pedido o email, en blanco = sin filtro · **`CAST(:q AS string)` obligatorio** — con `q=null` PostgreSQL resolvía `function lower(bytea) does not exist` aunque la rama nunca se ejecutara
+- [x] **Máquina de transiciones** (D3): `PENDING→{CONFIRMED,CANCELLED} · CONFIRMED→{SHIPPED,CANCELLED} · SHIPPED→{DELIVERED} · DELIVERED/CANCELLED = fin`; **mismo estado o inválida → `409 ORDER_CONFLICT`** (anti doble clic; el inválido lista los destinos posibles), fila del pedido con **`PESSIMISTIC_WRITE`** (`findByOrderNumberForUpdate`)
+- [x] **Efectos de stock en la misma transacción** (D4): **cancelar libera exactamente la reserva** (`releaseReservedStock`; fila ausente → `warn` y sigue) · **enviar descuenta `available` y consume la reserva** (`shipStock`) con guarda `available < quantity` → **`409 STOCK_CONFLICT` y rollback del estado** · `CONFIRMED`/`DELIVERED` no mueven stock
+- [x] **Tracking V14** (D5): `carrier` + `tracking_number` **nullable** (silencioso en pedidos pre-V14) + índices `idx_orders_status`/`idx_orders_created_at`; `PUT /tracking` **full-replace en cualquier estado** (vacío/espacios → `null`)
+- [x] **Detalle admin compone el `OrderResponse` del cliente** (D6): `AdminOrderDetailResponse` = mismo shape + `userEmail` + **`returnRequested` sólo como flag** (backoffice de devoluciones fuera de alcance — decisión del usuario) · `OrderService.mapToOrderResponse` pasado a **package-visible** con Javadoc
+- [x] **Vitrina y cliente intactos** (D7): `OrderController`/`UserOrderController`/devoluciones **sin cambios** (verificado por diff) · la ficha del cliente **añade** el bloque `data-testid="tracking-block"` («Seguimiento · transportista · nº») sólo con datos
+- [x] **Frontend**: `/admin/orders` (tabla 8 columnas, cliente «—», badge «Solicitada», filtro de estado y búsqueda **en servidor**, paginación anterior/siguiente con `totalPages`, vacíos/error con «Reintentar», **sin Toast**) · `/admin/orders/[orderNumber]` (cabecera tolerante a nulls pre-V10, **panel sólo con transiciones permitidas** bajo `window.confirm` al cancelar, **toast + panel con la respuesta del PUT sin re-fetch**, `ORDER_CONFLICT`/`STOCK_CONFLICT` traducidos bajo el panel, tracking **habilitado sólo si cambió**, 404 con vuelta atrás) · `SECCIONES` gana **«Pedidos» y «Stock»** + tarjeta «Pedidos» en `/admin` (aviso ahora sólo 7.5–7.6)
+- [x] **+38 tests → 287 backend**: **matriz completa 5×5 escrita desde la spec** (5 válidas con su efecto, 5 mismo-estado y 15 inválidas → `409`), guarda de stock sin `setStatus`, `InventoryService` ±6, `AdminOrderControllerTest` **22 tests MockMvc contra PostgreSQL real** (401/403/200, filtros, `409 ORDER_CONFLICT` intacto, `409 STOCK_CONFLICT` **con rollback comprobado**, cancelar sin fila → 200, tracking full-replace, `400`/`404`) con datos propios `7401/001`/`ORD-7401*` y limpieza en @Before/@After · **+30 tests → 389 frontend** (`AdminOrdersPage` 6, `AdminOrderDetailPage` 15, seguimiento cliente +2, `api.ts` 5, `errors.ts` 2, aserciones **declaradas R9.4** en `AdminPage`/`AdminLayout`) · `tsc` 0 · ESLint 0/0 · gate `test:coverage` **EXIT 0** con **85.58 / 81.6 / 83.3 / 87.71** y `api.ts` **110/110 (100 %)** · `build` 0 · copy impositivo **«Impuestos», nunca «IVA»** (`TaxCopy.test` R8) · `CatalogSeedTest` en verde (**BD sin restos**)
+- [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR** · **sin ADR** y **sin PR de documentación de cierre** (D9)
+
 ## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
 > **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
@@ -255,7 +268,7 @@
 - [x] **7.1 — Roles (`ADMIN`/`USER`) + protección de rutas admin** ✅ **completada 2026-10-09** — spec `specs/admin-roles/` · ADR-0006 · 204/306 tests
 - [x] **7.2 — CRUD de productos, SKUs, variantes, imágenes** ✅ **completada 2026-10-14** — spec `specs/admin-product-crud/` (sin ADR) · 225/339 tests
 - [x] **7.3 — Gestión de stock y precios (multimercado)** ✅ **completada 2026-10-15** — spec `specs/admin-stock-pricing/` (sin ADR) · 249/359 tests
-- [ ] 7.4 — Gestión de pedidos (ver, cambiar estado, tracking)
+- [x] **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** ✅ **completada 2026-10-15** — spec `specs/admin-orders/` (sin ADR) · 287/387 tests
 - [ ] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol)
 - [ ] 7.6 — Dashboard con métricas (ventas, productos, usuarios)
 

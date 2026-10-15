@@ -242,6 +242,12 @@ export interface Order {
     shippingAddress: ShippingAddress | null;
     /** `null` en las órdenes previas a V10. Preferencia declarada, no cobrada. */
     paymentMethod: PaymentMethod | null;
+    /**
+     * Transportista y nº de seguimiento que registra el admin (Tarea 7.4, R5).
+     * `null` pre-V14 o si nadie los rellenó → el bloque no se pinta.
+     */
+    carrier: string | null;
+    trackingNumber: string | null;
     items: OrderItem[];
 }
 
@@ -421,4 +427,54 @@ export interface PriceUpdateData {
     basePrice: number;
     discountPrice: number | null;
     isActive: boolean;
+}
+
+// ── Admin · Pedidos (Tarea 7.4) ─────────────────────────────────────────────
+//
+// Reflejan `AdminOrderSummaryResponse`/`AdminOrderPageResponse`/
+// `AdminOrderDetailResponse` del backend. El detalle **compone** el mismo
+// `Order` que ve el cliente (spec R2.1) y añade lo que sólo el panel pinta.
+
+/** Fila del listado del panel (R1). */
+export interface AdminOrderSummary {
+    id: number;
+    orderNumber: string;
+    status: OrderStatus;
+    marketCode: string;
+    currency: string;
+    totalAmount: number;
+    createdAt: string;
+    /** `null` si el pedido no tiene usuario (V7 nullable) → «—» en la tabla. */
+    userEmail: string | null;
+    itemCount: number;
+    carrier: string | null;
+    trackingNumber: string | null;
+    returnRequested: boolean;
+}
+
+/** `GET /api/v1/admin/orders` (R1). */
+export interface AdminOrderPage {
+    orders: AdminOrderSummary[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
+/** `GET /api/v1/admin/orders/{orderNumber}` (R2). */
+export interface AdminOrderDetail {
+    order: Order;
+    userEmail: string | null;
+    returnRequested: boolean;
+}
+
+/** Payload del `PUT .../status` — sólo transporta el estado (R3). */
+export interface AdminOrderStatusData {
+    status: OrderStatus;
+}
+
+/** Payload del `PUT .../tracking` — full-replace; vacío limpia (R5.2). */
+export interface AdminOrderTrackingData {
+    carrier: string;
+    trackingNumber: string;
 }

@@ -294,7 +294,13 @@ public class OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
-    private OrderResponse mapToOrderResponse(Order order) {
+    /**
+     * Pedido → DTO. Paquete-visible desde la Tarea 7.4: el detalle del panel
+     * admin ({@link AdminOrderService}) reutiliza este mapeo para que la forma
+     * del pedido sea <strong>idéntica</strong> en cliente y backoffice — una
+     * sola definición de los nulls pre-V10/V14 y de la elegibilidad por línea.
+     */
+    OrderResponse mapToOrderResponse(Order order) {
         List<OrderItemResponse> itemResponses = order.getItems().stream()
                 .map(item -> {
                     // §2.2 de la spec: la elegibilidad viaja enriquecida en el detalle.
@@ -346,6 +352,10 @@ public class OrderService {
                 returnDeadline,
                 mapToShippingAddress(order.getShippingAddress()),
                 order.getPaymentMethod(),
+                // Tarea 7.4 (R5): tracking que el admin registra — el comprador
+                // lo ve en su pedido. `null` pre-V14 o si nadie lo rellenó.
+                order.getCarrier(),
+                order.getTrackingNumber(),
                 itemResponses
         );
     }

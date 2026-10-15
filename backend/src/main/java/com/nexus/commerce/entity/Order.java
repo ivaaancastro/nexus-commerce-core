@@ -40,6 +40,21 @@ public class Order {
     @Column(nullable = false, length = 32)
     private OrderStatus status;
 
+    /**
+     * Transportista del envío (Tarea 7.4, R5). {@code null} salvo que el admin
+     * lo registre — en las órdenes anteriores a la migración {@code V14} y en
+     * las que se envían sin tracking.
+     */
+    @Column(length = 64)
+    private String carrier;
+
+    /**
+     * Número de seguimiento (Tarea 7.4, R5). Mismo criterio que {@code carrier}:
+     * metadato puro, editable en cualquier estado desde el panel.
+     */
+    @Column(name = "tracking_number", length = 64)
+    private String trackingNumber;
+
     @Column(name = "subtotal_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotalAmount;
 

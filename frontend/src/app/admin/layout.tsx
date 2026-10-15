@@ -9,6 +9,8 @@ import AdminRoute from "@/components/AdminRoute";
 const SECCIONES = [
     { href: "/admin", label: "Panel" },
     { href: "/admin/products", label: "Productos" },
+    { href: "/admin/stock", label: "Stock" },
+    { href: "/admin/orders", label: "Pedidos" },
 ];
 
 /**

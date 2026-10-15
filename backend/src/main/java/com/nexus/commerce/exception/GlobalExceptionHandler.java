@@ -89,6 +89,24 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 409 de transición de estado (Tarea 7.4, R3): la máquina de transiciones
+     * del pedido no permite el movimiento pedido — o se repite el estado actual
+     * (doble clic). Lleva {@code code} para que el frontend lo traduzca distinto
+     * del 409 de stock y así no confundir «movimiento inválido» con «sin
+     * existencias».
+     */
+    @ExceptionHandler(OrderStateConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleOrderStateConflict(OrderStateConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "error", "Conflict",
+                "code", "ORDER_CONFLICT",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /**
      * 400 de validación de DTO: sin este handler la respuesta por defecto de
      * Spring no incluye {@code message} (server.error.include-message nunca),
      * y el frontend no podría traducir el error. Devuelve el primer fallo de

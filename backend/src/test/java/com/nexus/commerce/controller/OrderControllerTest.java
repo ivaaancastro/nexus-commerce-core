@@ -61,7 +61,7 @@ class OrderControllerTest {
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, PaymentMethod.CARD, List.of()
+                null, PaymentMethod.CARD, null, null, List.of()
         );
 
         when(orderService.processCheckout(eq("idem-uuid-001"), any(CheckoutRequest.class), eq(null)))
@@ -106,7 +106,7 @@ class OrderControllerTest {
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, PaymentMethod.CARD, List.of()
+                null, PaymentMethod.CARD, null, null, List.of()
         );
 
         when(orderService.getOrderByNumber("ORD-9999")).thenReturn(Optional.of(response));
