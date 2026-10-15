@@ -355,6 +355,19 @@ export default function OrderDetailPage() {
                     <BackLink href="/orders" label="Mis pedidos" />
                     <div className="flex flex-wrap items-center gap-3">
                         <OrderStatusBadge status={order.status} />
+                        {/* Tarea 7.4 (R5.5): tracking que registra el admin; sin dato
+                            (pre-V14 o sin registrar) no se pinta el bloque. */}
+                        {(order.carrier || order.trackingNumber) && (
+                            <span
+                                data-testid="tracking-block"
+                                className="border border-neutral-300 px-3 py-1 text-[10px] uppercase tracking-widest text-neutral-700"
+                            >
+                                Seguimiento ·{" "}
+                                {[order.carrier, order.trackingNumber]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                            </span>
+                        )}
                         {hasReturnRequested && (
                             <span
                                 data-testid="return-requested-badge"
