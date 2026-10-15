@@ -74,12 +74,17 @@ describe("AdminPage (/admin)", () => {
         expect(screen.getByText("admin@nexus.dev")).toBeInTheDocument();
         expect(screen.getByText("ADMIN")).toBeInTheDocument();
         expect(screen.getByText(/en construcción/i)).toBeInTheDocument();
-        // El aviso nombra SÓLO lo que falta: la 7.2 ya existe (R6.1)
-        expect(screen.getByText(/7\.3–7\.6/)).toBeInTheDocument();
+        // El aviso nombra SÓLO lo que falta: la 7.2 y la 7.3 ya existen (R6.1)
+        expect(screen.getByText(/7\.4–7\.6/)).toBeInTheDocument();
         // La sección real de la 7.2 enlaza a su listado
         expect(screen.getByRole("link", { name: /productos/i })).toHaveAttribute(
             "href",
             "/admin/products"
+        );
+        // La 7.3 gana su tarjeta: stock en la matriz, precios en la ficha (R7.3)
+        expect(screen.getByRole("link", { name: /stock y precios/i })).toHaveAttribute(
+            "href",
+            "/admin/stock"
         );
         expect(replace).not.toHaveBeenCalled();
     });

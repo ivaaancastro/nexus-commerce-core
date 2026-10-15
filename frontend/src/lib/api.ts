@@ -16,6 +16,11 @@ import {
     ProductUpdateData,
     SkuCreateData,
     SkuUpdateData,
+    StockMatrix,
+    StockCell,
+    StockUpdateData,
+    SkuPrice,
+    PriceUpdateData,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation } from "@/types/auth";
 
@@ -368,5 +373,51 @@ export const api = {
             headers: getAuthHeaders(),
         });
         await handleResponse(res);
+    },
+
+    // ── Admin · Stock y precios (Tarea 7.3) ────────────────────────────────
+    // Misma zona /api/v1/admin/**: 401 sin sesión, 403 con rol USER. Los PUTs
+    // devuelven la celda/fila resultante para actualizar la UI sin re-fetch.
+
+    getAdminStock: async (): Promise<StockMatrix> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/stock`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<StockMatrix>(res);
+    },
+
+    updateAdminStockCell: async (
+        skuId: number,
+        warehouseCode: string,
+        data: StockUpdateData
+    ): Promise<StockCell> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/stock/${skuId}/${warehouseCode}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<StockCell>(res);
+    },
+
+    getAdminSkuPrices: async (skuId: number): Promise<SkuPrice[]> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/skus/${skuId}/prices`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<SkuPrice[]>(res);
+    },
+
+    updateAdminSkuPrice: async (
+        skuId: number,
+        marketCode: string,
+        data: PriceUpdateData
+    ): Promise<SkuPrice> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/skus/${skuId}/prices/${marketCode}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<SkuPrice>(res);
     },
 };

@@ -113,10 +113,15 @@ export function getFriendlyErrorMessage(error: unknown): string {
     }
     if (isHttpStatus(message, 409)) {
         // El backend devuelve 409 para stock, devoluciones (Tarea 5.4) y
-        // catálogo (Tarea 7.2). Los dos últimos traen `code` y su mensaje ya
-        // está redactado para el usuario («Ha pasado el plazo de 30 días…»,
-        // «No se puede borrar el producto 0432/021: tiene pedidos asociados»).
-        if (message.includes('"RETURN_NOT_ALLOWED"') || message.includes('"CATALOG_CONFLICT"')) {
+        // catálogo (Tarea 7.2). Los tres traen `code` y su mensaje ya está
+        // redactado para el usuario («Ha pasado el plazo de 30 días…»,
+        // «No se puede borrar el producto 0432/021: tiene pedidos asociados»,
+        // «No se puede fijar 2 unidades: hay 3 reservadas…» — Tarea 7.3).
+        if (
+            message.includes('"RETURN_NOT_ALLOWED"') ||
+            message.includes('"CATALOG_CONFLICT"') ||
+            message.includes('"STOCK_CONFLICT"')
+        ) {
             const serverMessage = extractServerMessage(message);
             if (serverMessage) return serverMessage;
         }
