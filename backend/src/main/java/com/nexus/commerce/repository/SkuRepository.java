@@ -5,6 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface SkuRepository extends JpaRepository<Sku, Long> {
 
     /**
@@ -22,4 +24,16 @@ public interface SkuRepository extends JpaRepository<Sku, Long> {
     @Query("SELECT CASE WHEN COUNT(oi) > 0 THEN true ELSE false END "
             + "FROM OrderItem oi WHERE oi.sku.id = :skuId")
     boolean tienePedidos(@Param("skuId") Long skuId);
+
+    /**
+     * Filas de la matriz de stock del panel (Tarea 7.3, R1.1): TODOS los
+     * SKUs con su producto — también los que aún no tienen {@code stock_items}
+     * (la celda sale {@code 0/0/0}). Orden determinista por referencia+talla.
+     */
+    @Query("""
+        SELECT s FROM Sku s
+        JOIN FETCH s.product p
+        ORDER BY p.referenceCode ASC, s.size ASC
+    """)
+    List<Sku> findAllWithProduct();
 }

@@ -7,17 +7,21 @@ import { api } from "@/lib/api";
 import { getFriendlyErrorMessage } from "@/lib/errors";
 import BackLink from "@/components/BackLink";
 import AdminProductForm from "@/components/AdminProductForm";
+import AdminSkuPrices from "@/components/AdminSkuPrices";
 import AdminSkuSection from "@/components/AdminSkuSection";
 import ProductImage from "@/components/ProductImage";
 import Toast from "@/components/Toast";
 import { getProductImages, imageAlt } from "@/lib/product-images";
 
 /**
- * Edición de producto: datos, galería y SKUs (Tarea 7.2, E.5/E.6).
+ * Edición de producto: datos, galería, SKUs y precios (Tareas 7.2 E.5/E.6 y
+ * 7.3 E.3).
  *
  * - Los datos van en `AdminProductForm` (referencia deshabilitada, R2.4).
  * - La galería es **sólo lectura** (D5): lee el manifiesto estático y, si la
  *   referencia no está en él, `ProductImage` cae al placeholder — cero 404.
+ * - «Precios por mercado» (7.3): un bloque por SKU con los 4 mercados,
+ *   guardado por fila y toast «Precio guardado»; sin SKUs, sólo el aviso.
  * - Borrar con pedidos responde 409 y el mensaje llega ya amigable.
  */
 export default function EdicionProductoPage() {
@@ -180,6 +184,32 @@ export default function EdicionProductoPage() {
                         onCambiado={() => setVersion((v) => v + 1)}
                         onMensaje={mostrarMensaje}
                     />
+
+                    <section className="border border-neutral-200 bg-white p-6 flex flex-col gap-6">
+                        <div className="flex flex-col gap-1">
+                            <p className="text-[11px] uppercase tracking-wider text-neutral-500">
+                                Precios por mercado
+                            </p>
+                            <p className="text-xs font-light text-neutral-600">
+                                Sin precio para un mercado, la vitrina muestra «precio no
+                                disponible» en él. El descuento va vacío cuando no hay.
+                            </p>
+                        </div>
+                        {producto.skus.length === 0 ? (
+                            <p className="text-sm font-light text-neutral-700">
+                                Añade una variante para poder preciarla.
+                            </p>
+                        ) : (
+                            producto.skus.map((sku) => (
+                                <AdminSkuPrices
+                                    key={sku.id}
+                                    skuId={sku.id}
+                                    skuLabel={`${sku.size} · ${sku.color}`}
+                                    onMensaje={mostrarMensaje}
+                                />
+                            ))
+                        )}
+                    </section>
 
                     <section className="border border-red-200 bg-white p-6 flex flex-col gap-3">
                         <p className="text-xs uppercase tracking-widest text-red-700">

@@ -205,4 +205,31 @@ describe("getFriendlyErrorMessage", () => {
             expect(mensaje).toBe("No queda stock suficiente para completar el pedido.");
         });
     });
+
+    describe("409 de stock del panel STOCK_CONFLICT (Tarea 7.3, R6.4)", () => {
+        it("usa el mensaje del backend (con las reservadas) en lugar del genérico", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(
+                    409,
+                    '{"timestamp":"2026-10-15T10:00:00+02:00","status":409,' +
+                        '"error":"Conflict","code":"STOCK_CONFLICT",' +
+                        '"message":"No se puede fijar 2 unidades: hay 3 reservadas por pedidos en curso"}'
+                )
+            );
+
+            expect(mensaje).toBe(
+                "No se puede fijar 2 unidades: hay 3 reservadas por pedidos en curso"
+            );
+            expect(mensaje).not.toBe("No queda stock suficiente para completar el pedido.");
+            expect(mensaje).not.toContain("STOCK_CONFLICT");
+        });
+
+        it("con `STOCK_CONFLICT` pero sin message cae al mensaje genérico de 409", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(409, '{"status":409,"error":"Conflict","code":"STOCK_CONFLICT"}')
+            );
+
+            expect(mensaje).toBe("No queda stock suficiente para completar el pedido.");
+        });
+    });
 });

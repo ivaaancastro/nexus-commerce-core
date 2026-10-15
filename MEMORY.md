@@ -10,12 +10,12 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` (todo commiteado) |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1 y 7.2 completadas 2026-10-14** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **7.3 — Gestión de stock y precios (multimercado)** — spec pendiente (`plan.md` → `spec.md` → aprobación) |
-| **Estado** | **225 backend + 339 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **84.02 / 79.61 / 81.79 / 86.07**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 100/100/100/100) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | Escribir spec de 7.3 y pedir aprobación |
-| **Última actualización** | 2026-10-14 |
+| **Rama actual** | `feat/admin-stock-pricing` — 7.3 completa en working tree, **sin commits** (regla: preguntar antes) |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2 y 7.3 completadas 2026-10-15** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** — spec pendiente (`plan.md` → `spec.md` → aprobación) |
+| **Estado** | **249 backend + 359 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **84.54 / 80.19 / 82.34 / 86.76**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 100/100/100/100) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
+| **Pendiente** | **Commit + PR de `feat/admin-stock-pricing` (⛔ preguntar primero)** → después, spec de la 7.4 |
+| **Última actualización** | 2026-10-15 |
 
 ---
 
@@ -225,6 +225,18 @@
 - [x] **Verificación en navegador**: ADMIN crea `7201/005` (toast en el formulario) → vitrina con ficha sin crash y aviso «Sin variantes disponibles todavía» → crear SKU → ficha dice **«No disponible en España»** con botón deshabilitado → editar («Cambios guardados») → borrar `0432/021` **vendido → 409 traducido** y la fila intacta → borrar el creado → `204` y vuelta al listado · USER (`e2e@nexus.dev`) en `/admin/products` **redirige a `/`**
 - [x] **Cierre**: `CHANGELOG` · README (reindex manual) · bloque de estado en `AGENTS.md` **dentro de la PR** (D11) · **sin ADR** y **sin PR de documentación de cierre** (D10/D11)
 
+### Tarea 7.3 — Gestión de stock y precios (multimercado) ✅ **completada 2026-10-15**
+*Spec `specs/admin-stock-pricing/` (plan D1–D9, spec R1–R8 aprobada) · `tasks.md` propio · **sin ADR** (D9).*
+- [x] **4 endpoints bajo `/api/v1/admin/**`** con **cero cambios en `SecurityConfig`** (D1): matriz `GET /admin/stock` **agregada sin N+1** (almacenes embebidos) con **celda sin fila = `0/0/0`**, y `PUT /{skuId}/{warehouseCode}` **por celda** con upsert (D2)
+- [x] **Sólo se edita `quantityAvailable`** (D3): `available < reserved` → **`409 STOCK_CONFLICT`** (`StockConflictException`, mensaje en español bajo la propia celda y **sin toast de éxito**) · escritura con **`PESSIMISTIC_WRITE`** del repo existente; carreras de inserción → `409`, **nunca `500`** (D4)
+- [x] **Precios**: `GET .../skus/{skuId}/prices` devuelve **los 4 mercados siempre** con `nulls` si no hay fila («crear en el primer guardado») y `PUT` upsert sobre `uk_sku_market` con **validación en dos capas** (jakarta `@NotNull @Positive @Digits(8,2)` + cross-field `0 < descuento ≤ base` → `400`), **descuento vacío viaja como `null`, nunca `0`** (D5)
+- [x] **Vitrina intocada** (D7): mismas filas de `market_prices`/`stock_items` → reflejo **en vivo** (PDP con tacho, `GET /api/v1/inventory/skus/{id}` con el neto nuevo)
+- [x] **Frontend**: `/admin/stock` (matriz con ATS por fila, guardado **por celda** habilitado sólo si cambió, toast «Stock actualizado», `409`/`400`/`404` amigables, estados carga/error con «Reintentar»/vacío) · bloque **«Precios por mercado» por SKU** en la ficha con guardar **por fila** («Guardar precio» no colisiona con «Guardar» de SKUs) y espejo de validación · tarjeta **«Stock y precios»** en `/admin` con aviso 7.4–7.6 (D8)
+- [x] **Fronteras**: el SKU nuevo de la 7.2 aparece en la matriz `0/0/0` y su bloque de precios nace con nulls (frontera D9 cruzada) · **sin migración, sin reindex y sin ADR** (D9)
+- [x] **+24 tests → 249 backend** (matriz y orden determinista, upsert crear/actualizar, `409` con fila propia `reserved`, `400`/`404`, precios con `isActive=false` → público `404`, servicios con mocks, `SecurityRulesTest` 401/403/404-pasó-puerta) · **+19 tests → 359 frontend** (`AdminStockPage` 6, `AdminSkuPrices` 6, `api.ts` 4, `errors.ts` 2, aserciones declaradas en `AdminPage`/`AdminProductEditPage`, R8.4) · `tsc` 0 · ESLint 0/0 · cobertura **84.54 / 80.19 / 82.34 / 86.76** con `api.ts` 100 (EXIT 0) · `build` 0 · `CatalogSeedTest` = 4 en verde
+- [x] **E2E local 36/14/0** (Chromium+WebKit) · **verificación en navegador**: matriz con datos reales · `409` «No se puede fijar 4 unidades: hay 5 reservadas…» con el **ATS intacto** · stock 40→35→40 reflejado en el inventario público · descuento ES → PDP **tacho 69,95** → restaurado **79,95** · producto nuevo sin precio («— / NO DISPONIBLE EN ESPAÑA») → precio **59,90** → PDP → matriz **`0/0/0`** → upsert crea la fila (ATS 25) → borrado en cascada dejando el **catálogo en 4** · USER redirigida de `/admin/stock` a **`/`** · **BD sin restos**
+- [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` **dentro de la PR** (D11) · **sin ADR** y **sin PR de documentación de cierre** (D9/D11)
+
 ## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
 > **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
@@ -242,7 +254,7 @@
 *Convierte el backend en un producto operable sin tocar código. Spec `specs/admin-roles/` para la 7.1.*
 - [x] **7.1 — Roles (`ADMIN`/`USER`) + protección de rutas admin** ✅ **completada 2026-10-09** — spec `specs/admin-roles/` · ADR-0006 · 204/306 tests
 - [x] **7.2 — CRUD de productos, SKUs, variantes, imágenes** ✅ **completada 2026-10-14** — spec `specs/admin-product-crud/` (sin ADR) · 225/339 tests
-- [ ] 7.3 — Gestión de stock y precios (multimercado)
+- [x] **7.3 — Gestión de stock y precios (multimercado)** ✅ **completada 2026-10-15** — spec `specs/admin-stock-pricing/` (sin ADR) · 249/359 tests
 - [ ] 7.4 — Gestión de pedidos (ver, cambiar estado, tracking)
 - [ ] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol)
 - [ ] 7.6 — Dashboard con métricas (ventas, productos, usuarios)

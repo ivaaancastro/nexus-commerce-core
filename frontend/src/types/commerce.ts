@@ -361,3 +361,64 @@ export interface SkuUpdateData {
     color: string;
     size: string;
 }
+// ── Admin · Stock y precios (Tarea 7.3) ─────────────────────────────────────
+//
+// Reflejan `StockMatrixResponse`/`SkuPriceResponse` del backend. En la matriz,
+// una celda sin fila en `stock_items` viene como `0/0/0`; en precios, sin fila
+// aún vienen `basePrice`/`discountPrice`/`isActive` a `null` («crear en el
+// primer guardado», spec R3.1).
+
+/** Una columna de la matriz: almacén embebido (sin endpoint aparte). */
+export interface StockWarehouse {
+    code: string;
+    name: string;
+    countryCode: string;
+}
+
+/** Estado de un SKU en un almacén. `netAvailable = max(0, disp − resv)`. */
+export interface StockCell {
+    warehouseCode: string;
+    quantityAvailable: number;
+    quantityReserved: number;
+    netAvailable: number;
+}
+
+/** Fila de la matriz: el SKU con su producto de contexto y sus celdas. */
+export interface StockRow {
+    skuId: number;
+    productId: number;
+    referenceCode: string;
+    productName: string;
+    color: string;
+    size: string;
+    cells: StockCell[];
+}
+
+/** `GET /api/v1/admin/stock`. */
+export interface StockMatrix {
+    warehouses: StockWarehouse[];
+    rows: StockRow[];
+}
+
+/** Payload de escritura — **sólo** el disponible (el reservado es del checkout). */
+export interface StockUpdateData {
+    quantityAvailable: number;
+}
+
+/** Precio de un SKU en un mercado; los tres últimos `null` = sin fila aún. */
+export interface SkuPrice {
+    marketCode: string;
+    marketName: string;
+    currency: string;
+    taxRate: number;
+    basePrice: number | null;
+    discountPrice: number | null;
+    isActive: boolean | null;
+}
+
+/** Payload de escritura de precio (BigDecimal en el backend → number aquí). */
+export interface PriceUpdateData {
+    basePrice: number;
+    discountPrice: number | null;
+    isActive: boolean;
+}

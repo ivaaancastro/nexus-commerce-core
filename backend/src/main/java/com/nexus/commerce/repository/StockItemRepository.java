@@ -21,6 +21,18 @@ public interface StockItemRepository extends JpaRepository<StockItem, Long> {
     """)
     List<StockItem> findBySkuIdWithWarehouse(@Param("skuId") Long skuId);
 
+    /**
+     * Matriz del panel (Tarea 7.3, R1.2): todos los items con su almacén,
+     * SKU y producto en una sola consulta — sin N+1.
+     */
+    @Query("""
+        SELECT si FROM StockItem si
+        JOIN FETCH si.warehouse w
+        JOIN FETCH si.sku s
+        JOIN FETCH s.product p
+    """)
+    List<StockItem> findAllWithSkuAndWarehouseAndProduct();;
+
     // Bloqueo pesimista para evitar condiciones de carrera en reservas concurrentes
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
