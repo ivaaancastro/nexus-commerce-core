@@ -64,6 +64,9 @@ const mockOrder: Order = {
         countryCode: "ES",
     },
     paymentMethod: "CARD",
+    // Tarea 7.4 (R9.4): campos nuevos de tracking en null — el bloque no se pinta
+    carrier: null,
+    trackingNumber: null,
     items: [baseItem],
 };
 
@@ -537,5 +540,31 @@ describe("OrderDetailPage — rediseño (spec order-detail-redesign)", () => {
         expect(
             sessionStorage.getItem("nexus-just-checked-out")
         ).toBeNull();
+    });
+
+    // ── Tarea 7.4 (R5.5): bloque de seguimiento registrado por el admin ─────
+
+    it("R5.5 — pinta «Seguimiento» con transportista y nº cuando el admin los registró", async () => {
+        sessionStorage.clear();
+        vi.mocked(api.getOrder).mockResolvedValue({
+            ...mockOrder,
+            carrier: "SEUR",
+            trackingNumber: "SEUR-7401-A",
+        });
+
+        renderPage();
+
+        const bloque = await screen.findByTestId("tracking-block");
+        expect(bloque).toHaveTextContent("SEUR · SEUR-7401-A");
+    });
+
+    it("R5.5 — sin tracking (pre-V14 o sin registrar) el bloque no se pinta", async () => {
+        sessionStorage.clear();
+        vi.mocked(api.getOrder).mockResolvedValue(mockOrder);
+
+        renderPage();
+
+        await screen.findByText("Detalle del pedido");
+        expect(screen.queryByTestId("tracking-block")).not.toBeInTheDocument();
     });
 });

@@ -136,7 +136,7 @@ class UserOrderControllerTest {
                 1L, "ORD-001", "idem-1", "ES", "EUR",
                 OrderStatus.DELIVERED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, null, List.of());
+                null, null, null, null, List.of());
 
         when(orderService.getOrderForUser(EMAIL, "ORD-001")).thenReturn(Optional.of(order));
 

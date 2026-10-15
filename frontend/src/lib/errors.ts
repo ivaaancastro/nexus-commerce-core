@@ -112,11 +112,20 @@ export function getFriendlyErrorMessage(error: unknown): string {
         return "No encontramos lo que buscas.";
     }
     if (isHttpStatus(message, 409)) {
-        // El backend devuelve 409 para stock, devoluciones (Tarea 5.4) y
-        // catálogo (Tarea 7.2). Los tres traen `code` y su mensaje ya está
+        // El backend devuelve 409 para stock, devoluciones (Tarea 5.4),
+        // catálogo (Tarea 7.2), transiciones de pedido (Tarea 7.4, R3) y
+        // reservas de la 7.3. Todos traen `code` y su mensaje ya está
         // redactado para el usuario («Ha pasado el plazo de 30 días…»,
         // «No se puede borrar el producto 0432/021: tiene pedidos asociados»,
-        // «No se puede fijar 2 unidades: hay 3 reservadas…» — Tarea 7.3).
+        // «No se puede fijar 2 unidades: hay 3 reservadas…»,
+        // «Transición no permitida: un pedido Enviado no puede pasar a…»).
+        // ORDER_CONFLICT va aparte: su fallback no es el de stock (R3.1).
+        if (message.includes('"ORDER_CONFLICT"')) {
+            return (
+                extractServerMessage(message) ??
+                "Ese cambio de estado ya no está disponible. Recarga el pedido e inténtalo de nuevo."
+            );
+        }
         if (
             message.includes('"RETURN_NOT_ALLOWED"') ||
             message.includes('"CATALOG_CONFLICT"') ||

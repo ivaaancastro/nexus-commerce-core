@@ -14,6 +14,10 @@ import java.util.List;
  * @param shippingAddress  snapshot inmutable del envío; {@code null} en las órdenes
  *                         previas a la migración {@code V10} —el frontend no pinta la sección—
  * @param paymentMethod    preferencia declarada, no procesada; {@code null} en las órdenes previas
+ * @param carrier          transportista del envío (Tarea 7.4, R5); el admin lo registra al
+ *                         enviar — el comprador lo ve en su pedido. {@code null} pre-V14
+ *                         o si nadie lo registró.
+ * @param trackingNumber   nº de seguimiento; mismo criterio que {@code carrier}.
  */
 public record OrderResponse(
         Long id,
@@ -29,5 +33,7 @@ public record OrderResponse(
         Instant returnDeadline,
         ShippingAddressResponse shippingAddress,
         PaymentMethod paymentMethod,
+        String carrier,
+        String trackingNumber,
         List<OrderItemResponse> items
 ) {}

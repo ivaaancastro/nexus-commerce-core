@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import AdminLayout from "@/app/admin/layout";
 import { AuthProvider } from "@/context/AuthContext";
@@ -99,6 +99,25 @@ describe("AdminLayout (/admin/**)", () => {
             "page"
         );
         expect(screen.getByRole("link", { name: "Panel" })).not.toHaveAttribute(
+            "aria-current"
+        );
+
+        // Tarea 7.4 (aditivo): la 7.4 añade «Pedidos» y coloca «Stock» (D8 de
+        // specs/admin-orders/, coherencia con las secciones que ya existen).
+        // Acotado a la subnavegación: el Header global también enlaza «Pedidos».
+        const panel = within(navegacion);
+        expect(panel.getByRole("link", { name: "Pedidos" })).toHaveAttribute(
+            "href",
+            "/admin/orders"
+        );
+        expect(panel.getByRole("link", { name: "Stock" })).toHaveAttribute(
+            "href",
+            "/admin/stock"
+        );
+        expect(panel.getByRole("link", { name: "Pedidos" })).not.toHaveAttribute(
+            "aria-current"
+        );
+        expect(panel.getByRole("link", { name: "Stock" })).not.toHaveAttribute(
             "aria-current"
         );
     });
