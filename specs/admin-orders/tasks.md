@@ -75,11 +75,11 @@
 
 ## Cierre
 
-- [ ] **Baselines**: `./mvnw test` **249+** · `npm run test:coverage` **359+** y EXIT 0 (globales 77/76/74/79 + `api.ts` ≥ 99 — **`npx vitest run` no evalúa umbrales**) · `tsc` 0 · ESLint 0/0 · `npm run build` 0 · E2E local (Chromium+WebKit) **36 passed + 14 skipped** · CI 4/4
+- [x] **Baselines**: `./mvnw test` **249+** · `npm run test:coverage` **359+** y EXIT 0 (globales 77/76/74/79 + `api.ts` ≥ 99 — **`npx vitest run` no evalúa umbrales**) · `tsc` 0 · ESLint 0/0 · `npm run build` 0 · E2E local (Chromium+WebKit) **36 passed + 14 skipped** · CI 4/4
 - [x] **Verificación en navegador**: como ADMIN — `/admin/orders` filtrar y abrir detalle, marcar `SHIPPED` con tracking y verlo en `/orders/[orderNumber]` del cliente, cancelar con `confirm` y ver la **liberación de reservas** en `/admin/stock`/`GET inventory` (reflejo en vivo), `409 ORDER_CONFLICT` con doble clic · como USER — `/admin/orders` redirige a `/`
 - [x] **BD compartida**: tras los tests, `CatalogSeedTest` sigue viendo las 4 referencias y la BD de dev sin restos (los pedidos de prueba y su stock, borrados)
 - [x] `/spec-check admin-orders` → aprobado
-- [ ] **Preguntar al usuario antes de cualquier commit y PR** ⛔
+- [x] **Preguntar al usuario antes de cualquier commit y PR** ⛔ — respondido: aprobó commit + push + PR
 
 ---
 

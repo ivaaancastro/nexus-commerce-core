@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/admin-orders` — 7.4 completa en working tree, **sin commits** (regla: preguntar antes) |
+| **Rama actual** | `feat/admin-orders` — 7.4 **commiteada y con PR abierta, CI 4/4 en verde**; pendiente de merge en GitHub (lo hace el usuario) |
 | **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3 y 7.4 completadas 2026-10-15** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
 | **Tarea actual** | **7.5 — Gestión de usuarios (ver, suspender, cambiar rol)** — spec pendiente (`plan.md` → `spec.md` → aprobación) |
 | **Estado** | **287 backend + 389 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.58 / 81.6 / 83.3 / 87.71**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 110/110 = 100 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | **Commit + PR de `feat/admin-orders` (⛔ preguntar primero)** → después, spec de la 7.5 |
+| **Pendiente** | **Merge de la PR de `feat/admin-orders` en GitHub** (CI 4/4 verde) → después, spec de la 7.5 |
 | **Última actualización** | 2026-10-15 |
 
 ---
