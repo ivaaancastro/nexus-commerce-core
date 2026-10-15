@@ -22,6 +22,9 @@ vi.mock("@/lib/api", () => ({
         createAdminSku: vi.fn(),
         updateAdminSku: vi.fn(),
         deleteAdminSku: vi.fn(),
+        // Tarea 7.3: la ficha monta el bloque de precios por SKU (R7.1)
+        getAdminSkuPrices: vi.fn(),
+        updateAdminSkuPrice: vi.fn(),
     },
 }));
 
@@ -38,11 +41,29 @@ const producto: Product = {
  * Tarea 7.2 (E.5/E.6) — edición de producto: carga, galería de solo lectura,
  * alta/edición/borrado de SKUs con su validación, y borrado del producto
  * con la traducción del 409.
+ *
+ * **Cambio declarado 7.3 (R8.4)**: la página monta ahora el bloque
+ * «Precios por mercado», así que el mock gana `getAdminSkuPrices`/
+ * `updateAdminSkuPrice` y `beforeEach` resuelve la lectura. Ninguna
+ * aserción preexistente cambia: los botones de precio se llaman
+ * «Guardar precio» para no colisionar con «Guardar» de SKUs.
  */
 describe("EdicionProductoPage (admin)", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(api.getAdminProduct).mockResolvedValue(producto);
+        // SKU 10 sin precios aún: los 4 mercados con nulls (frontera 7.2 D9)
+        vi.mocked(api.getAdminSkuPrices).mockResolvedValue(
+            ["CH", "ES", "UK", "US"].map((code) => ({
+                marketCode: code,
+                marketName: code,
+                currency: code === "ES" ? "EUR" : "USD",
+                taxRate: 21,
+                basePrice: null,
+                discountPrice: null,
+                isActive: null,
+            }))
+        );
     });
 
     afterEach(() => {
@@ -186,5 +207,19 @@ describe("EdicionProductoPage (admin)", () => {
 
         expect(api.deleteAdminProduct).toHaveBeenCalledWith(7);
         expect(push).toHaveBeenCalledWith("/admin/products");
+    });
+
+    it("7.3: monta «Precios por mercado» con los 4 mercados del SKU (R7.1)", async () => {
+        render(<EdicionProductoPage />);
+
+        // El bloque existe y pide los precios de SU SKU
+        expect(await screen.findByText("Precios por mercado")).toBeInTheDocument();
+        expect(await screen.findByText("Variante M · Marino")).toBeInTheDocument();
+        expect(api.getAdminSkuPrices).toHaveBeenCalledWith(10);
+
+        // Los 4 mercados con su botón de guardado por fila
+        expect(await screen.findAllByRole("button", { name: "Guardar precio" })).toHaveLength(4);
+        // Sin precio aún: el input de ES sale vacío (señal de «crear»)
+        expect(screen.getByLabelText("Precio base en ES")).toHaveValue(null);
     });
 });

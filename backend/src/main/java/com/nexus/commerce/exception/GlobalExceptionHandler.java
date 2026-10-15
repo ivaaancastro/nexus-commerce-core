@@ -72,6 +72,23 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 409 de stock del panel (Tarea 7.3): disponible por debajo de las
+     * unidades reservadas, o carrera de upsert sobre {@code uk_sku_warehouse}.
+     * Lleva {@code code} para que el frontend lo traduzca distinto del 409
+     * de catálogo y del de devoluciones.
+     */
+    @ExceptionHandler(StockConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleStockConflict(StockConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "error", "Conflict",
+                "code", "STOCK_CONFLICT",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /**
      * 400 de validación de DTO: sin este handler la respuesta por defecto de
      * Spring no incluye {@code message} (server.error.include-message nunca),
      * y el frontend no podría traducir el error. Devuelve el primer fallo de
