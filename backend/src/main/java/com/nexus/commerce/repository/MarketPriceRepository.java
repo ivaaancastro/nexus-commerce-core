@@ -35,4 +35,33 @@ public interface MarketPriceRepository extends JpaRepository<MarketPrice, Long> 
             @Param("productId") Long productId,
             @Param("marketCode") String marketCode
     );
+
+    /**
+     * Panel de precios (Tarea 7.3, R3.1): TODAS las filas del SKU con su
+     * mercado — sin filtrar {@code isActive}, porque el panel también
+     * gestiona las inactivas.
+     */
+    @Query("""
+        SELECT mp FROM MarketPrice mp
+        JOIN FETCH mp.market m
+        WHERE mp.sku.id = :skuId
+        ORDER BY m.code ASC
+    """)
+    List<MarketPrice> findBySkuIdWithMarket(@Param("skuId") Long skuId);
+
+    /**
+     * Fila concreta para el upsert (Tarea 7.3, R3.2): incluye las inactivas
+     * — {@link #findActivePriceBySkuAndMarket} filtra por {@code isActive} y
+     * reactivaría una fila desactivada en lugar de actualizarla.
+     */
+    @Query("""
+        SELECT mp FROM MarketPrice mp
+        JOIN FETCH mp.market m
+        WHERE mp.sku.id = :skuId
+          AND m.code = :marketCode
+    """)
+    Optional<MarketPrice> findBySkuIdAndMarketCode(
+            @Param("skuId") Long skuId,
+            @Param("marketCode") String marketCode
+    );
 }

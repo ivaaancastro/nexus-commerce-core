@@ -496,4 +496,88 @@ describe("api — puerta única a la API (R4)", () => {
             expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
         });
     });
+
+    describe("admin · stock y precios (Tarea 7.3)", () => {
+        beforeEach(() => {
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        it("getAdminStock: GET de la matriz con Authorization y sin caché", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ warehouses: [], rows: [] }));
+
+            const matriz = await api.getAdminStock();
+
+            expect(matriz).toEqual({ warehouses: [], rows: [] });
+            expect(lastUrl()).toContain("/api/v1/admin/stock");
+            expect(lastInit()?.method).toBeUndefined();
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("updateAdminStockCell: PUT a la celda con SÓLO el disponible", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    warehouseCode: "WH_ARTEIXO",
+                    quantityAvailable: 12,
+                    quantityReserved: 0,
+                    netAvailable: 12,
+                })
+            );
+
+            const celda = await api.updateAdminStockCell(10, "WH_ARTEIXO", {
+                quantityAvailable: 12,
+            });
+
+            expect(celda.quantityAvailable).toBe(12);
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/stock/10/WH_ARTEIXO");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({ quantityAvailable: 12 });
+        });
+
+        it("getAdminSkuPrices: GET de los 4 mercados del SKU", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse([
+                    {
+                        marketCode: "ES",
+                        marketName: "España",
+                        currency: "EUR",
+                        taxRate: 21.0,
+                        basePrice: 59.9,
+                        discountPrice: null,
+                        isActive: true,
+                    },
+                ])
+            );
+
+            const precios = await api.getAdminSkuPrices(10);
+
+            expect(precios).toHaveLength(1);
+            expect(precios[0].marketCode).toBe("ES");
+            expect(lastUrl()).toContain("/api/v1/admin/skus/10/prices");
+            expect(lastInit()?.method).toBeUndefined();
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("updateAdminSkuPrice: PUT al mercado con el payload completo (descuento null)", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ marketCode: "ES" }));
+
+            await api.updateAdminSkuPrice(10, "ES", {
+                basePrice: 59.9,
+                discountPrice: null,
+                isActive: true,
+            });
+
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/skus/10/prices/ES");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                basePrice: 59.9,
+                discountPrice: null,
+                isActive: true,
+            });
+        });
+    });
 });

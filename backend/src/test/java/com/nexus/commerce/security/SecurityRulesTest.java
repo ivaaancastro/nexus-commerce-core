@@ -12,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -211,5 +212,81 @@ class SecurityRulesTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest());
+    }
+
+    // ── Tarea 7.3: stock y precios heredan la misma regla, sin cambios ─────
+
+    @Test
+    @DisplayName("Sin token - los 4 endpoints de stock/precios -> 401")
+    void stockYPreciosSinToken401() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/stock"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(put("/api/v1/admin/stock/1/WH_ARTEIXO")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantityAvailable\":10}"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/v1/admin/skus/1/prices"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(put("/api/v1/admin/skus/1/prices/ES")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"basePrice\":10.00,\"discountPrice\":null,\"isActive\":true}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Rol USER - los 4 endpoints de stock/precios -> 403")
+    void stockYPreciosRolUser403() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/stock")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(put("/api/v1/admin/stock/1/WH_ARTEIXO")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantityAvailable\":10}"))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/admin/skus/1/prices")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(put("/api/v1/admin/skus/1/prices/ES")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"basePrice\":10.00,\"discountPrice\":null,\"isActive\":true}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Rol ADMIN - los 4 endpoints pasan la puerta (200/404, sin escribir en BD)")
+    void stockYPreciosRolAdminPasanLaPuerta() throws Exception {
+        String adminToken = jwtService.generateToken(999L, "seguridad@nexus.test", Role.ADMIN);
+
+        // Matriz: 200 con las dos columnas de almacén
+        mockMvc.perform(get("/api/v1/admin/stock")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.warehouses").isArray());
+
+        // Con IDs inexistentes: el 404 sólo llega si la autorización pasó —
+        // y no escribe nada en BD (a diferencia de un 200/201 con datos reales)
+        mockMvc.perform(put("/api/v1/admin/stock/999999/WH_ARTEIXO")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"quantityAvailable\":10}"))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(get("/api/v1/admin/skus/999999/prices")
+                        .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isNotFound());
+
+        mockMvc.perform(put("/api/v1/admin/skus/999999/prices/ES")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"basePrice\":10.00,\"discountPrice\":null,\"isActive\":true}"))
+                .andExpect(status().isNotFound());
     }
 }
