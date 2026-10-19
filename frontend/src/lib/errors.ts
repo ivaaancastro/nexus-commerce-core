@@ -73,6 +73,15 @@ export function getFriendlyErrorMessage(error: unknown): string {
         return "Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.";
     }
 
+    // Cuenta suspendida (Tarea 7.5, R4): el chequeo llega como 403 con este
+    // texto, y la regla va ANTES de la rama 403 genérica — si no, el login de
+    // una cuenta bloqueada diría «No tienes permiso…», que es mentira: sí hay
+    // permiso, la cuenta está congelada.
+    if (message.includes("suspendida")) {
+        const serverMessage = extractServerMessage(message);
+        return serverMessage ?? "Tu cuenta está suspendida. Contacta con soporte.";
+    }
+
     // Errores de código de verificación
     if (message.includes("Código de verificación inválido")) {
         return "El código de verificación no es correcto. Inténtalo de nuevo.";
@@ -113,12 +122,14 @@ export function getFriendlyErrorMessage(error: unknown): string {
     }
     if (isHttpStatus(message, 409)) {
         // El backend devuelve 409 para stock, devoluciones (Tarea 5.4),
-        // catálogo (Tarea 7.2), transiciones de pedido (Tarea 7.4, R3) y
-        // reservas de la 7.3. Todos traen `code` y su mensaje ya está
+        // catálogo (Tarea 7.2), transiciones de pedido (Tarea 7.4, R3),
+        // reservas de la 7.3 y guardas de usuarios (Tarea 7.5: último admin
+        // activo o auto-suspensión). Todos traen `code` y su mensaje ya está
         // redactado para el usuario («Ha pasado el plazo de 30 días…»,
         // «No se puede borrar el producto 0432/021: tiene pedidos asociados»,
         // «No se puede fijar 2 unidades: hay 3 reservadas…»,
-        // «Transición no permitida: un pedido Enviado no puede pasar a…»).
+        // «Transición no permitida: un pedido Enviado no puede pasar a…»,
+        // «No puedes suspenderte a ti mismo»).
         // ORDER_CONFLICT va aparte: su fallback no es el de stock (R3.1).
         if (message.includes('"ORDER_CONFLICT"')) {
             return (
@@ -129,7 +140,8 @@ export function getFriendlyErrorMessage(error: unknown): string {
         if (
             message.includes('"RETURN_NOT_ALLOWED"') ||
             message.includes('"CATALOG_CONFLICT"') ||
-            message.includes('"STOCK_CONFLICT"')
+            message.includes('"STOCK_CONFLICT"') ||
+            message.includes('"USER_CONFLICT"')
         ) {
             const serverMessage = extractServerMessage(message);
             if (serverMessage) return serverMessage;

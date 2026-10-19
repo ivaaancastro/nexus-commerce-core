@@ -27,7 +27,7 @@ import {
     AdminOrderStatusData,
     AdminOrderTrackingData,
 } from "@/types/commerce";
-import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation } from "@/types/auth";
+import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation, AdminUserPage, AdminUser, AdminUserRoleData, AdminUserSuspensionData } from "@/types/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -481,5 +481,46 @@ export const api = {
             body: JSON.stringify(data),
         });
         return handleResponse<AdminOrderDetail>(res);
+    },
+
+    // ── Admin · Usuarios (Tarea 7.5) ───────────────────────────────────────
+    // Misma zona /api/v1/admin/**: 401 sin sesión, 403 con rol USER. Los PUTs
+    // devuelven el usuario actualizado para refrescar la fila sin re-fetch.
+
+    /**
+     * Listado paginado con búsqueda opcional (R1). `q` en blanco se omite en
+     * la URL — quien filtra es el servidor, no hay filtrado en cliente.
+     */
+    getAdminUsers: async (params?: { page?: number; q?: string }): Promise<AdminUserPage> => {
+        const query = new URLSearchParams();
+        if (params?.page !== undefined) query.set("page", String(params.page));
+        if (params?.q) query.set("q", params.q);
+        const qs = query.toString();
+        const res = await fetch(`${BASE_URL}/api/v1/admin/users${qs ? `?${qs}` : ""}`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<AdminUserPage>(res);
+    },
+
+    updateAdminUserRole: async (id: number, data: AdminUserRoleData): Promise<AdminUser> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/users/${id}/role`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<AdminUser>(res);
+    },
+
+    setAdminUserSuspension: async (
+        id: number,
+        data: AdminUserSuspensionData
+    ): Promise<AdminUser> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/users/${id}/suspension`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<AdminUser>(res);
     },
 };
