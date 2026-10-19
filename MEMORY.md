@@ -10,12 +10,12 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/admin-orders` — 7.4 **commiteada y con PR abierta, CI 4/4 en verde**; pendiente de merge en GitHub (lo hace el usuario) |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3 y 7.4 completadas 2026-10-15** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **7.5 — Gestión de usuarios (ver, suspender, cambiar rol)** — spec pendiente (`plan.md` → `spec.md` → aprobación) |
-| **Estado** | **287 backend + 389 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.58 / 81.6 / 83.3 / 87.71**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 110/110 = 100 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | **Merge de la PR de `feat/admin-orders` en GitHub** (CI 4/4 verde) → después, spec de la 7.5 |
-| **Última actualización** | 2026-10-15 |
+| **Rama actual** | `main` — mini-feature **`product-photos` cerrada y mergeada** (spec-check en verde 2026-10-19); siguiente rama: `feat/admin-users` |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4 y la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster) completadas 2026-10-19** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **7.5 — Gestión de usuarios (ver, suspender, cambiar rol)** — **spec aprobada** (`specs/admin-users/`): siguiente paso = escribir `tasks.md` e implementar |
+| **Estado** | **287 backend + 424 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.58 / 81.6 / 83.3 / 87.71**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 110/110 = 100 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
+| **Pendiente** | Escribir el `tasks.md` de la 7.5 e implementarla (su spec ya está aprobada) |
+| **Última actualización** | 2026-10-19 |
 
 ---
 
@@ -250,6 +250,15 @@
 - [x] **+38 tests → 287 backend**: **matriz completa 5×5 escrita desde la spec** (5 válidas con su efecto, 5 mismo-estado y 15 inválidas → `409`), guarda de stock sin `setStatus`, `InventoryService` ±6, `AdminOrderControllerTest` **22 tests MockMvc contra PostgreSQL real** (401/403/200, filtros, `409 ORDER_CONFLICT` intacto, `409 STOCK_CONFLICT` **con rollback comprobado**, cancelar sin fila → 200, tracking full-replace, `400`/`404`) con datos propios `7401/001`/`ORD-7401*` y limpieza en @Before/@After · **+30 tests → 389 frontend** (`AdminOrdersPage` 6, `AdminOrderDetailPage` 15, seguimiento cliente +2, `api.ts` 5, `errors.ts` 2, aserciones **declaradas R9.4** en `AdminPage`/`AdminLayout`) · `tsc` 0 · ESLint 0/0 · gate `test:coverage` **EXIT 0** con **85.58 / 81.6 / 83.3 / 87.71** y `api.ts` **110/110 (100 %)** · `build` 0 · copy impositivo **«Impuestos», nunca «IVA»** (`TaxCopy.test` R8) · `CatalogSeedTest` en verde (**BD sin restos**)
 - [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR** · **sin ADR** y **sin PR de documentación de cierre** (D9)
 
+### Mini-feature `product-photos` — Fotos de producto con IA ✅ **cerrada 2026-10-19**
+*Spec `specs/product-photos/` (plan D1–D11 · spec R1–R9 + R4b, con las ampliaciones de 2026-10-16 y 2026-10-19 aprobadas) · `tasks.md` propio · **sin ADR** (D9) y **sin PR de documentación de cierre** (D10).*
+- [x] **`npm run images` genera fotos reales con IA** con la regla central **«ausencia = generar · presencia = sagrado»** (D1) · flags `--force` (pisa, destructivo) y `--no-photos` (offline) (D2) · `photoMode` **AI / FREE / PLACEHOLDER** espejo del `searchMode` (D2/D11)
+- [x] **Prompt offline desde las migraciones** (D3/D4): nombre/descripción/familia con regex único V1+V12 y color **por dos vías (D3b, ampliación aprobada 2026-10-19)** — V12 referencia+barras **y** SKU de `V1` **por posición de `product_id` con guarda anti-adivinar** (`0432/021 → Marino`, coherente con la facet «MARINO») · plantilla editorial (hormigón + sello de referencia) con **3 vistas por posición**
+- [x] **Cadena Gemini → FLUX gratis → póster con desactivación por corrida** (D11/R4b): **401/403/429 dejan al proveedor caído con un solo aviso** · Gemini free tier = `0 requests/day` (medido en vivo) · **FLUX `@cf/black-forest-labs/flux-1-schnell` con body JSON `{prompt, steps: 4}`** — esquema **cerrado medido en vivo 2026-10-19** (`width`/`height`/`num_steps` → 400 «not allowed»), salida **1024×1024** recortada a 3:4 · credenciales `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` **las dos o ninguna** en el `.env` raíz (gratis ≈173 imágenes/día, Apache 2.0)
+- [x] **Adopción real 2026-10-19**: **12/12 fotos FLUX** (1×429 de Gemini absorbido → desactivado; 1 rechazo NSFW aleatorio cayó a póster y se resolvió con reintento) · todas 1200×1600 webp, manifiesto **byte-idéntico** · verificación visual **4/4 colores coherentes sin ninguna placeholder gris** (fichas, catálogo, buscador, facet `color=Marino`)
+- [x] **+35 tests → 424 frontend** · `tsc` 0 · ESLint 0/0 · gate `test:coverage` **EXIT 0** (85.58/81.6/83.3/87.71) · `build` 0 · **los 5 tests preexistentes intactos** · `CHANGELOG` + `AGENTS.md` §6.7 + bloques de estado
+- [x] **Fronteras**: **sin ADR, sin migraciones, CI intocado** · ⚠️ aprendizaje: la caché **`/_next/image`** sirve la versión anterior en local → `rm -rf .next/cache/images` + contexto de navegador limpio al cambiar fotos
+
 ## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
 > **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
@@ -269,7 +278,7 @@
 - [x] **7.2 — CRUD de productos, SKUs, variantes, imágenes** ✅ **completada 2026-10-14** — spec `specs/admin-product-crud/` (sin ADR) · 225/339 tests
 - [x] **7.3 — Gestión de stock y precios (multimercado)** ✅ **completada 2026-10-15** — spec `specs/admin-stock-pricing/` (sin ADR) · 249/359 tests
 - [x] **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** ✅ **completada 2026-10-15** — spec `specs/admin-orders/` (sin ADR) · 287/387 tests
-- [ ] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol)
+- [ ] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) — **spec aprobada** (`specs/admin-users/`): falta `tasks.md`
 - [ ] 7.6 — Dashboard con métricas (ventas, productos, usuarios)
 
 ### Fase 8 — Instalación y configuración (reduce la fricción del comprador)
