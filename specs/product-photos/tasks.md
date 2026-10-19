@@ -90,4 +90,4 @@
 
 - [x] **J.1** `/spec-check product-photos` en verde (recorrido R1–R9 tras I.3/I.4) — **APROBADO 2026-10-19**: 9/9 grupos, 424/424 tests, gates 0, R9.4 (CI) pendiente de la PR en J.3
 - [x] **J.2** Bloque «ESTADO ACTUAL» de `AGENTS.md` + `MEMORY.md` refrescados **dentro de la feature PR** (convención D11) — 2026-10-19 (tabla, decisiones `product-photos`, entrada de tarea completada y roadmap 7.5)
-- [ ] **J.3** Commits convencionales en español + PR (previa petición al usuario ⛔) · CI 4/4 verde
+- [x] **J.3** Commits convencionales en español + PR (previa petición al usuario ⛔, aprobada 2026-10-19 — commit único de 20 ficheros, **excluidos `specs/admin-users/` y `.vscode/`**) · **CI 4/4 verde**: Backend 1m12s · Frontend 1m26s · E2E 3m5s · Lighthouse 4m29s
