@@ -667,4 +667,75 @@ describe("api — puerta única a la API (R4)", () => {
             });
         });
     });
+
+    describe("admin · usuarios (Tarea 7.5)", () => {
+        beforeEach(() => {
+            // El beforeEach global limpia localStorage: el token se siembra aquí
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        it("getAdminUsers: GET a la lista con Authorization, sin caché y sin query vacía", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    users: [],
+                    page: 0,
+                    size: 20,
+                    totalElements: 0,
+                    totalPages: 0,
+                })
+            );
+
+            const listado = await api.getAdminUsers();
+
+            expect(listado.totalElements).toBe(0);
+            expect(lastUrl()).toBe(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/admin/users`);
+            expect(lastInit()?.method).toBeUndefined();
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("getAdminUsers: manda page y q como query params (el servidor filtra, R6)", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ users: [], page: 2, size: 20, totalElements: 0, totalPages: 0 })
+            );
+
+            await api.getAdminUsers({ page: 2, q: "ana" });
+
+            expect(lastUrl()).toContain("/api/v1/admin/users?page=2&q=ana");
+        });
+
+        it("updateAdminUserRole: PUT al /role con el payload tipado (R2)", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ id: 5, email: "ana@example.com", role: "ADMIN" })
+            );
+
+            await api.updateAdminUserRole(5, { role: "ADMIN" });
+
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/users/5/role");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({ role: "ADMIN" });
+        });
+
+        it("setAdminUserSuspension: PUT al /suspension con el payload tipado (R3)", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    id: 5,
+                    email: "ana@example.com",
+                    suspended: true,
+                    suspendedAt: "2026-10-19T10:00:00Z",
+                })
+            );
+
+            const resultado = await api.setAdminUserSuspension(5, { suspended: true });
+
+            expect(resultado.suspended).toBe(true);
+            expect(lastInit()?.method).toBe("PUT");
+            expect(lastUrl()).toContain("/api/v1/admin/users/5/suspension");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({ suspended: true });
+        });
+    });
 });

@@ -120,6 +120,16 @@ describe("AdminLayout (/admin/**)", () => {
         expect(panel.getByRole("link", { name: "Stock" })).not.toHaveAttribute(
             "aria-current"
         );
+
+        // Tarea 7.5 (aditivo, R8.3): «Usuarios» gana su sección y no es la
+        // activa en /admin/products
+        expect(panel.getByRole("link", { name: "Usuarios" })).toHaveAttribute(
+            "href",
+            "/admin/users"
+        );
+        expect(panel.getByRole("link", { name: "Usuarios" })).not.toHaveAttribute(
+            "aria-current"
+        );
     });
 
     it("con sesión de USER redirige a / y no pinta el contenido", async () => {
