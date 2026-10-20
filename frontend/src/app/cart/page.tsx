@@ -263,11 +263,11 @@ export default function CartPage() {
                                         Método de pago
                                     </legend>
 
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-2 auto-rows-fr gap-2">
                                         {PAYMENT_METHODS.map((method) => (
                                             <label
                                                 key={method}
-                                                className={`border px-3 py-2 text-xs uppercase tracking-wider cursor-pointer transition-colors ${
+                                                className={`flex h-full items-center justify-center border px-3 py-2 text-center text-xs uppercase tracking-wider cursor-pointer transition-colors has-[:focus-visible]:ring-1 has-[:focus-visible]:ring-neutral-900 has-[:focus-visible]:ring-offset-2 ${
                                                     paymentMethod === method
                                                         ? "border-neutral-900 text-neutral-900"
                                                         : "border-neutral-200 text-neutral-600 hover:border-neutral-400"

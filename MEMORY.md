@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` — **Tarea 7.6 (Dashboard con métricas) cerrada y mergeada** (spec-check en verde 2026-10-20); siguiente rama: sin abrir (la 8.1 aún no tiene spec) |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster), la 7.5 y la 7.6 completadas 2026-10-20** · **Fase 7 (panel de administración) COMPLETA (7.1–7.6)** · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **8.1 — Dockerfile de producción** — **pendiente de plan/spec** (Fase 8): escribir y pedir aprobación |
+| **Rama actual** | `main` — **mini-feature `checkout-payment-grid` (fix selector de pago) cerrada y mergeada** (spec-check en verde 2026-10-20); siguiente rama: sin abrir (la B aún no tiene spec) |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster), la 7.5, la 7.6 y la mini-feature `checkout-payment-grid` (feedback post-Fase 7) completadas 2026-10-20** · **Fase 7 (panel de administración) COMPLETA (7.1–7.6)** · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **B — Precio final con impuestos incluidos** (alcance aprobado: vitrina/carrito/drawer/checkout con **sólo precio final + «IVA incluido»**; desglose base+IVA sólo en `/receipt` y panel admin — como Zara) — **pendiente de plan/spec** |
 | **Estado** | **345 backend + 448 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.84 / 81.78 / 83.33 / 87.91**) + umbral por fichero **`src/lib/api.ts` ≥ 99** · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | Escribir el plan y la spec de la 8.1 y pasar el punto de bloqueo SDD |
+| **Pendiente** | Escribir el plan y la spec de la **B** (impuestos) y pasar el punto de bloqueo SDD; después la **C** (colores + cuidados, migración V16) y volver a la **8.1 Dockerfile** |
 | **Última actualización** | 2026-10-20 |
 
 ---
@@ -282,6 +282,15 @@
 - [x] **+20 tests → 345 backend** (`AdminDashboardServiceTest` 8 con mocks y **números exactos** — 5 claves con query de 3 filas, exclusión de cancelados, monedas sin cruzar, `16,665 → 16,67` HALF_UP, vacío sin división, `from = now − days`, extremos 1/365 · `AdminDashboardControllerTest` 12 MockMvc contra PostgreSQL real de **sólo lectura** — sin usuarios propios ni limpieza: shape, consistencias, `400` con `message`, 401/403/200) · **+7 → 448 frontend** (`AdminMetrics` 5 · `api.ts` 2 · R8.3) · `tsc` 0 · ESLint 0/0 · gate **EXIT 0** (**85.84 / 81.78 / 83.33 / 87.91**) · `build` 0
 - [x] **Verificación en navegador 5/5** (backend real + `next start`): métricas **sobre** las tarjetas sin aviso «En construcción» · selector **7 → 30 → 90** con refetch visible (7: 7 pedidos/559,65 € · 30/90: 43/3.677,70 € + 84,95 US$ · `byStatus` 40·1·2·0·1 = 43) · anónimo `/admin` → `/login` · **USER (`e2e@nexus.dev`) `/admin` → `/`** · catálogo del cliente renderizando · **BD sin restos**: GET puro — 9 usuarios y 44 pedidos intactos, `admin@nexus.dev` ADMIN activo, ningún correo de test
 - [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR** · **sin ADR** y **sin PR de documentación de cierre** (D9)
+
+### Mini-feature `checkout-payment-grid` — Fix del selector de método de pago ✅ **cerrada 2026-10-20**
+*Spec `specs/checkout-payment-grid/` (plan D1–D4 · spec R1–R3, aprobada 2026-10-20) · feedback de la prueba manual post-Fase 7 · **sin ADR** (D4) y **sin PR de documentación de cierre**.*
+- [x] **`cart/page.tsx` es el único fichero tocado** (6+/6−): el bloque de pago del carrito se veía desalineado — «TRANSFERENCIA BANCARIA» envolvía a dos líneas y las celdas quedaban ragged — y el input `sr-only` **no tenía indicador de foco de teclado**
+- [x] **R1 · Celdas uniformes**: grid con **`auto-rows-fr`** (`h-full` sólo igualaba alturas *dentro* de cada fila implícita — medido **34/34/50/50 → 50/50/50/50**) + `<label>` con `flex h-full items-center justify-center text-center`
+- [x] **R2 · Foco visible**: anillo **`has-[:focus-visible]:ring-1 ring-neutral-900 ring-offset-2`** — ⚠️ la primera versión con **`peer-focus-visible` no puede funcionar** (`peer-*` emite `.peer:focus-visible ~ .label` (hermano) y el input está **dentro** del label; medido: `:focus-visible` matcheaba pero `boxShadow` = `none`) → spec actualizada con la regla 3; con `Tab` hay anillo, con **clic de ratón no** (ambos medidos)
+- [x] **R3 · Semántica intacta**: mismos radios/`name`/nombre accesible → **R8 íntegra, ningún test tocado** · **sin test nuevo** (D3: aserto sobre clases = test de implementación)
+- [x] **Gates y verificación**: vitest **448/448** EXIT 0 · coverage **85.84/81.78/83.33/87.91** EXIT 0 · `tsc` 0 · ESLint 0/0 · build 0 (reconstruido con `rm -rf .next` y `next start` detenido por puerto) · axe **14/14** · verificación **programática** con script Playwright one-off (desktop 1280 + móvil 390: alturas iguales, `flex center/center`, anillo por `boxShadow`) + capturas
+- [x] **Cierre**: `CHANGELOG` (Fixed) · bloques de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR**
 
 ## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
