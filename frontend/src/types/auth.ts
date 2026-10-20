@@ -74,3 +74,37 @@ export interface SizeRecommendation {
     reason: string;
     confidence: "Alta" | "Media" | "Baja";
 }
+
+// ── Panel: gestión de usuarios (Tarea 7.5) ────────────────────────────────
+
+/**
+ * Fila del listado de usuarios del panel (7.5, R1) y respuesta de los
+ * `PUT` de rol/suspensión. Espejo de `AdminUserResponse` del backend:
+ * `suspended` lo deriva el servidor de `suspendedAt != null`.
+ */
+export interface AdminUser {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: User["role"];
+    suspended: boolean;
+    suspendedAt: string | null;
+    createdAt: string;
+}
+
+export interface AdminUserPage {
+    users: AdminUser[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
+export interface AdminUserRoleData {
+    role: User["role"];
+}
+
+export interface AdminUserSuspensionData {
+    suspended: boolean;
+}
