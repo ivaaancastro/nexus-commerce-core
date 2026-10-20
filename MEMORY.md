@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` — mini-feature **`product-photos` cerrada y mergeada** (spec-check en verde 2026-10-19); siguiente rama: `feat/admin-users` |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4 y la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster) completadas 2026-10-19** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **7.5 — Gestión de usuarios (ver, suspender, cambiar rol)** — **spec aprobada** (`specs/admin-users/`): siguiente paso = escribir `tasks.md` e implementar |
-| **Estado** | **287 backend + 424 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.58 / 81.6 / 83.3 / 87.71**) + umbral por fichero **`src/lib/api.ts` ≥ 99** (medido 110/110 = 100 %) · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | Escribir el `tasks.md` de la 7.5 e implementarla (su spec ya está aprobada) |
+| **Rama actual** | `main` — **Tarea 7.5 (Gestión de usuarios) cerrada y mergeada** (spec-check en verde 2026-10-19); siguiente rama: `feat/admin-dashboard` |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster) y la 7.5 completadas 2026-10-19** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **7.6 — Dashboard con métricas** — **pendiente de spec** (`specs/admin-dashboard/`): escribir plan/spec y pedir aprobación |
+| **Estado** | **325 backend + 441 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.58 / 81.83 / 82.86 / 87.69**) + umbral por fichero **`src/lib/api.ts` ≥ 99** · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
+| **Pendiente** | Escribir el plan y la spec de la 7.6 y pasar el punto de bloqueo SDD |
 | **Última actualización** | 2026-10-19 |
 
 ---
@@ -259,6 +259,19 @@
 - [x] **+35 tests → 424 frontend** · `tsc` 0 · ESLint 0/0 · gate `test:coverage` **EXIT 0** (85.58/81.6/83.3/87.71) · `build` 0 · **los 5 tests preexistentes intactos** · `CHANGELOG` + `AGENTS.md` §6.7 + bloques de estado
 - [x] **Fronteras**: **sin ADR, sin migraciones, CI intocado** · ⚠️ aprendizaje: la caché **`/_next/image`** sirve la versión anterior en local → `rm -rf .next/cache/images` + contexto de navegador limpio al cambiar fotos
 
+### Tarea 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) ✅ **cerrada 2026-10-19**
+*Spec `specs/admin-users/` (plan D1–D10 · spec R1–R9, aprobada 2026-10-16) · `tasks.md` propio · **sin ADR** (D9) y **sin PR de documentación de cierre**.*
+- [x] **3 endpoints `/api/v1/admin/users/**`** (D1): `GET` listado paginado con búsqueda `q` · `PUT /{id}/role` · `PUT /{id}/suspension` — **heredan `hasRole("ADMIN")` con cero cambios en `SecurityConfig`** (diff vacío); la única identidad que importa (auto-suspensión) se resuelve comparando con `authentication.getName()`
+- [x] **Migración única `V15__user_suspension.sql`** (D2): `users.suspended_at TIMESTAMPTZ NULL` — `NULL` = activa, valor = instante de la suspensión (un `boolean` perdería el cuándo); sin índice, `IF NOT EXISTS`
+- [x] **La suspensión corta `login` y `refresh`** (D3): chequeo **tras validar la contraseña**, orden `usuario → contraseña → suspendido → emailVerified` (anti enumeración — sin la contraseña nadie deduce la suspensión; verificar **no** desbloquea) · `refreshToken` recarga de BD y **no emite tokens nuevos** · `UserSuspendedException → 403` «La cuenta está suspendida. Contacta con soporte.» (patrón §5.5) · **access token vigente dura hasta expirar** (limitación documentada de lo stateless)
+- [x] **Guardas `409 USER_CONFLICT` previas a la escritura** (D4): ni degradar ni suspender al **último admin activo** · **auto-suspensión prohibida** · auto-degradar **sí** con ≥ 1 admin activo distinto · suspensión **idempotente** (conserva el instante) · **sin tocar datos** (D8)
+- [x] **`AdminUserResponse` único** lista/`PUT` (D5): `suspended` derivado en servidor, mapper **sólo escalaros** (sin N+1) · `q` recortado con `CAST(:q AS string)` · vacíos → `200` lista vacía · handler nuevo **`HttpMessageNotReadableException → 400 con message`**
+- [x] **Frontend `/admin/users`**: tabla 6 columnas, búsqueda **en servidor** (nunca `filter()`), confirm sólo en «Suspender»/«Quitar administrador», **toast + fila con la respuesta del `PUT` sin re-fetch**, `409` **bajo la fila sin toast** · **`errors.ts` regla por texto «suspendida» ANTES del 403** + `USER_CONFLICT` en 409 · `SECCIONES` gana «Usuarios», tarjeta en portada, **aviso sólo 7.6**
+- [x] **R8.3 declarada**: `AdminPage.test.tsx` (aviso 7.5–7.6 → 7.6) y `AdminLayout.test.tsx` (aditiva «Usuarios»); **ningún otro test preexistente cambió su aserción**
+- [x] **+38 tests → 325 backend** (`AdminUserServiceTest` 14 · `AuthServiceTest` +5 · `AdminUserControllerTest` 18 MockMvc contra PostgreSQL real con usuario propio `test-7501@nexus.dev` creado/borrado por test) · **+17 → 441 frontend** (`AdminUsersPage` 9 · `api.ts` 4 · `Errors` 4 + R8.3) · `tsc` 0 · ESLint 0/0 · gate **EXIT 0** (**85.58 / 81.83 / 82.86 / 87.69**) · `build` 0
+- [x] **Verificación en navegador 10/10** (backend real + `next start`): tabla/orden `createdAt DESC` · búsqueda con espacios · suspender con confirm → toast + «Suspendido desde 19/10/2026» sin re-fetch · **`409` «No puedes suspenderte a ti mismo» bajo la fila, sin toast** · login suspendido → «La cuenta está suspendida…» (no «No tienes permiso») · restaurar → login OK · rol con/sin confirm · USER redirigido de `/admin/users` · **BD sin restos** (`test-7501` borrado, `admin@nexus.dev` ADMIN activo, `e2e@nexus.dev` intacto)
+- [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR** · **sin ADR** y **sin PR de documentación de cierre** (D9) · ⚠️ aprendizaje: **`next build` con un `next start` vivo dejó un `.next` sin la ruta nueva** — la trampa 7.4 medida de nuevo; `rm -rf .next` + build limpio
+
 ## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
 > **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
@@ -278,7 +291,7 @@
 - [x] **7.2 — CRUD de productos, SKUs, variantes, imágenes** ✅ **completada 2026-10-14** — spec `specs/admin-product-crud/` (sin ADR) · 225/339 tests
 - [x] **7.3 — Gestión de stock y precios (multimercado)** ✅ **completada 2026-10-15** — spec `specs/admin-stock-pricing/` (sin ADR) · 249/359 tests
 - [x] **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** ✅ **completada 2026-10-15** — spec `specs/admin-orders/` (sin ADR) · 287/387 tests
-- [ ] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) — **spec aprobada** (`specs/admin-users/`): falta `tasks.md`
+- [x] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) ✅ **completada 2026-10-19** — spec `specs/admin-users/` (sin ADR) · 325/441 tests
 - [ ] 7.6 — Dashboard con métricas (ventas, productos, usuarios)
 
 ### Fase 8 — Instalación y configuración (reduce la fricción del comprador)

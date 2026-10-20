@@ -74,8 +74,9 @@ describe("AdminPage (/admin)", () => {
         expect(screen.getByText("admin@nexus.dev")).toBeInTheDocument();
         expect(screen.getByText("ADMIN")).toBeInTheDocument();
         expect(screen.getByText(/en construcción/i)).toBeInTheDocument();
-        // El aviso nombra SÓLO lo que falta: 7.2, 7.3 y 7.4 ya existen (R6.1)
-        expect(screen.getByText(/7\.5–7\.6/)).toBeInTheDocument();
+        // El aviso nombra SÓLO lo que falta: 7.2–7.5 ya existen (cambio
+        // declarado en specs/admin-users/ R8.3: sólo queda el 7.6)
+        expect(screen.getByText(/7\.6/)).toBeInTheDocument();
         // La sección real de la 7.2 enlaza a su listado
         expect(screen.getByRole("link", { name: /productos/i })).toHaveAttribute(
             "href",

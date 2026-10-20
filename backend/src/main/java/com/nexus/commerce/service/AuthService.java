@@ -2,6 +2,7 @@ package com.nexus.commerce.service;
 
 import com.nexus.commerce.dto.*;
 import com.nexus.commerce.entity.User;
+import com.nexus.commerce.exception.UserSuspendedException;
 import com.nexus.commerce.repository.UserRepository;
 import com.nexus.commerce.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,10 @@ public class AuthService {
 
     private static final int VERIFICATION_CODE_LENGTH = 6;
     private static final int VERIFICATION_CODE_EXPIRY_MINUTES = 15;
+
+    /** Tarea 7.5 (R4): mensaje único de la suspensión en login y refresh. */
+    private static final String MSG_CUENTA_SUSPENDIDA =
+            "La cuenta está suspendida. Contacta con soporte.";
 
     public void register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -55,6 +60,15 @@ public class AuthService {
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new IllegalArgumentException("Credenciales inválidas");
+        }
+
+        // Tarea 7.5 (R4): la suspensión se comprueba DESPUÉS de validar la
+        // contraseña — un tercero que no la sabe no puede averiguar que la
+        // cuenta está suspendida (anti enumeración, plan D3). Orden completo:
+        // usuario → contraseña → suspendido → emailVerified (verificar una
+        // cuenta bloqueada no la desbloquea, así que el 403 manda).
+        if (user.getSuspendedAt() != null) {
+            throw new UserSuspendedException(MSG_CUENTA_SUSPENDIDA);
         }
 
         if (!user.isEmailVerified()) {
@@ -122,6 +136,12 @@ public class AuthService {
         String email = jwtService.extractEmail(refreshToken);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+
+        // Tarea 7.5 (R4): este recarga es el segundo punto de control — una
+        // cuenta suspendida no recibe tokens nuevos (403, plan D3).
+        if (user.getSuspendedAt() != null) {
+            throw new UserSuspendedException(MSG_CUENTA_SUSPENDIDA);
+        }
 
         return buildAuthResponse(user);
     }

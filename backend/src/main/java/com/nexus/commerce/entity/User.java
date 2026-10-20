@@ -67,6 +67,15 @@ public class User {
     @Builder.Default
     private Role role = Role.USER;
 
+    /**
+     * Instante de la suspensión (Tarea 7.5, migración {@code V15}): {@code null}
+     * = cuenta activa, con valor = cuándo se suspendió. La suspensión es
+     * <em>no-login</em> — corta {@code login} y {@code refresh} pero nunca toca
+     * datos (pedidos, direcciones e histórico quedan intactos, plan D8).
+     */
+    @Column(name = "suspended_at")
+    private Instant suspendedAt;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Address> addresses = new ArrayList<>();

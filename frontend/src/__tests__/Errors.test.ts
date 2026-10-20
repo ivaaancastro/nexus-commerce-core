@@ -264,4 +264,54 @@ describe("getFriendlyErrorMessage", () => {
             expect(mensaje).not.toBe("No queda stock suficiente para completar el pedido.");
         });
     });
+
+    // ── Tarea 7.5 (admin-users) ─────────────────────────────────────────────
+
+    describe("403 de cuenta suspendida (Tarea 7.5, R4)", () => {
+        it("la regla de texto va ANTES del 403 genérico (el login no dirá «No tienes permiso…»)", () => {
+            // El chequeo de suspensión llega como 403 desde login y refresh.
+            const crudo = apiError(
+                403,
+                '{"timestamp":"2026-10-19T10:00:00+02:00","status":403,' +
+                    '"error":"Forbidden","message":"La cuenta está suspendida. Contacta con soporte."}'
+            );
+
+            const mensaje = getFriendlyErrorMessage(crudo);
+
+            expect(mensaje).toBe("La cuenta está suspendida. Contacta con soporte.");
+            expect(mensaje).not.toBe("No tienes permiso para realizar esta acción.");
+            expect(mensaje).not.toContain("API Error");
+        });
+
+        it("un 403 sin texto de suspensión sigue explicando falta de permisos", () => {
+            expect(getFriendlyErrorMessage(apiError(403, '{"error":"Forbidden"}'))).toBe(
+                "No tienes permiso para realizar esta acción."
+            );
+        });
+    });
+
+    describe("409 de guardas de usuarios USER_CONFLICT (Tarea 7.5, R2/R3)", () => {
+        it("usa el mensaje del backend (auto-suspensión o único admin activo)", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(
+                    409,
+                    '{"timestamp":"2026-10-19T10:00:00+02:00","status":409,' +
+                        '"error":"Conflict","code":"USER_CONFLICT",' +
+                        '"message":"No puedes suspenderte a ti mismo"}'
+                )
+            );
+
+            expect(mensaje).toBe("No puedes suspenderte a ti mismo");
+            expect(mensaje).not.toBe("No queda stock suficiente para completar el pedido.");
+            expect(mensaje).not.toContain("USER_CONFLICT");
+        });
+
+        it("con `USER_CONFLICT` pero sin message cae al genérico de 409", () => {
+            const mensaje = getFriendlyErrorMessage(
+                apiError(409, '{"status":409,"error":"Conflict","code":"USER_CONFLICT"}')
+            );
+
+            expect(mensaje).toBe("No queda stock suficiente para completar el pedido.");
+        });
+    });
 });

@@ -4,6 +4,7 @@ import com.nexus.commerce.dto.*;
 import com.nexus.commerce.entity.Gender;
 import com.nexus.commerce.entity.Role;
 import com.nexus.commerce.entity.User;
+import com.nexus.commerce.exception.UserSuspendedException;
 import com.nexus.commerce.repository.UserRepository;
 import com.nexus.commerce.security.JwtService;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -194,6 +196,131 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(request))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Email no verificado");
+    }
+
+    // ── Tarea 7.5 (R4): la suspensión corta login y refresh ────────────────
+
+    @Test
+    @DisplayName("7.5 R4 - login con cuenta suspendida y contraseña correcta -> UserSuspendedException, sin tokens")
+    void loginDeCuentaSuspendidaLanzaUserSuspendedException() {
+        // GIVEN
+        LoginRequest request = new LoginRequest("test@example.com", "password123");
+
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .firstName("Juan")
+                .lastName("García")
+                .emailVerified(true)
+                .suspendedAt(Instant.now())
+                .build();
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(UserSuspendedException.class)
+                .hasMessageContaining("La cuenta está suspendida");
+
+        verify(jwtService, never()).generateToken(any(), any(), any());
+        verify(jwtService, never()).generateRefreshToken(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("7.5 R4 - suspendida Y sin verificar -> 403 de suspensión (verificar no desbloquea)")
+    void laSuspensionTienePrioridadSobreElEmailNoVerificado() {
+        // GIVEN
+        LoginRequest request = new LoginRequest("test@example.com", "password123");
+
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .emailVerified(false)
+                .suspendedAt(Instant.now())
+                .build();
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
+
+        // WHEN & THEN - orden D3: usuario -> contraseña -> suspendido -> verified
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(UserSuspendedException.class);
+    }
+
+    @Test
+    @DisplayName("7.5 R4 - contraseña incorrecta en cuenta suspendida -> credenciales habituales (anti enumeración)")
+    void contrasenaIncorrectaNoRevelaLaSuspension() {
+        // GIVEN
+        LoginRequest request = new LoginRequest("test@example.com", "wrongpassword");
+
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .emailVerified(true)
+                .suspendedAt(Instant.now())
+                .build();
+
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrongpassword", "hashedPassword")).thenReturn(false);
+
+        // WHEN & THEN - sin la contraseña no se puede deducir la suspensión
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Credenciales inválidas");
+    }
+
+    @Test
+    @DisplayName("7.5 R4 - refresh de cuenta suspendida -> excepción y sin tokens nuevos")
+    void refreshDeCuentaSuspendidaNoEmiteTokens() {
+        // GIVEN
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .emailVerified(true)
+                .suspendedAt(Instant.now())
+                .build();
+
+        when(jwtService.extractEmail("refresh-token")).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+
+        // WHEN & THEN
+        assertThatThrownBy(() -> authService.refreshToken("refresh-token"))
+                .isInstanceOf(UserSuspendedException.class)
+                .hasMessageContaining("La cuenta está suspendida");
+
+        verify(jwtService, never()).generateToken(any(), any(), any());
+        verify(jwtService, never()).generateRefreshToken(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("7.5 R4 - refresh de cuenta activa intacto: reconstruye los dos tokens")
+    void refreshDeCuentaActivaSigueFuncionando() {
+        // GIVEN
+        User user = User.builder()
+                .id(1L)
+                .email("test@example.com")
+                .passwordHash("hashedPassword")
+                .firstName("Juan")
+                .lastName("García")
+                .emailVerified(true)
+                .build();
+
+        when(jwtService.extractEmail("refresh-token")).thenReturn("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(jwtService.generateToken(1L, "test@example.com", Role.USER)).thenReturn("access-token");
+        when(jwtService.generateRefreshToken(1L, "test@example.com", Role.USER)).thenReturn("refresh-token");
+
+        // WHEN
+        AuthResponse response = authService.refreshToken("refresh-token");
+
+        // THEN
+        assertThat(response.token()).isEqualTo("access-token");
+        assertThat(response.refreshToken()).isEqualTo("refresh-token");
     }
 
     @Test
