@@ -8,6 +8,7 @@ import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { MarketProvider } from "@/context/MarketContext";
 import { api } from "@/lib/api";
 import type { User } from "@/types/auth";
+import type { AdminDashboard } from "@/types/commerce";
 
 const replace = vi.fn();
 
@@ -20,6 +21,7 @@ vi.mock("@/lib/api", () => ({
     api: {
         getCurrentUser: vi.fn(),
         getMarkets: vi.fn(),
+        getAdminDashboard: vi.fn(),
     },
 }));
 
@@ -33,6 +35,18 @@ const admin: User = {
     gender: "OTHER",
     emailVerified: true,
     role: "ADMIN",
+};
+
+/** Foto mínima del dashboard: la portada sólo la pinta, no la calcula. */
+const dashboard: AdminDashboard = {
+    range: { days: 30, from: "2026-09-20T10:00:00Z" },
+    sales: {
+        orderCount: 12,
+        byStatus: { PENDING: 3, CONFIRMED: 5, SHIPPED: 2, DELIVERED: 2, CANCELLED: 4 },
+        revenue: [{ currency: "EUR", total: 1234.56, orderCount: 7, avgTicket: 176.37 }],
+    },
+    products: { total: 42, skus: 120, families: 8 },
+    users: { total: 15, admins: 2, suspended: 1, newInPeriod: 4 },
 };
 
 /** Mismo árbol que layout.tsx (MarketProvider envuelve a CartProvider). */
@@ -55,28 +69,32 @@ describe("AdminPage (/admin)", () => {
         vi.clearAllMocks();
         localStorage.setItem("nexus-auth-token", "fake-token");
         vi.mocked(api.getMarkets).mockResolvedValue([]);
+        vi.mocked(api.getAdminDashboard).mockResolvedValue(dashboard);
     });
 
     afterEach(() => {
         localStorage.clear();
     });
 
-    it("con rol ADMIN muestra el saludo, el rol, el enlace a Productos y el aviso honesto", async () => {
+    it("con rol ADMIN muestra el saludo, el rol, las métricas y las 4 secciones", async () => {
         // GIVEN
         vi.mocked(api.getCurrentUser).mockResolvedValue(admin);
 
         // WHEN
         renderAdminPage();
 
-        // THEN — semilla real de la 7.1: puerta + saludo + sin maqueta (D6)
+        // THEN — puerta + saludo + métricas desde la 7.6 (cambio declarado en
+        // specs/admin-dashboard/ R8.3: el aviso «en construcción» ya no existe)
         expect(await screen.findByRole("heading", { name: /panel de administración/i }))
             .toBeInTheDocument();
         expect(screen.getByText("admin@nexus.dev")).toBeInTheDocument();
         expect(screen.getByText("ADMIN")).toBeInTheDocument();
-        expect(screen.getByText(/en construcción/i)).toBeInTheDocument();
-        // El aviso nombra SÓLO lo que falta: 7.2–7.5 ya existen (cambio
-        // declarado en specs/admin-users/ R8.3: sólo queda el 7.6)
-        expect(screen.getByText(/7\.6/)).toBeInTheDocument();
+        expect(screen.queryByText(/en construcción/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/7\.6/)).not.toBeInTheDocument();
+        // La portada pide la foto al panel y la pinta sobre las tarjetas (R7)
+        expect(api.getAdminDashboard).toHaveBeenCalledWith(30);
+        expect(await screen.findByRole("region", { name: "Ventas" })).toBeInTheDocument();
+        expect(screen.getByRole("region", { name: "Usuarios" })).toBeInTheDocument();
         // La sección real de la 7.2 enlaza a su listado
         expect(screen.getByRole("link", { name: /productos/i })).toHaveAttribute(
             "href",

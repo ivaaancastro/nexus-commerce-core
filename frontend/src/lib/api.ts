@@ -26,6 +26,7 @@ import {
     AdminOrderDetail,
     AdminOrderStatusData,
     AdminOrderTrackingData,
+    AdminDashboard,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation, AdminUserPage, AdminUser, AdminUserRoleData, AdminUserSuspensionData } from "@/types/auth";
 
@@ -522,5 +523,23 @@ export const api = {
             body: JSON.stringify(data),
         });
         return handleResponse<AdminUser>(res);
+    },
+
+    // ── Admin · Dashboard (Tarea 7.6) ──────────────────────────────────────
+    // Misma zona /api/v1/admin/**: 401 sin sesión, 403 con rol USER. Sólo
+    // lectura: la portada pinta la foto del negocio sin escribir nada (R5).
+
+    /**
+     * Foto del negocio para la portada del panel (R1). `days` opcional
+     * 1–365 (la UI ofrece 7/30/90); sin `days` el backend aplica su default
+     * de 30 — no se duplica la constante aquí.
+     */
+    getAdminDashboard: async (days?: number): Promise<AdminDashboard> => {
+        const qs = days !== undefined ? `?days=${days}` : "";
+        const res = await fetch(`${BASE_URL}/api/v1/admin/dashboard${qs}`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<AdminDashboard>(res);
     },
 };
