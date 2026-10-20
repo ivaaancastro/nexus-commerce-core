@@ -738,4 +738,44 @@ describe("api — puerta única a la API (R4)", () => {
             expect(JSON.parse(lastInit()?.body as string)).toEqual({ suspended: true });
         });
     });
+
+    describe("admin · dashboard (Tarea 7.6)", () => {
+        beforeEach(() => {
+            // El beforeEach global limpia localStorage: el token se siembra aquí
+            // (mismo criterio que el resto de tests con Authorization)
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        const dashboardJson = {
+            range: { days: 30, from: "2026-09-20T10:00:00Z" },
+            sales: { orderCount: 0, byStatus: {}, revenue: [] },
+            products: { total: 0, skus: 0, families: 0 },
+            users: { total: 0, admins: 0, suspended: 0, newInPeriod: 0 },
+        };
+
+        it("getAdminDashboard: GET sin query por defecto, con Authorization y sin caché (R1/R6)", async () => {
+            fetchMock.mockResolvedValue(jsonResponse(dashboardJson));
+
+            const dashboard = await api.getAdminDashboard();
+
+            expect(dashboard.range.days).toBe(30);
+            // Sin `days` no se manda query: el default (30) lo resuelve el backend
+            expect(lastUrl()).toBe(
+                `${process.env.NEXT_PUBLIC_API_URL || ""}/api/v1/admin/dashboard`
+            );
+            expect(lastInit()?.method).toBeUndefined();
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("getAdminDashboard: manda days como query param cuando lo pide la UI (R6)", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ ...dashboardJson, range: { days: 7, from: "2026-10-13T10:00:00Z" } }));
+
+            const dashboard = await api.getAdminDashboard(7);
+
+            expect(dashboard.range.days).toBe(7);
+            expect(lastUrl()).toContain("/api/v1/admin/dashboard?days=7");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+        });
+    });
 });

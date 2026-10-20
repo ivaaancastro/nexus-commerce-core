@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
+import AdminMetrics from "@/components/admin/AdminMetrics";
 
 /**
- * Portada del panel de administración (Tarea 7.2, E.2; tarjetas 7.3, 7.4 y 7.5).
+ * Portada del panel de administración (Tarea 7.2, E.2; tarjetas 7.3–7.5;
+ * métricas 7.6).
  *
  * Desde la 7.2 la sección **Productos** existe de verdad, desde la 7.3
  * **Stock y precios**, desde la 7.4 **Pedidos** y desde la 7.5 **Usuarios**;
- * el aviso honesto queda sólo para lo que todavía no existe (7.6). La puerta
- * (`AdminRoute`) y la subnavegación viven en `app/admin/layout.tsx`.
+ * desde la 7.6 la portada **enseña además las métricas** del negocio y el aviso
+ * honesto «En construcción» desaparece (R7): sólo se prometía lo que no
+ * existía, y ya no queda nada pendiente en la fase. La puerta (`AdminRoute`) y
+ * la subnavegación viven en `app/admin/layout.tsx`.
  */
 export default function AdminPage() {
     const { user } = useAuth();
@@ -27,6 +31,8 @@ export default function AdminPage() {
                 Sesión de <span className="font-medium">{user?.email}</span> con rol{" "}
                 <span className="font-medium">ADMIN</span>.
             </p>
+
+            <AdminMetrics />
 
             <Link
                 href="/admin/products"
@@ -78,17 +84,6 @@ export default function AdminPage() {
                     usuario y administrador.
                 </span>
             </Link>
-
-            {/* D6 de la 7.1: sólo se promete lo que no existe todavía */}
-            <div className="border border-neutral-200 bg-white p-6 flex flex-col gap-3">
-                <p className="text-xs uppercase tracking-widest text-neutral-600">
-                    En construcción
-                </p>
-                <p className="text-sm font-light text-neutral-700">
-                    El dashboard de métricas (7.6) llega con la siguiente tarea de la
-                    fase.
-                </p>
-            </div>
         </>
     );
 }
