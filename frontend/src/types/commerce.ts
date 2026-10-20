@@ -478,3 +478,63 @@ export interface AdminOrderTrackingData {
     carrier: string;
     trackingNumber: string;
 }
+
+// ── Admin · Dashboard (Tarea 7.6) ────────────────────────────────────────────
+//
+// Reflejan `AdminDashboardResponse` del backend: 4 bloques anidados
+// `range · sales · products · users` (spec R1). Ingresos SIEMPRE por moneda y
+// sin cancelados — aquí no se suman monedas distintas: no hay tipo de cambio
+// (R2, plan D3).
+
+/** Periodo efectivamente aplicado: `from = now − days`, calculado en servidor. */
+export interface DashboardRange {
+    days: number;
+    from: string;
+}
+
+/** Ingresos de UNA moneda: fila independiente, nunca agregada (R2). */
+export interface RevenueCurrency {
+    /** ISO 4217 (`orders.currency`), p. ej. «EUR». */
+    currency: string;
+    total: number;
+    /** Pedidos no cancelados que componen `total`. */
+    orderCount: number;
+    /** `total / orderCount` con `HALF_UP` escala 2. */
+    avgTicket: number;
+}
+
+/** Ventas del periodo (R2). */
+export interface DashboardSales {
+    /** Pedidos **no cancelados** creados en el periodo. */
+    orderCount: number;
+    /** Los 5 estados **siempre presentes** aunque valgan 0 — el backend manda. */
+    byStatus: Record<OrderStatus, number>;
+    /** Ingresos por moneda; **vacío** si no hay ventas en el periodo. */
+    revenue: RevenueCurrency[];
+}
+
+/** Snapshot del catálogo, sin periodo (R3). */
+export interface DashboardProducts {
+    total: number;
+    skus: number;
+    families: number;
+}
+
+/** Usuarios totales y derivados (R3). */
+export interface DashboardUsers {
+    total: number;
+    /** `ADMIN` sin suspender — mismo criterio que la guarda del último admin. */
+    admins: number;
+    /** Cuentas suspendidas, de cualquier rol. */
+    suspended: number;
+    /** Altas creadas en el periodo (`createdAt ≥ from`). */
+    newInPeriod: number;
+}
+
+/** `GET /api/v1/admin/dashboard` (R1). */
+export interface AdminDashboard {
+    range: DashboardRange;
+    sales: DashboardSales;
+    products: DashboardProducts;
+    users: DashboardUsers;
+}

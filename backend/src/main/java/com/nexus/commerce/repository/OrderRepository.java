@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -91,4 +93,40 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM Order o WHERE o.orderNumber = :orderNumber")
     Optional<Order> findByOrderNumberForUpdate(@Param("orderNumber") String orderNumber);
+
+    /**
+     * Dashboard 7.6 (R2): recuento de pedidos <strong>por estado</strong>
+     * creados desde {@code from}. Sólo escalares — el service rellena las 5
+     * claves con 0 donde no haya filas, para que {@code byStatus} no tenga
+     * huecos (R4).
+     *
+     * @return pares {@code [estado, nº de pedidos]}
+     */
+    @Query("SELECT o.status, COUNT(o) FROM Order o WHERE o.createdAt >= :from GROUP BY o.status")
+    List<Object[]> contarPedidosPorEstadoDesde(@Param("from") Instant from);
+
+    /**
+     * Dashboard 7.6 (R2): ingresos <strong>por moneda</strong> de los pedidos
+     * <strong>no cancelados</strong> creados desde {@code from}. El filtro de
+     * estado se pasa como parámetro (evita literales de enum en JPQL) y el
+     * {@code ORDER BY currency} fija el orden de las filas (determinismo en
+     * tests). <strong>Nunca se agrupan monedas distintas</strong>: el sistema
+     * no tiene tipo de cambio (plan D3).
+     *
+     * <p>{@code SUM} sobre {@code total_amount NOT NULL} con al menos una fila
+     * por grupo nunca devuelve {@code null}; por eso no hace falta
+     * {@code COALESCE} (y el tipo de la suma queda {@code BigDecimal} limpio).</p>
+     *
+     * @param excluded estado que no suma — {@link OrderStatus#CANCELLED}
+     * @return pares {@code [moneda, suma total, nº de pedidos]}
+     */
+    @Query("""
+           SELECT o.currency, SUM(o.totalAmount), COUNT(o)
+           FROM Order o
+           WHERE o.createdAt >= :from AND o.status <> :excluded
+           GROUP BY o.currency
+           ORDER BY o.currency
+           """)
+    List<Object[]> contarIngresosPorMonedaDesde(@Param("from") Instant from,
+                                                 @Param("excluded") OrderStatus excluded);
 }

@@ -49,6 +49,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Object[]> contarProductosPorFamilia();
 
     /**
+     * Dashboard 7.6 (R3): nº de familias distintas — snapshot del catálogo, sin
+     * periodo. Aprovecha {@code idx_products_family} (V12).
+     */
+    @Query("SELECT COUNT(DISTINCT p.family) FROM Product p")
+    long contarFamilias();
+
+    /**
      * Consulta derivada sin {@code @Query}: resuelve a
      * {@code SELECT count(*) > 0 FROM products p WHERE p.family = ?} y aprovecha
      * {@code idx_products_family}.

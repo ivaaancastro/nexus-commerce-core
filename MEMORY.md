@@ -10,12 +10,12 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` — **Tarea 7.5 (Gestión de usuarios) cerrada y mergeada** (spec-check en verde 2026-10-19); siguiente rama: `feat/admin-dashboard` |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster) y la 7.5 completadas 2026-10-19** · Fase 7 (panel de administración) en curso · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **7.6 — Dashboard con métricas** — **pendiente de spec** (`specs/admin-dashboard/`): escribir plan/spec y pedir aprobación |
-| **Estado** | **325 backend + 441 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.58 / 81.83 / 82.86 / 87.69**) + umbral por fichero **`src/lib/api.ts` ≥ 99** · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | Escribir el plan y la spec de la 7.6 y pasar el punto de bloqueo SDD |
-| **Última actualización** | 2026-10-19 |
+| **Rama actual** | `main` — **Tarea 7.6 (Dashboard con métricas) cerrada y mergeada** (spec-check en verde 2026-10-20); siguiente rama: sin abrir (la 8.1 aún no tiene spec) |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster), la 7.5 y la 7.6 completadas 2026-10-20** · **Fase 7 (panel de administración) COMPLETA (7.1–7.6)** · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **8.1 — Dockerfile de producción** — **pendiente de plan/spec** (Fase 8): escribir y pedir aprobación |
+| **Estado** | **345 backend + 448 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.84 / 81.78 / 83.33 / 87.91**) + umbral por fichero **`src/lib/api.ts` ≥ 99** · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
+| **Pendiente** | Escribir el plan y la spec de la 8.1 y pasar el punto de bloqueo SDD |
+| **Última actualización** | 2026-10-20 |
 
 ---
 
@@ -272,6 +272,17 @@
 - [x] **Verificación en navegador 10/10** (backend real + `next start`): tabla/orden `createdAt DESC` · búsqueda con espacios · suspender con confirm → toast + «Suspendido desde 19/10/2026» sin re-fetch · **`409` «No puedes suspenderte a ti mismo» bajo la fila, sin toast** · login suspendido → «La cuenta está suspendida…» (no «No tienes permiso») · restaurar → login OK · rol con/sin confirm · USER redirigido de `/admin/users` · **BD sin restos** (`test-7501` borrado, `admin@nexus.dev` ADMIN activo, `e2e@nexus.dev` intacto)
 - [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR** · **sin ADR** y **sin PR de documentación de cierre** (D9) · ⚠️ aprendizaje: **`next build` con un `next start` vivo dejó un `.next` sin la ruta nueva** — la trampa 7.4 medida de nuevo; `rm -rf .next` + build limpio
 
+### Tarea 7.6 — Dashboard con métricas ✅ **cerrada 2026-10-20**
+*Spec `specs/admin-dashboard/` (plan D1–D9 · spec R1–R9, aprobada 2026-10-20) · `tasks.md` propio · **sin ADR** (D9) y **sin PR de documentación de cierre**.*
+- [x] **1 endpoint `GET /api/v1/admin/dashboard?days=…`** (D1): bloques `range · sales · products · users` en **una sola petición** · `days` entero 1–365 con default 30 **vivo en el `@RequestParam`** (sin duplicarlo en cliente) · **hereda `hasRole("ADMIN")` con cero cambios en `SecurityConfig`** · **sólo lectura** (sin locks, sin interferencia con el checkout)
+- [x] **Ingresos por moneda y sin cancelados** (D3): `revenue` agrupado por `currency` — **nunca se suman monedas distintas** (no hay tipo de cambio) — con `avgTicket` `HALF_UP` escala 2 · `CANCELLED` **fuera de ingresos y de `orderCount`**, pero **`byStatus` cuenta los 5 estados con sus claves siempre presentes** · `orderCount ≠ sum(byStatus)` documentado en el DTO
+- [x] **Agregados sólo escalares, sin N+1 y sin migración** (D2/D4): `COUNT`/`SUM`/`GROUP BY` sobre `orders` (`idx_orders_created_at` V14), catálogo (`COUNT(DISTINCT family)` V12) y `users` (V15 + `countByRoleAndSuspendedAtIsNull` **reutilizado de la 7.5**) · `days` inválido → `IllegalArgumentException` → **handler existente `400` con `message`, cero handlers nuevos** · `db/migration/` **intacto (V1–V15)**
+- [x] **Frontend `AdminMetrics` en la portada** (D6/D7): **sobre las 4 tarjetas de acceso**, selector **7/30/90** (`aria-pressed`, activo `border-neutral-900`) que sólo cambia `days` y re-pide; ingresos y ticket medio **por moneda** con `Intl.NumberFormat`, estados con **barras relativas decorativas** (`aria-hidden` — el número es la información), **ceros visibles** en periodo vacío (nunca `NaN` ni «—»), error con `getFriendlyErrorMessage()` + «Reintentar» · **aviso «En construcción» desaparece** · `SECCIONES`/`AdminRoute`/`errors.ts` **sin cambios** · estado de carga **derivado** (`!datos && !error`) por la regla `react-hooks/set-state-in-effect`
+- [x] **R8.3 declarada**: `AdminPage.test.tsx` (aviso fuera, métricas dentro); **ningún otro test preexistente cambió su aserción**
+- [x] **+20 tests → 345 backend** (`AdminDashboardServiceTest` 8 con mocks y **números exactos** — 5 claves con query de 3 filas, exclusión de cancelados, monedas sin cruzar, `16,665 → 16,67` HALF_UP, vacío sin división, `from = now − days`, extremos 1/365 · `AdminDashboardControllerTest` 12 MockMvc contra PostgreSQL real de **sólo lectura** — sin usuarios propios ni limpieza: shape, consistencias, `400` con `message`, 401/403/200) · **+7 → 448 frontend** (`AdminMetrics` 5 · `api.ts` 2 · R8.3) · `tsc` 0 · ESLint 0/0 · gate **EXIT 0** (**85.84 / 81.78 / 83.33 / 87.91**) · `build` 0
+- [x] **Verificación en navegador 5/5** (backend real + `next start`): métricas **sobre** las tarjetas sin aviso «En construcción» · selector **7 → 30 → 90** con refetch visible (7: 7 pedidos/559,65 € · 30/90: 43/3.677,70 € + 84,95 US$ · `byStatus` 40·1·2·0·1 = 43) · anónimo `/admin` → `/login` · **USER (`e2e@nexus.dev`) `/admin` → `/`** · catálogo del cliente renderizando · **BD sin restos**: GET puro — 9 usuarios y 44 pedidos intactos, `admin@nexus.dev` ADMIN activo, ningún correo de test
+- [x] **Cierre**: `CHANGELOG` · bloque de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR** · **sin ADR** y **sin PR de documentación de cierre** (D9)
+
 ## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
 
 > **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
@@ -292,7 +303,8 @@
 - [x] **7.3 — Gestión de stock y precios (multimercado)** ✅ **completada 2026-10-15** — spec `specs/admin-stock-pricing/` (sin ADR) · 249/359 tests
 - [x] **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** ✅ **completada 2026-10-15** — spec `specs/admin-orders/` (sin ADR) · 287/387 tests
 - [x] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) ✅ **completada 2026-10-19** — spec `specs/admin-users/` (sin ADR) · 325/441 tests
-- [ ] 7.6 — Dashboard con métricas (ventas, productos, usuarios)
+- [x] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) ✅ **completada 2026-10-19** — spec `specs/admin-users/` (sin ADR) · 325/441 tests
+- [x] 7.6 — Dashboard con métricas (ventas, productos, usuarios) ✅ **completada 2026-10-20** — spec `specs/admin-dashboard/` (sin ADR) · 345/448 tests
 
 ### Fase 8 — Instalación y configuración (reduce la fricción del comprador)
 - [ ] 8.1 — Dockerfile de producción (backend + frontend + Postgres)
