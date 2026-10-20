@@ -70,7 +70,7 @@
 - [x] **Verificación en navegador** (R9.1, backend real + `next start` en `:3001`): tabla con 6 columnas y orden `createdAt DESC` · búsqueda «  7501  » (con espacios) → sólo la fila propia · suspender con confirm → toast + «Suspendido desde 19/10/2026» + «RESTAURAR» **sin re-fetch** · suspender `admin@nexus.dev` → **`409` «No puedes suspenderte a ti mismo» bajo la fila, sin toast, fila intacta** · login de la cuenta suspendida → **«La cuenta está suspendida. Contacta con soporte.»** (no «No tienes permiso») · restaurar sin confirm → toast «CUENTA RESTAURADA» · login restaurado → OK (header sin «ADMIN») · promover sin confirm → «ROL ACTUALIZADO» · quitar admin con confirm → «Usuario» · USER en `/admin/users` → **redirigido a `/`**
 - [x] **BD sin restos** (R9.2): `test-7501@nexus.dev` borrado (0 restos) · `admin@nexus.dev` = ADMIN con `suspended_at` NULL · `e2e@nexus.dev` sin tocar
 - [x] `/spec-check admin-users` → **APROBADO** (R1–R9 con evidencia; 325 backend + 441 frontend en verde, gate EXIT 0; hallazgo 448→441 corregido en docs)
-- [ ] **Preguntar al usuario antes de cualquier commit y PR** ⛔
+- [x] **Preguntar al usuario antes de cualquier commit y PR** ⛔ — **permiso concedido 2026-10-19**: commit `feat(admin): gestión de usuarios — suspensión, roles y /admin/users (Tarea 7.5)` en `feat/admin-users`, push a `origin` y PR a `main` creadas
 
 ---
 
