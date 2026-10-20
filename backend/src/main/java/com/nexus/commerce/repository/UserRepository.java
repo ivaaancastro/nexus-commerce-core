@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Optional;
 
 @Repository
@@ -62,4 +63,19 @@ public interface UserRepository extends JpaRepository<User, Long> {
      *         cuentan: no pueden entrar al panel)
      */
     long countByRoleAndSuspendedAtIsNull(Role role);
+
+    /**
+     * Dashboard 7.6 (R3): cuentas con {@code suspended_at IS NOT NULL}, de
+     * <strong>cualquier rol</strong> (el bloque «suspendidos» no distingue
+     * quién era).
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.suspendedAt IS NOT NULL")
+    long contarSuspendidos();
+
+    /**
+     * Dashboard 7.6 (R3): altas creadas a partir de {@code from} (≥, para
+     * cuadrar con el {@code from} del resto de bloques del dashboard).
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :from")
+    long contarAltasDesde(@Param("from") Instant from);
 }
