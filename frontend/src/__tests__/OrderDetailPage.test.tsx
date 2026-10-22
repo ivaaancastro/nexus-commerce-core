@@ -118,9 +118,21 @@ describe("OrderDetailPage Component", () => {
                 screen.getByRole("heading", { level: 1, name: "Pedido" })
             ).toBeInTheDocument();
             expect(screen.getByText(/843321900101/i)).toBeInTheDocument();
-            expect(screen.getByText(/66.07/i)).toBeInTheDocument();
-            expect(screen.getByText(/13.88/i)).toBeInTheDocument();
-            expect(screen.getAllByText(/79.95/i).length).toBeGreaterThanOrEqual(1);
+            /*
+             * R8.3 (spec final-price-display, R3): la ficha del cliente ya no
+             * desglosa — «Total pagado» + la nota, y la base imponible (66,07)
+             * y el impuesto (13,88) sólo existen en `/receipt`, enlazado.
+             */
+            expect(screen.getByText("Total pagado")).toBeInTheDocument();
+            expect(screen.getAllByText(/79\.95/i).length).toBeGreaterThanOrEqual(1);
+            expect(
+                screen.getByText(/impuestos incluidos \(21 %\)/i)
+            ).toBeInTheDocument();
+            expect(screen.queryByText(/66\.07/i)).not.toBeInTheDocument();
+            expect(screen.queryByText(/13\.88/i)).not.toBeInTheDocument();
+            expect(
+                screen.getByRole("link", { name: /recibo del pedido/i })
+            ).toHaveAttribute("href", "/receipt/ORD-TEST-99");
         });
     });
 

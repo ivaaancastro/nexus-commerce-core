@@ -365,8 +365,7 @@ describe("CartPage — mercado activo (spec market-currency-selector)", () => {
         );
     });
 
-    it("R6 — con un artículo sin precio en el mercado no se envía el checkout", async () => {
-        // GIVEN — ese mercado no tiene precio para el SKU del carrito
+    it("R6 — con un artículo sin precio en el mercado no se envía el checkout", async () => {        // GIVEN — ese mercado no tiene precio para el SKU del carrito
         vi.mocked(api.getPrice).mockRejectedValue(
             new Error('API Error [404]: {"message":"Sin precio"}')
         );
@@ -383,5 +382,82 @@ describe("CartPage — mercado activo (spec market-currency-selector)", () => {
         ).toBeInTheDocument();
         expect(boton).toBeDisabled();
         expect(api.checkout).not.toHaveBeenCalled();
+    });
+});
+
+// ── final-price-display — R2/R6: precio final estilo Zara ────────────────────
+
+describe("CartPage — precio final con impuestos incluidos (spec final-price-display)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        sessionStorage.clear();
+        localStorage.setItem("nexus-cart", JSON.stringify([mockCartItem]));
+        localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        mockMarketEndpoints();
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("R2/R6 — Total = Subtotal: el IVA va dentro y no se suma encima", async () => {
+        // GIVEN — 89,95 ES ya es precio final al 21 %
+        renderCartPage();
+        await waitForAddressSelected();
+
+        // Acotamos a la tarjeta de resumen: el precio 89,95 también está en la
+        // línea del artículo y en el re-precificado del mercado.
+        const resumen = within(
+            screen.getByRole("heading", { name: /resumen/i }).parentElement as HTMLElement
+        );
+
+        // THEN — el resumen pinta el subtotal… y lo repite como total, sin el
+        // 21 % encima que enseñaba antes (89,95 × 1,21 = 108,84 ficticio).
+        expect(resumen.getByText(/subtotal/i)).toBeInTheDocument();
+        expect(resumen.getAllByText(/89\.95/)).toHaveLength(2);
+        expect(resumen.getByText(/^Total$/i)).toBeInTheDocument();
+        expect(resumen.queryByText(/108\.84/)).not.toBeInTheDocument();
+
+        // La parte incluida es la real (89,95 × 21/121 = 15,61) y es
+        // informativa: el viejo `taxEstimate` enseñaba 18,89.
+        expect(
+            resumen.getByText("Impuestos incluidos (21 %)")
+        ).toBeInTheDocument();
+        expect(resumen.getByText(/15\.61/)).toBeInTheDocument();
+        expect(resumen.queryByText(/18\.89/)).not.toBeInTheDocument();
+
+        // R2: fuera el copy que prometía recalcular el impuesto en el checkout
+        expect(screen.queryByText(/impuestos estimados/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/total estimado/i)).not.toBeInTheDocument();
+        expect(
+            screen.queryByText(/el cálculo final se realizará en el checkout/i)
+        ).not.toBeInTheDocument();
+    });
+
+    it("R4 — en UK la nota sigue hablando de «Impuestos», con la tasa del mercado", async () => {
+        // GIVEN — el usuario eligió UK (20 %) en el selector del header
+        localStorage.setItem(
+            "nexus-market",
+            JSON.stringify({ code: "UK", name: "United Kingdom", currency: "GBP", taxRate: 20 })
+        );
+        vi.mocked(api.getPrice).mockResolvedValue({
+            ...mockPrice,
+            marketCode: "UK",
+            currency: "GBP",
+            taxRate: 20,
+        });
+
+        // WHEN
+        renderCartPage();
+        await waitForAddressSelected();
+
+        // THEN — ni «IVA» ni un nombre local: la etiqueta es uniforme (D2)
+        expect(
+            await screen.findByText("Impuestos incluidos (20 %)")
+        ).toBeInTheDocument();
+        expect(screen.queryByText(/IVA/i)).not.toBeInTheDocument();
     });
 });

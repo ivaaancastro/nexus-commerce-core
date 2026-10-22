@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CartProvider } from "@/context/CartContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
@@ -58,5 +58,30 @@ describe("CartDrawer", () => {
         // El drawer existe pero está oculto (translate-x-full)
         const dialog = screen.getByRole("dialog");
         expect(dialog).toBeInTheDocument();
+    });
+
+    it("R2 — Total = Subtotal y la parte incluida es informativa (no se suma)", () => {
+        // GIVEN — 2 × 89,95 = 179,90, precio **final** con impuesto dentro (ES 21 %)
+        localStorage.setItem("nexus-cart", JSON.stringify([mockItem]));
+        render(<TestComponent />);
+
+        // Acotamos al diálogo: fuera están los botones del artículo
+        const drawer = within(screen.getByRole("dialog"));
+
+        // THEN — la parte incluida es 179,90 × 21/121 = 31,22 …
+        expect(drawer.getByText("Impuestos incluidos (21 %)")).toBeInTheDocument();
+        expect(drawer.getByText(/31\.22/)).toBeInTheDocument();
+        // … y la fila «Total» muestra exactamente el mismo importe que la fila
+        // «Subtotal», sin sumar nada encima: el drawer anterior enseñaba
+        // 217,68 cuando el checkout cobra 179,90.
+        expect(
+            within(drawer.getByText(/^Subtotal$/i).closest("div") as HTMLElement).getByText(/179\.90/)
+        ).toBeInTheDocument();
+        expect(
+            within(drawer.getByText(/^Total$/i).closest("div") as HTMLElement).getByText(/179\.90/)
+        ).toBeInTheDocument();
+        expect(drawer.queryByText(/217\.68/)).not.toBeInTheDocument();
+        expect(drawer.queryByText(/total estimado/i)).not.toBeInTheDocument();
+        expect(drawer.queryByText(/impuestos estimados/i)).not.toBeInTheDocument();
     });
 });
