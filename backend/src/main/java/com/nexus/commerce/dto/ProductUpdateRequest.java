@@ -17,5 +17,9 @@ public record ProductUpdateRequest(
         String family,
 
         @Size(max = 2000, message = "La descripción no puede exceder 2000 caracteres")
-        String description
+        String description,
+
+        /** Cuidados de lavado (spec `color-and-care`, R4): opcional, lista corta. */
+        @Size(max = 2000, message = "Los cuidados no pueden exceder 2000 caracteres")
+        String careInstructions
 ) {}

@@ -32,6 +32,12 @@ export default function ProductDetailPage() {
     const [loading, setLoading] = useState(true);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+    /**
+     * Color seleccionado en la PDP (spec `color-and-care`, D1). Se deriva de
+     * los SKUs — no es dato aparte — y se inicializa con el del primer SKU.
+     */
+    const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
     useEffect(() => {
         async function loadProduct() {
             try {
@@ -40,6 +46,9 @@ export default function ProductDetailPage() {
                 setProduct(data);
                 if (data.skus && data.skus.length > 0) {
                     setSelectedSku(data.skus[0]);
+                    // El color inicial es el del primer SKU: sin esto el
+                    // selector no tendría contra qué arrancar (D1).
+                    setSelectedColor(data.skus[0].color);
                 }
             } catch (err: unknown) {
                 setErrorMessage(
@@ -98,6 +107,33 @@ export default function ProductDetailPage() {
             cancelled = true;
         };
     }, [selectedSku, marketCode]);
+
+    /**
+     * Colores del producto, en el orden en que aparecen sus SKUs (D1).
+     * Sin datos aparte: es el `color` de cada variante.
+     */
+    const colores = Array.from(new Set((product?.skus ?? []).map((sku) => sku.color)));
+
+    /**
+     * Tallas del color seleccionado (D2). Cambiar de color **no** mueve la
+     * galería: las fotos son por referencia (R8/D10).
+     */
+    const tallasDelColor = (product?.skus ?? []).filter((sku) => sku.color === selectedColor);
+
+    /**
+     * Cambiar de color conserva la talla si el nuevo color la tiene (R3); si
+     * no, cae a la primera talla de ese color. El precio y el stock se
+     * recargan solos porque el efecto mira `selectedSku`.
+     */
+    const cambiarColor = (color: string) => {
+        if (!product || color === selectedColor) return;
+        setSelectedColor(color);
+        const delColor = product.skus.filter((sku) => sku.color === color);
+        const mismaTalla = selectedSku
+            ? delColor.find((sku) => sku.size === selectedSku.size)
+            : undefined;
+        setSelectedSku(mismaTalla ?? delColor[0] ?? null);
+    };
 
     if (loading) {
         return <ProductDetailSkeleton />;
@@ -201,6 +237,36 @@ export default function ProductDetailPage() {
 
                                 {/* Selector de Tallas */}
                                 <div className="py-6">
+                                    {/*
+                                     * Selector de color derivado de los SKUs (D1):
+                                     * se pinta también con un solo color — es la
+                                     * única manera de ver cuál es el de la prenda,
+                                     * y así no hay dos maquetas distintas.
+                                     */}
+                                    {colores.length > 0 && (
+                                        <div className="mb-6" data-testid="product-color">
+                                            <span className="text-[11px] uppercase tracking-widest text-neutral-500 block mb-3">
+                                                Color{selectedColor ? `: ${selectedColor}` : ""}
+                                            </span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {colores.map((color) => (
+                                                    <button
+                                                        key={color}
+                                                        onClick={() => cambiarColor(color)}
+                                                        aria-pressed={selectedColor === color}
+                                                        className={`px-4 py-3 text-xs uppercase tracking-wider border transition-all ${
+                                                            selectedColor === color
+                                                                ? "border-neutral-900 bg-neutral-900 text-white"
+                                                                : "border-neutral-200 bg-white text-neutral-700 hover:border-neutral-400"
+                                                        }`}
+                                                    >
+                                                        {color}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     <span className="text-[11px] uppercase tracking-widest text-neutral-500 block mb-3">
                                         Seleccionar Talla
                                     </span>
@@ -216,7 +282,7 @@ export default function ProductDetailPage() {
                                     ) : (
                                         <>
                                             <div className="grid grid-cols-4 gap-2">
-                                                {product.skus.map((sku) => (
+                                                {tallasDelColor.map((sku) => (
                                                     <button
                                                         key={sku.id}
                                                         onClick={() => setSelectedSku(sku)}
@@ -318,6 +384,27 @@ export default function ProductDetailPage() {
                                 </p>
                             </div>
                         </div>
+
+                        {/*
+                         * Cuidados de lavado (spec color-and-care, R4/R5): sólo
+                         * se pinta si el operador los ha escrito — sin dato no
+                         * hay bloque, ni una sección vacía ni un párrafo
+                         * inventado. `whitespace-pre-line` respeta el salto de
+                         * línea entre cuidados.
+                         */}
+                        {product.careInstructions?.trim() && (
+                            <div
+                                className="md:col-start-1 md:col-span-7 md:row-start-3 border-t border-neutral-200 pt-8"
+                                data-testid="product-care"
+                            >
+                                <span className="text-[11px] uppercase tracking-widest text-neutral-500 block mb-3">
+                                    Cuidados
+                                </span>
+                                <p className="text-xs leading-relaxed text-neutral-600 font-light whitespace-pre-line">
+                                    {product.careInstructions}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </main>
             </div>
