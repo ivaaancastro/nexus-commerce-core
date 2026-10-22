@@ -98,7 +98,8 @@ public class CatalogService {
                 product.getName(),
                 product.getDescription(),
                 product.getFamily(),
-                skuResponses
+                skuResponses,
+                product.getCareInstructions()
         );
     }
 
