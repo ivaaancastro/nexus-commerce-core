@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -286,6 +287,59 @@ class AdminProductControllerTest {
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"referenceCode\":\"7201/010\",\"name\":\"  \",\"family\":\"OUTERWEAR\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("C.1/R4 - cuidados: se guardan recortados y el en blanco se vuelve NULL")
+    void cuidadosSeGuardanYElBlancoVuelveNull() throws Exception {
+        // GIVEN / WHEN — crear con cuidado (con espacios sobrantes y saltos de línea)
+        MvcResult creado = mockMvc.perform(post(BASE)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"referenceCode\":\"" + REF_PRUEBA + "\",\"name\":\"Blazer Prueba 72\","
+                                + "\"family\":\"OUTERWEAR\","
+                                + "\"careInstructions\":\"  No lavar con lejía\\nSecar a la sombra  \"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.careInstructions")
+                        .value("No lavar con lejía\nSecar a la sombra"))
+                .andReturn();
+        long id = leerId(creado);
+
+        // THEN — el catálogo público lo lleva en el mismo contrato que la descripción
+        mockMvc.perform(get("/api/v1/products/search").param("reference", REF_PRUEBA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.careInstructions")
+                        .value("No lavar con lejía\nSecar a la sombra"));
+
+        // WHEN — el operador lo borra dejándolo en blanco
+        mockMvc.perform(put(BASE + "/" + id)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Blazer Prueba 72\",\"family\":\"OUTERWEAR\","
+                                + "\"careInstructions\":\"   \"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.careInstructions").isEmpty());
+
+        // THEN — en BD es NULL y no cadena vacía: la vitrina no pinta la sección (R5)
+        String guardado = jdbcTemplate.queryForObject(
+                "SELECT care_instructions FROM products WHERE id = ?", String.class, id);
+        assertThat(guardado).isNull();
+    }
+
+    @Test
+    @DisplayName("C.2/R4 - cuidado de más de 2000 caracteres -> 400 con message")
+    void cuidadosDemasiadoLargos400() throws Exception {
+        // GIVEN — 2001 caracteres, uno por encima del límite del DTO
+        String largo = "x".repeat(2001);
+
+        // WHEN / THEN
+        mockMvc.perform(post(BASE)
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"referenceCode\":\"" + REF_PRUEBA + "\",\"name\":\"Blazer\",\"family\":\"OUTERWEAR\","
+                                + "\"careInstructions\":\"" + largo + "\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").exists());
     }

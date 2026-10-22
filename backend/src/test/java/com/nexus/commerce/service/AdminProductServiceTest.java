@@ -17,6 +17,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,7 +65,7 @@ class AdminProductServiceTest {
 
         // WHEN / THEN — 409 y ni se intenta el INSERT
         assertThatThrownBy(() -> service.crear(
-                new ProductCreateRequest("7201/001", "Blazer", "OUTERWEAR", null)))
+                new ProductCreateRequest("7201/001", "Blazer", "OUTERWEAR", null, null)))
                 .isInstanceOf(CatalogConflictException.class)
                 .hasMessageContaining("Ya existe un producto");
 
@@ -81,7 +82,7 @@ class AdminProductServiceTest {
 
         // WHEN / THEN — la violación de BD se traduce en conflicto de catálogo
         assertThatThrownBy(() -> service.crear(
-                new ProductCreateRequest("7201/001", "Blazer", "OUTERWEAR", null)))
+                new ProductCreateRequest("7201/001", "Blazer", "OUTERWEAR", null, null)))
                 .isInstanceOf(CatalogConflictException.class)
                 .hasMessageContaining("Ya existe un producto");
     }
@@ -161,13 +162,62 @@ class AdminProductServiceTest {
         when(productRepository.findWithSkusById(1L)).thenReturn(Optional.of(producto()));
         when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        // WHEN — el DTO sólo puede llevar nombre, familia y descripción
+        // WHEN — el DTO sólo puede llevar nombre, familia, descripción y cuidados
         var respuesta = service.actualizar(1L,
-                new ProductUpdateRequest("Blazer Nuevo", "KNITWEAR", "Desc"));
+                new ProductUpdateRequest("Blazer Nuevo", "KNITWEAR", "Desc", null));
 
         // THEN — la referencia sigue intacta
         org.assertj.core.api.Assertions.assertThat(respuesta.referenceCode()).isEqualTo("7201/001");
         org.assertj.core.api.Assertions.assertThat(respuesta.name()).isEqualTo("Blazer Nuevo");
         org.assertj.core.api.Assertions.assertThat(respuesta.family()).isEqualTo("KNITWEAR");
+    }
+
+    // ── Cuidados de lavado (spec color-and-care, R4) ──────────────────────
+
+    @Test
+    @DisplayName("R4 - el cuidado se recorta, y el en blanco se guarda como NULL")
+    void crearNormalizaCuidados() {
+        // GIVEN
+        when(productRepository.existsByReferenceCode("7201/001")).thenReturn(false);
+        when(productRepository.saveAndFlush(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // WHEN — cuidado real, con espacios alrededor
+        var respuesta = service.crear(new ProductCreateRequest(
+                "7201/001", "Blazer Prueba 72", "OUTERWEAR", "Desc", "  No planchar  "));
+
+        // THEN — se recorta; los saltos de línea de dentro se conservan
+        assertThat(respuesta.careInstructions()).isEqualTo("No planchar");
+
+        // WHEN — cuidado en blanco (no hace falta declarar el campo)
+        var sinCuidados = service.crear(new ProductCreateRequest(
+                "7201/002", "Otro Blazer", "OUTERWEAR", null, "   "));
+
+        // THEN — NULL y no cadena vacía: la vitrina no pinta la sección (R5)
+        assertThat(sinCuidados.careInstructions()).isNull();
+        assertThat(sinCuidados.description()).isNull();
+    }
+
+    @Test
+    @DisplayName("R4 - actualizar con el cuidado en blanco lo borra, no lo conserva")
+    void actualizarCuidadoEnBlancoLoBorra() {
+        // GIVEN — un producto que ya tenía cuidado
+        Product previo = producto();
+        previo.setCareInstructions("Lavado a 30");
+        when(productRepository.findWithSkusById(1L)).thenReturn(Optional.of(previo));
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        // WHEN — el operador lo deja en blanco para quitarlo
+        var respuesta = service.actualizar(1L,
+                new ProductUpdateRequest("Blazer Nuevo", "KNITWEAR", "Desc", "  "));
+
+        // THEN
+        assertThat(respuesta.careInstructions()).isNull();
+
+        // WHEN — y lo escribe de nuevo
+        var conCuidado = service.actualizar(1L,
+                new ProductUpdateRequest("Blazer Nuevo", "KNITWEAR", "Desc", "Secar a la sombra"));
+
+        // THEN
+        assertThat(conCuidado.careInstructions()).isEqualTo("Secar a la sombra");
     }
 }

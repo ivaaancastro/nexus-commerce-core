@@ -70,7 +70,8 @@ public class AdminProductService {
                 .referenceCode(request.referenceCode())
                 .name(request.name())
                 .family(request.family())
-                .description(normalizarDescripcion(request.description()))
+                .description(normalizarTexto(request.description()))
+                .careInstructions(normalizarTexto(request.careInstructions()))
                 .build();
 
         try {
@@ -91,7 +92,10 @@ public class AdminProductService {
         Product product = buscarProducto(id);
         product.setName(request.name());
         product.setFamily(request.family());
-        product.setDescription(normalizarDescripcion(request.description()));
+        product.setDescription(normalizarTexto(request.description()));
+        // `careInstructions` con la misma regla que la descripción: un cuidado
+        // escrito «en blanco» borra el que había, no lo conserva (R4).
+        product.setCareInstructions(normalizarTexto(request.careInstructions()));
         // referenceCode no se toca: no viene en el DTO (R2.4).
         return toResponse(productRepository.save(product));
     }
@@ -196,8 +200,13 @@ public class AdminProductService {
                         "SKU no encontrado con id " + skuId));
     }
 
-    private String normalizarDescripcion(String descripcion) {
-        return (descripcion == null || descripcion.isBlank()) ? null : descripcion.trim();
+    /**
+     * Un texto en blanco se guarda como {@code NULL}, nunca como cadena
+     * vacía o con espacios — es la diferencia entre «sin cuidados» (la
+     * vitrina no pinta la sección) y un bloque vacío en pantalla (R4/R5).
+     */
+    private String normalizarTexto(String texto) {
+        return (texto == null || texto.isBlank()) ? null : texto.trim();
     }
 
     private ProductResponse toResponse(Product product) {
@@ -210,7 +219,8 @@ public class AdminProductService {
                 product.getName(),
                 product.getDescription(),
                 product.getFamily(),
-                skus);
+                skus,
+                product.getCareInstructions());
     }
 
     private SkuResponse toResponse(Sku sku) {

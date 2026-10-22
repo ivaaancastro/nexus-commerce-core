@@ -83,6 +83,51 @@ describe("AdminProductForm", () => {
         expect(screen.getByLabelText("Nombre")).toHaveValue("");
     });
 
+    it("cuidados: viajan recortados en el payload de crear (spec color-and-care, R4)", async () => {
+        const usuario = userEvent.setup();
+        vi.mocked(api.createAdminProduct).mockResolvedValue({ ...producto, id: 99 });
+
+        render(<AdminProductForm />);
+
+        await usuario.type(screen.getByLabelText("Referencia"), "7201/006");
+        await usuario.type(screen.getByLabelText("Nombre"), "Abrigo Lana");
+        await usuario.type(screen.getByLabelText("Familia"), "OUTERWEAR");
+        await usuario.type(screen.getByLabelText("Cuidados"), "  No lavar con lejía  ");
+
+        await usuario.click(screen.getByRole("button", { name: /crear producto/i }));
+
+        expect(await screen.findByText(/Producto 7201\/006 creado/)).toBeInTheDocument();
+        // `trim()` en cliente: lo que llega a la API ya está normalizado (D8)
+        expect(api.createAdminProduct).toHaveBeenCalledWith({
+            referenceCode: "7201/006",
+            name: "Abrigo Lana",
+            family: "OUTERWEAR",
+            careInstructions: "No lavar con lejía",
+        });
+    });
+
+    it("cuidados en blanco al editar: se cargan, se borran y el payload va sin ellos (R4)", async () => {
+        const usuario = userEvent.setup();
+        vi.mocked(api.updateAdminProduct).mockResolvedValue({ ...producto });
+
+        // GIVEN — un producto que ya tenía cuidados
+        render(<AdminProductForm producto={{ ...producto, careInstructions: "Secar a la sombra" }} />);
+        expect(screen.getByLabelText("Cuidados")).toHaveValue("Secar a la sombra");
+
+        // WHEN — el operador los deja en blanco para quitarlos
+        await usuario.clear(screen.getByLabelText("Cuidados"));
+        await usuario.click(screen.getByRole("button", { name: /guardar cambios/i }));
+
+        // THEN — el payload va sin cuidados: el servicio los convierte en NULL
+        // y la vitrina deja de pintar la sección (R5)
+        expect(await screen.findByText("Cambios guardados")).toBeInTheDocument();
+        expect(api.updateAdminProduct).toHaveBeenCalledWith(7, {
+            name: "Blazer Prueba 72",
+            family: "OUTERWEAR",
+            description: "Descripción inicial",
+        });
+    });
+
     it("un 409 del backend se muestra ya traducido, nunca crudo", async () => {
         const usuario = userEvent.setup();
         vi.mocked(api.createAdminProduct).mockRejectedValue(
