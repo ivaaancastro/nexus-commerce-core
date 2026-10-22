@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ProductDetailPage from "@/app/products/[reference]/page";
 import { GALLERY_SIZES } from "@/components/ProductGallery";
@@ -81,6 +82,29 @@ const mockPrice = {
     netAmount: 66.07,
     taxAmount: 13.88,
     taxRate: 21,
+};
+
+/**
+ * Semilla tipo V12 (spec `color-and-care`): 4 colores con tallas distintas.
+ * Las tallas no se repiten igual en todos — es justo lo que debe resolver el
+ * selector (D2/R3).
+ */
+const PDP_COLORES: Product = {
+    id: 2,
+    referenceCode: "0432/021",
+    name: "Blazer Cruzada Estructura",
+    family: "OUTERWEAR",
+    skus: [
+        { id: 11, barcode: "8412345678901", size: "S", color: "Marino" },
+        { id: 12, barcode: "8412345678902", size: "M", color: "Marino" },
+        { id: 13, barcode: "8412345678903", size: "L", color: "Marino" },
+        { id: 14, barcode: "8412345678904", size: "XL", color: "Marino" },
+        { id: 21, barcode: "8412345678911", size: "S", color: "Camel" },
+        { id: 22, barcode: "8412345678912", size: "M", color: "Camel" },
+        { id: 31, barcode: "8412345678921", size: "M", color: "Crudo" },
+        { id: 32, barcode: "8412345678922", size: "L", color: "Crudo" },
+        { id: 41, barcode: "8412345678931", size: "S", color: "Negro" },
+    ],
 };
 
 /** Mismo árbol que layout.tsx: MarketProvider envuelve a CartProvider (D5). */
@@ -335,5 +359,143 @@ describe("ProductDetailPage — producto sin SKUs (Tarea 7.2)", () => {
         // Sin SKU seleccionado no se piden ni precio ni stock
         expect(api.getPrice).not.toHaveBeenCalled();
         expect(api.getStock).not.toHaveBeenCalled();
+    });
+});
+
+describe("ProductDetailPage — color y cuidados (spec color-and-care)", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        vi.mocked(api.searchByReference).mockResolvedValue(PDP_COLORES);
+        vi.mocked(api.getStock).mockResolvedValue(mockStock);
+        vi.mocked(api.getPrice).mockResolvedValue(mockPrice);
+        vi.mocked(api.getMarkets).mockResolvedValue(MARKETS);
+        vi.mocked(api.getCurrentUser).mockResolvedValue(mockUser);
+    });
+
+    afterEach(() => {
+        localStorage.clear();
+    });
+
+    it("R1/D1 — pinta el selector con los 4 colores y sólo las tallas del color activo", async () => {
+        // GIVEN / WHEN
+        renderPage();
+
+        // THEN — los 4 colores de la semilla, visibles
+        expect(await screen.findByTestId("product-color")).toBeInTheDocument();
+        for (const color of ["Marino", "Camel", "Crudo", "Negro"]) {
+            expect(screen.getByRole("button", { name: color })).toBeInTheDocument();
+        }
+
+        // El color inicial es el del primer SKU, y su talla la pide a la API
+        expect(screen.getByText("Color: Marino")).toBeInTheDocument();
+        expect(api.getPrice).toHaveBeenCalledWith(11, "ES");
+
+        // Sólo las tallas de Marino (S/M/L/XL): las de Camel empiezan en S
+        // pero no se mezclan en la misma rejilla (D2)
+        expect(screen.getByRole("button", { name: "S" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "XL" })).toBeInTheDocument();
+    });
+
+    it("R3/D2 — cambiar de color conserva la talla si ese color la tiene", async () => {
+        const usuario = userEvent.setup();
+        renderPage();
+        await screen.findByTestId("product-color");
+
+        // GIVEN — el usuario elige la talla M de Marino
+        await usuario.click(screen.getByRole("button", { name: "M" }));
+        expect(api.getPrice).toHaveBeenLastCalledWith(12, "ES");
+
+        // WHEN — pasa a Camel, que también tiene M
+        await usuario.click(screen.getByRole("button", { name: "Camel" }));
+
+        // THEN — sigue en M, pero ahora es la M de Camel (otro SKU, otro precio)
+        expect(await screen.findByText("Color: Camel")).toBeInTheDocument();
+        expect(api.getPrice).toHaveBeenLastCalledWith(22, "ES");
+        expect(screen.getByText(/Barcode: 8412345678912/)).toBeInTheDocument();
+    });
+
+    it("R3/D2 — si el nuevo color no tiene esa talla, cae a la primera que tiene", async () => {
+        const usuario = userEvent.setup();
+        renderPage();
+        await screen.findByTestId("product-color");
+
+        // GIVEN — la talla XL seleccionada en Marino
+        await usuario.click(screen.getByRole("button", { name: "XL" }));
+        expect(api.getPrice).toHaveBeenLastCalledWith(14, "ES");
+
+        // WHEN — pasa a Negro, que sólo tiene S
+        await usuario.click(screen.getByRole("button", { name: "Negro" }));
+
+        // THEN — cae a su única talla en vez de quedar sin selección
+        expect(await screen.findByText("Color: Negro")).toBeInTheDocument();
+        expect(api.getPrice).toHaveBeenLastCalledWith(41, "ES");
+    });
+
+    it("D1 — con un solo color el selector se pinta igual: es la única forma de verlo", async () => {
+        // GIVEN — un producto con un único color
+        vi.mocked(api.searchByReference).mockResolvedValue({
+            ...PDP_COLORES,
+            skus: PDP_COLORES.skus.filter((sku) => sku.color === "Marino"),
+        });
+
+        // WHEN / THEN
+        renderPage();
+
+        expect(await screen.findByTestId("product-color")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Marino" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Camel" })).not.toBeInTheDocument();
+    });
+
+    it("R4/D4 — pinta los cuidados con sus saltos de línea y después de la descripción", async () => {
+        // GIVEN — un producto con cuidados escritos desde el panel
+        vi.mocked(api.searchByReference).mockResolvedValue({
+            ...PDP_COLORES,
+            careInstructions: "No lavar con lejía\nSecar a la sombra\nNo planchar",
+        });
+
+        // WHEN / THEN
+        renderPage();
+
+        const cuidados = await screen.findByTestId("product-care");
+        expect(cuidados).toHaveTextContent("No lavar con lejía");
+        // El salto de línea viaja tal cual, sin partirse en párrafos (D4)
+        expect(cuidados.textContent).toContain("\n");
+        expect(cuidados.querySelector("p")).toHaveClass("whitespace-pre-line");
+
+        // Y va DESPUÉS de la descripción, en el mismo sentido de lectura
+        const descripcion = screen.getByTestId("product-description");
+        expect(
+            descripcion.compareDocumentPosition(cuidados) & Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+    });
+
+    it("R5 — sin cuidados no hay sección: ni bloque vacío ni título suelto", async () => {
+        // GIVEN — el fixture sin `careInstructions` (como los productos previos)
+        renderPage();
+
+        // THEN
+        expect(await screen.findByTestId("product-description")).toBeInTheDocument();
+        expect(screen.queryByTestId("product-care")).not.toBeInTheDocument();
+        expect(screen.queryByText("Cuidados")).not.toBeInTheDocument();
+    });
+
+    it("R8 — cambiar de color NO cambia la galería: las fotos son por referencia", async () => {
+        const usuario = userEvent.setup();
+        renderPage();
+        await screen.findByTestId("product-color");
+
+        const fotosDeLaReferencia = () =>
+            screen.getAllByRole("img").map((img) => img.getAttribute("src"));
+        const antes = fotosDeLaReferencia();
+        expect(antes.length).toBeGreaterThan(0);
+
+        // WHEN — el usuario elige otro color
+        await usuario.click(screen.getByRole("button", { name: "Negro" }));
+
+        // THEN — el color cambia, las fotos no (comprobación negativa, R8)
+        expect(await screen.findByText("Color: Negro")).toBeInTheDocument();
+        expect(api.getPrice).toHaveBeenLastCalledWith(41, "ES");
+        expect(fotosDeLaReferencia()).toEqual(antes);
     });
 });
