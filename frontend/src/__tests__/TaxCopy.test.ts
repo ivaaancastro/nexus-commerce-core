@@ -47,17 +47,27 @@ describe("copy impositivo", () => {
         expect(offenders).toEqual([]);
     });
 
-    it("R8 — el copy usa «Impuestos» como etiqueta neutra", () => {
-        // GIVEN — los tres puntos que muestran el desglose al usuario
-        const pages = [
-            join(SRC, "app/products/[reference]/page.tsx"),
-            join(SRC, "app/receipt/[orderNumber]/page.tsx"),
-            join(SRC, "app/cart/page.tsx"),
-        ];
+    it("R8 — el copy neutral vive en un único módulo y lo usan todas las superficies", () => {
+        // GIVEN — desde `final-price-display` la nota se escribe una sola vez
+        const copy = readFileSync(join(SRC, "lib/taxes.ts"), "utf8");
+        expect(copy).toContain("Impuestos incluidos");
 
-        // WHEN / THEN
-        for (const page of pages) {
-            expect(readFileSync(page, "utf8")).toContain("Impuestos");
+        // WHEN / THEN — PDP, carrito, drawer y ficha del pedido la importan.
+        // El drawer va en el carrito vía `useCart`, y la factura (`/receipt`)
+        // conserva su desglose con la etiqueta literal, comprobada abajo.
+        const surfaces = [
+            join(SRC, "app/products/[reference]/page.tsx"),
+            join(SRC, "app/cart/page.tsx"),
+            join(SRC, "components/CartDrawer.tsx"),
+            join(SRC, "app/orders/[orderNumber]/page.tsx"),
+        ];
+        for (const file of surfaces) {
+            expect(readFileSync(file, "utf8")).toContain('from "@/lib/taxes"');
         }
+
+        // La factura sigue desglosando con la misma etiqueta neutra
+        expect(
+            readFileSync(join(SRC, "app/receipt/[orderNumber]/page.tsx"), "utf8")
+        ).toContain("Impuestos");
     });
 });

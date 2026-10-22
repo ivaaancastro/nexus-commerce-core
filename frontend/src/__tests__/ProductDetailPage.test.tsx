@@ -152,13 +152,14 @@ describe("ProductDetailPage — mercado activo (spec market-currency-selector)",
         expect(screen.getByText(/5 uds\. disponibles/i)).toBeInTheDocument();
     });
 
-    it("R8 — el desglose impositivo usa la etiqueta neutra «Impuestos»", async () => {
+    it("R8 — la nota fiscal usa la etiqueta neutra «Impuestos incluidos»", async () => {
         // GIVEN / WHEN
         renderPage();
 
-        // THEN
-        expect(await screen.findByText(/impuestos \(21%\)/i)).toBeInTheDocument();
+        // THEN — sin desglose base+impuesto: sólo el porcentaje (R1)
+        expect(await screen.findByText(/impuestos incluidos \(21 %\)/i)).toBeInTheDocument();
         expect(screen.queryByText(/IVA/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/base:/i)).not.toBeInTheDocument();
     });
 
     it("R8b — el aviso de envío gratuito usa la divisa del mercado activo", async () => {
