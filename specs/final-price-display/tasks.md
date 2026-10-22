@@ -1,6 +1,7 @@
 # Tasks — Precio final con impuestos incluidos (`final-price-display`)
 
 > Rama `feat/final-price-display` · **spec aprobada 2026-10-22** · XS-S.
+> **15/15 completadas — feature cerrada 2026-10-22**.
 > **Backend intocado**, `/receipt` y admin intactos · R8.3 declaradas (medidas, ver RT4).
 
 ## Implementación
@@ -29,6 +30,6 @@
 
 ## Cierre
 
-- [ ] **T13** — `/spec-check final-price-display` → aprobado
+- [x] **T13** — `/spec-check final-price-display` → **APROBADO** (R1–R6, RT1–RT4)
 - [x] **T14** — CHANGELOG (Fixed + Changed) + bloques ESTADO ACTUAL
-- [ ] **T15** — ⛔ Pedir permiso para commit + push + PR
+- [x] **T15** — Commits convencionales (feat · test · docs), push de la rama y PR contra `main`
