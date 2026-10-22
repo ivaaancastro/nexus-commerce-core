@@ -9,6 +9,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import ProductGallery, { GALLERY_SIZES } from "@/components/ProductGallery";
 import { api } from "@/lib/api";
 import { getFriendlyErrorMessage, isNotFoundError } from "@/lib/errors";
+import { taxesIncludedLabel } from "@/lib/taxes";
 import { useMarket } from "@/context/MarketContext";
 import { Product, Sku, PriceBreakdown, StockInfo } from "@/types/commerce";
 import { useParams } from "next/navigation";
@@ -184,8 +185,15 @@ export default function ProductDetailPage() {
                                         </span>
                                     ) : (
                                         pricing && (
+                                            /*
+                                             * R1/D1: el precio grande **es** el final
+                                             * (impuesto incluido), así que el desglose
+                                             * base+impuesto desaparece de la vitrina y
+                                             * queda sólo una nota. El detalle vive en
+                                             * `/receipt` (factura) y en el admin.
+                                             */
                                             <span className="text-[11px] text-neutral-600 block mt-1 tracking-wider uppercase">
-                                                Impuestos ({pricing.taxRate}%): {pricing.taxAmount.toFixed(2)} {pricing.currency} (Base: {pricing.netAmount.toFixed(2)} {pricing.currency})
+                                                {taxesIncludedLabel(pricing.taxRate)}
                                             </span>
                                         )
                                     )}

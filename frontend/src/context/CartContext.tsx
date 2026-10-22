@@ -18,6 +18,7 @@ import {
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMarket } from "@/context/MarketContext";
 import { api } from "@/lib/api";
+import { taxesIncludedAmount } from "@/lib/taxes";
 
 interface CartContextType {
     items: CartItem[];
@@ -27,7 +28,18 @@ interface CartContextType {
     clearCart: () => void;
     totalItems: number;
     subtotal: number;
-    taxEstimate: number;
+    /**
+     * Parte del `subtotal` que ya lleva el impuesto **dentro** (spec
+     * `final-price-display`, D3). Sólo presentación: `subtotal` ya es el
+     * importe que cobra el checkout, y este número **no se suma** a él.
+     */
+    taxIncluded: number;
+    /**
+     * Tasa del mercado activo, **la misma** con la que se calcula
+     * `taxIncluded` — el copy necesita el porcentaje y exponerla aquí evita
+     * que dos superficies se lean la tasa de sitios distintos.
+     */
+    taxRate: number;
     currency: string;
     /** R6: true mientras se refetchan los precios del nuevo mercado. */
     isRepricing: boolean;
@@ -269,7 +281,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
     const subtotal = state.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
     // R8: la tasa sale del mercado activo — antes era TAX_RATE = 0.21 fijo (ES).
-    const taxEstimate = subtotal * (market.taxRate / 100);
+    // D3: `subtotal` **ya es precio final** (los precios de `market_prices`
+    // incluyen el impuesto), así que la parte incluida se *deriva* dividiendo:
+    // 79,95 al 21 % → 13,88. Sumarle el 21 % encima (el viejo `taxEstimate`)
+    // enseñaba 96,74 en pantalla cuando el backend cobra 79,95.
+    const taxIncluded = taxesIncludedAmount(subtotal, market.taxRate);
     const currency = market.currency;
     const hasUnavailableItems = state.items.some((item) => item.priceUnavailable === true);
     // Derivado: true mientras los precios no estén validados para el mercado activo.
@@ -285,7 +301,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 clearCart,
                 totalItems,
                 subtotal,
-                taxEstimate,
+                taxIncluded,
+                taxRate: market.taxRate,
                 currency,
                 isRepricing,
                 hasUnavailableItems,

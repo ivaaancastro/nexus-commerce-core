@@ -12,6 +12,7 @@ import { useMarket } from "@/context/MarketContext";
 import { api } from "@/lib/api";
 import { JUST_CHECKED_OUT_KEY } from "@/lib/checkout";
 import { getFriendlyErrorMessage } from "@/lib/errors";
+import { taxesIncludedLabel } from "@/lib/taxes";
 import { Address } from "@/types/auth";
 import {
     PAYMENT_METHODS,
@@ -31,7 +32,7 @@ export default function CartPage() {
     const {
         items,
         subtotal,
-        taxEstimate,
+        taxIncluded,
         currency,
         totalItems,
         clearCart,
@@ -195,6 +196,15 @@ export default function CartPage() {
                                 </h2>
 
                                 <div className="space-y-3 text-xs uppercase tracking-wider">
+                                    {/*
+                                        R2/D1: el subtotal **ya es el importe final**
+                                        (los precios de `market_prices` incluyen el
+                                        impuesto), así que `Total = Subtotal` y la
+                                        parte incluida es una línea **informativa**
+                                        que no se suma — antes se sumaba el 21 %
+                                        encima y el carrito enseñaba más dinero del
+                                        que cobra el checkout.
+                                    */}
                                     <div className="flex justify-between">
                                         <span className="text-neutral-600">Subtotal</span>
                                         <span className="font-medium text-neutral-900">
@@ -202,15 +212,17 @@ export default function CartPage() {
                                         </span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-neutral-600">Impuestos estimados</span>
+                                        <span className="text-neutral-600">
+                                            {taxesIncludedLabel(market.taxRate)}
+                                        </span>
                                         <span className="text-neutral-900">
-                                            {taxEstimate.toFixed(2)} {currency}
+                                            {taxIncluded.toFixed(2)} {currency}
                                         </span>
                                     </div>
                                     <div className="flex justify-between pt-3 border-t border-neutral-100">
-                                        <span className="font-medium text-neutral-900">Total estimado</span>
+                                        <span className="font-medium text-neutral-900">Total</span>
                                         <span className="font-medium text-neutral-900">
-                                            {(subtotal + taxEstimate).toFixed(2)} {currency}
+                                            {subtotal.toFixed(2)} {currency}
                                         </span>
                                     </div>
                                 </div>
@@ -333,8 +345,8 @@ export default function CartPage() {
                                 </button>
 
                                 <p className="text-[10px] text-neutral-600 mt-4 leading-relaxed">
-                                    Impuestos calculados al {market.taxRate}% (mercado {market.code}).
-                                    El cálculo final se realizará en el checkout.
+                                    {taxesIncludedLabel(market.taxRate)} (mercado {market.code}).
+                                    El desglose fiscal se emite en el recibo del pedido.
                                 </p>
 
                                 <Link
