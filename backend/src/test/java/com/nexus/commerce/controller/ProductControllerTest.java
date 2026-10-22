@@ -42,7 +42,8 @@ class ProductControllerTest {
     void shouldReturnAllProducts() throws Exception {
         SkuResponse sku = new SkuResponse(1L, "843321900101", "Marino", "M");
         ProductResponse product = new ProductResponse(
-                1L, "0432/021", "Blazer Cruzada", "Descripción", "OUTERWEAR", List.of(sku)
+                1L, "0432/021", "Blazer Cruzada", "Descripción", "OUTERWEAR", List.of(sku),
+                "No lavar con lejía\nSecar a la sombra"
         );
 
         when(catalogService.listarProductos(null, null, null, null)).thenReturn(List.of(product));
@@ -51,6 +52,9 @@ class ProductControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].referenceCode").value("0432/021"))
                 .andExpect(jsonPath("$[0].name").value("Blazer Cruzada"))
+                // El cuidado viaja en el mismo contrato que la descripción (R4)
+                .andExpect(jsonPath("$[0].careInstructions")
+                        .value("No lavar con lejía\nSecar a la sombra"))
                 .andExpect(jsonPath("$[0].skus[0].barcode").value("843321900101"));
     }
 
@@ -58,7 +62,8 @@ class ProductControllerTest {
     @DisplayName("GET /api/v1/products/search - Debe retornar 200 OK si la referencia existe")
     void shouldReturnProductByReferenceWhenFound() throws Exception {
         ProductResponse product = new ProductResponse(
-                1L, "0432/021", "Blazer Cruzada", "Descripción", "OUTERWEAR", List.of()
+                1L, "0432/021", "Blazer Cruzada", "Descripción", "OUTERWEAR", List.of(),
+                null
         );
 
         when(catalogService.getProductByReference("0432/021")).thenReturn(Optional.of(product));
