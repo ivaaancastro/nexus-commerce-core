@@ -66,14 +66,15 @@ const mockItem2: CartItem = {
 };
 
 function TestComponent() {
-    const { items, addItem, removeItem, updateQuantity, clearCart, totalItems, subtotal, taxEstimate, currency } = useCart();
+    const { items, addItem, removeItem, updateQuantity, clearCart, totalItems, subtotal, taxIncluded, taxRate, currency } = useCart();
     const { markets, market, setMarketCode } = useMarket();
 
     return (
         <div>
             <span data-testid="total-items">{totalItems}</span>
             <span data-testid="subtotal">{subtotal.toFixed(2)}</span>
-            <span data-testid="tax">{taxEstimate.toFixed(2)}</span>
+            <span data-testid="tax">{taxIncluded.toFixed(2)}</span>
+            <span data-testid="tax-rate">{taxRate}</span>
             <span data-testid="currency">{currency}</span>
             <span data-testid="item-count">{items.length}</span>
             <span data-testid="market">{market.code}</span>
@@ -258,7 +259,7 @@ describe("CartContext", () => {
             expect(screen.getByTestId("subtotal")).toHaveTextContent(expectedSubtotal);
         });
 
-        it("debe calcular impuesto estimado (21% IVA)", () => {
+        it("R8.3 — la parte incluida se deriva del subtotal final, no se le suma encima", () => {
             render(
                 <CartProvider>
                     <TestComponent />
@@ -267,8 +268,14 @@ describe("CartContext", () => {
 
             fireEvent.click(screen.getByText("Add Item 1"));
 
-            const expectedTax = (89.95 * 0.21).toFixed(2);
-            expect(screen.getByTestId("tax")).toHaveTextContent(expectedTax);
+            // THEN — 89,95 **ya es precio final** al 21 %: la parte incluida es
+            // 89,95 × 21/121 = 15,61. El viejo `taxEstimate` daba 18,89
+            // (89,95 × 0,21): sumarlo al subtotal era doble imposición en
+            // pantalla — el checkout cobra 89,95, no 108,84.
+            expect(screen.getByTestId("subtotal")).toHaveTextContent("89.95");
+            expect(screen.getByTestId("tax")).toHaveTextContent(
+                ((89.95 * 21) / (100 + 21)).toFixed(2)
+            );
         });
     });
 
@@ -334,26 +341,29 @@ describe("CartContext", () => {
             expect(screen.getByTestId("item-count")).toHaveTextContent("1");
         });
 
-        it("debe calcular los impuestos con la tasa del mercado activo, no con 21%", async () => {
+        it("R8.3 — la parte incluida se recalcula con la tasa del mercado activo", async () => {
             // GIVEN — mercado por defecto ES (21%)
             renderWithMarket();
             await whenMarketsLoaded();
 
             fireEvent.click(screen.getByText("Add Item 1"));
             expect(screen.getByTestId("tax")).toHaveTextContent(
-                (89.95 * 0.21).toFixed(2)
+                ((89.95 * 21) / (100 + 21)).toFixed(2)
             );
 
             // WHEN — US grava al 7.25%
             fireEvent.click(screen.getByText("Switch to US"));
 
-            // THEN
+            // THEN — la tasa nueva se aplica sobre el mismo subtotal final
             await waitFor(() =>
                 expect(screen.getByTestId("tax")).toHaveTextContent(
-                    ((89.95 * 7.25) / 100).toFixed(2)
+                    ((89.95 * 7.25) / (100 + 7.25)).toFixed(2)
                 )
             );
             expect(screen.getByTestId("market")).toHaveTextContent("US");
+            expect(screen.getByTestId("tax-rate")).toHaveTextContent("7.25");
+            // El subtotal no se mueve: el impuesto va **dentro** del precio.
+            expect(screen.getByTestId("subtotal")).toHaveTextContent("89.95");
         });
     });
 });
