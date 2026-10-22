@@ -17,6 +17,7 @@ import Toast from "@/components/Toast";
 import { api } from "@/lib/api";
 import { JUST_CHECKED_OUT_KEY } from "@/lib/checkout";
 import { getFriendlyErrorMessage } from "@/lib/errors";
+import { taxRateFromAmounts, taxesIncludedLabel } from "@/lib/taxes";
 import { useAuth } from "@/context/AuthContext";
 import {
     Order,
@@ -345,6 +346,10 @@ export default function OrderDetailPage() {
         returns.length > 0 ||
         order.items.some((item) => item.returnIneligibleReason === "ALREADY_RETURNED");
 
+    // R3: el porcentaje de la nota no lo adivina el mercado activo (el pedido
+    // pudo firmarse en otro) — sale de los importes que firmó el backend.
+    const orderTaxRate = taxRateFromAmounts(order.taxAmount, order.subtotalAmount);
+
     return (
         <div className="min-h-screen bg-neutral-50 flex flex-col font-sans">
             <Header />
@@ -512,26 +517,36 @@ export default function OrderDetailPage() {
                         </ul>
                     </section>
 
-                    {/* ── 7. Desglose fiscal (ya existente) ──────────────────── */}
-                    <div className="border-t border-neutral-100 pt-6 mb-6 space-y-2">
-                        <div className="flex justify-between text-xs uppercase tracking-wider">
-                            <span className="text-neutral-600">Subtotal</span>
-                            <span className="text-neutral-900">
-                                {order.subtotalAmount.toFixed(2)} {order.currency}
-                            </span>
-                        </div>
-                        <div className="flex justify-between text-xs uppercase tracking-wider">
-                            <span className="text-neutral-600">Impuestos</span>
-                            <span className="text-neutral-900">
-                                {order.taxAmount.toFixed(2)} {order.currency}
-                            </span>
-                        </div>
-                        <div className="flex justify-between text-sm uppercase tracking-wider pt-2 border-t border-neutral-100">
-                            <span className="font-medium text-neutral-900">Total</span>
+                    {/* ── 7. Total pagado (spec final-price-display, R3) ───── */}
+                    {/*
+                        El desglose Subtotal/Impuestos **desaparece** de la ficha
+                        del cliente: esos números eran los del backend y eran
+                        correctos, pero la vitrina presenta el precio final como
+                        hace Zara. El detalle base+impuesto queda en `/receipt`
+                        (factura), enlazado justo debajo.
+                    */}
+                    <div className="border-t border-neutral-100 pt-6 mb-6 space-y-3">
+                        <div className="flex justify-between text-sm uppercase tracking-wider">
+                            <span className="font-medium text-neutral-900">Total pagado</span>
                             <span className="font-medium text-neutral-900">
                                 {order.totalAmount.toFixed(2)} {order.currency}
                             </span>
                         </div>
+                        <div className="flex justify-between text-xs uppercase tracking-wider">
+                            <span className="text-neutral-600">
+                                {taxesIncludedLabel(orderTaxRate)}
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-neutral-600 leading-relaxed">
+                            El desglose fiscal (base imponible e impuesto) figura en el{" "}
+                            <Link
+                                href={`/receipt/${encodeURIComponent(order.orderNumber)}`}
+                                className="underline hover:text-neutral-900 transition-colors"
+                            >
+                                recibo del pedido
+                            </Link>
+                            .
+                        </p>
                     </div>
 
                     {/* ── 8. Devoluciones (Tarea 5.4, conservada sin cambios) ── */}

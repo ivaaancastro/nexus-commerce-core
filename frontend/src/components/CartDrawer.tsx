@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useCartDrawer } from "@/context/CartDrawerContext";
+import { taxesIncludedLabel } from "@/lib/taxes";
 import CartItemRow from "./CartItemRow";
 
 /**
@@ -11,7 +12,7 @@ import CartItemRow from "./CartItemRow";
  * Estilo Zara: overlay oscuro + panel blanco deslizante.
  */
 export default function CartDrawer() {
-    const { items, subtotal, taxEstimate, currency, totalItems } = useCart();
+    const { items, subtotal, taxIncluded, taxRate, currency, totalItems } = useCart();
     const { isOpen, closeDrawer } = useCartDrawer();
     const router = useRouter();
 
@@ -100,6 +101,8 @@ export default function CartDrawer() {
                 {/* Footer */}
                 {items.length > 0 && (
                     <div className="border-t border-neutral-200 px-6 py-4 space-y-3">
+                        {/* R2/D1: el subtotal ya es el importe final, así que
+                            `Total = Subtotal` y la parte incluida no se suma. */}
                         <div className="flex justify-between text-xs uppercase tracking-wider">
                             <span className="text-neutral-600">Subtotal</span>
                             <span className="font-medium text-neutral-900">
@@ -107,15 +110,17 @@ export default function CartDrawer() {
                             </span>
                         </div>
                         <div className="flex justify-between text-xs uppercase tracking-wider">
-                            <span className="text-neutral-600">Impuestos estimados</span>
+                            <span className="text-neutral-600">
+                                {taxesIncludedLabel(taxRate)}
+                            </span>
                             <span className="text-neutral-900">
-                                {taxEstimate.toFixed(2)} {currency}
+                                {taxIncluded.toFixed(2)} {currency}
                             </span>
                         </div>
                         <div className="flex justify-between text-sm uppercase tracking-wider pt-2 border-t border-neutral-100">
-                            <span className="font-medium text-neutral-900">Total estimado</span>
+                            <span className="font-medium text-neutral-900">Total</span>
                             <span className="font-medium text-neutral-900">
-                                {(subtotal + taxEstimate).toFixed(2)} {currency}
+                                {subtotal.toFixed(2)} {currency}
                             </span>
                         </div>
 
