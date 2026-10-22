@@ -24,6 +24,7 @@ interface ErroresCampo {
     name?: string;
     family?: string;
     description?: string;
+    careInstructions?: string;
 }
 
 /** Validación espejo de la del backend (D8): se ejecuta antes de llamar a la API. */
@@ -32,6 +33,7 @@ function validar(
     name: string,
     family: string,
     description: string,
+    careInstructions: string,
     modoEdicion: boolean
 ): ErroresCampo {
     const errores: ErroresCampo = {};
@@ -63,6 +65,11 @@ function validar(
         errores.description = "Máximo 2000 caracteres.";
     }
 
+    // Mismo límite que el `@Size` del backend (spec color-and-care, R4)
+    if (careInstructions.length > 2000) {
+        errores.careInstructions = "Máximo 2000 caracteres.";
+    }
+
     return errores;
 }
 
@@ -87,6 +94,9 @@ export default function AdminProductForm({
     const [name, setName] = useState(producto?.name ?? "");
     const [family, setFamily] = useState(producto?.family ?? "");
     const [description, setDescription] = useState(producto?.description ?? "");
+    const [careInstructions, setCareInstructions] = useState(
+        producto?.careInstructions ?? ""
+    );
 
     const [errores, setErrores] = useState<ErroresCampo>({});
     const [apiError, setApiError] = useState<string | null>(null);
@@ -97,7 +107,14 @@ export default function AdminProductForm({
     async function handleSubmit(event: FormEvent) {
         event.preventDefault();
 
-        const encontrados = validar(referenceCode, name, family, description, modoEdicion);
+        const encontrados = validar(
+            referenceCode,
+            name,
+            family,
+            description,
+            careInstructions,
+            modoEdicion
+        );
         setErrores(encontrados);
         if (Object.keys(encontrados).length > 0) return;
 
@@ -110,6 +127,7 @@ export default function AdminProductForm({
                     name: name.trim(),
                     family: family.trim(),
                     description: description.trim() || undefined,
+                    careInstructions: careInstructions.trim() || undefined,
                 });
                 setToastMessage("Cambios guardados");
                 onProductoGuardado?.(guardado);
@@ -119,12 +137,14 @@ export default function AdminProductForm({
                     name: name.trim(),
                     family: family.trim(),
                     description: description.trim() || undefined,
+                    careInstructions: careInstructions.trim() || undefined,
                 });
                 setToastMessage(`Producto ${referenceCode.trim()} creado`);
                 setReferenceCode("");
                 setName("");
                 setFamily("");
                 setDescription("");
+                setCareInstructions("");
             }
             setToastVisible(true);
         } catch (err: unknown) {
@@ -230,6 +250,29 @@ export default function AdminProductForm({
                 {errores.description && (
                     <p role="alert" className={claseError}>
                         {errores.description}
+                    </p>
+                )}
+            </div>
+
+            <div>
+                <label htmlFor="producto-cuidados" className={claseLabel}>
+                    Cuidados
+                </label>
+                <textarea
+                    id="producto-cuidados"
+                    value={careInstructions}
+                    onChange={(e) => setCareInstructions(e.target.value)}
+                    rows={4}
+                    aria-invalid={errores.careInstructions ? true : undefined}
+                    className={claseInput}
+                />
+                <p className="mt-1 text-xs font-light text-neutral-500">
+                    Una línea por cuidado. En la ficha se respeta el salto de línea; si lo
+                    dejas en blanco, la sección no aparece.
+                </p>
+                {errores.careInstructions && (
+                    <p role="alert" className={claseError}>
+                        {errores.careInstructions}
                     </p>
                 )}
             </div>

@@ -12,6 +12,8 @@ export interface Product {
     family: string;
     description?: string;
     skus: Sku[];
+    /** Cuidados de lavado (spec `color-and-care`, R4): opcional — sin ellos la vitrina no pinta la sección (R5). */
+    careInstructions?: string;
 }
 
 /**
@@ -343,6 +345,8 @@ export interface ProductCreateData {
     name: string;
     family: string;
     description?: string;
+    /** Cuidados de lavado (spec `color-and-care`, R4): opcional; el backend guarda `NULL` si va en blanco. */
+    careInstructions?: string;
 }
 
 /**
@@ -353,6 +357,8 @@ export interface ProductUpdateData {
     name: string;
     family: string;
     description?: string;
+    /** Cuidados de lavado (spec `color-and-care`, R4): enviarlos en blanco **borra** los que había. */
+    careInstructions?: string;
 }
 
 /** Payload de creación de SKU (variante) — `POST .../products/{id}/skus`. */

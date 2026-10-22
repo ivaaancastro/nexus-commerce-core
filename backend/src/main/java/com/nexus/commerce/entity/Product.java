@@ -33,6 +33,16 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    /**
+     * Cuidados de lavado, escritos por el operador desde el panel (spec
+     * `color-and-care`, R4). Precedente exacto de {@code description}: TEXT
+     * sin longitud, `NULL` = sin cuidados y la vitrina **no pinta** la
+     * sección (R5). La normalización blank → {@code null} vive en
+     * {@code AdminProductService}.
+     */
+    @Column(name = "care_instructions", columnDefinition = "TEXT")
+    private String careInstructions;
+
     @Column(nullable = false, length = 50)
     private String family;
 
