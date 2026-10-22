@@ -10,12 +10,12 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` — **mini-feature `checkout-payment-grid` (fix selector de pago) cerrada y mergeada** (spec-check en verde 2026-10-20); siguiente rama: sin abrir (la B aún no tiene spec) |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster), la 7.5, la 7.6 y la mini-feature `checkout-payment-grid` (feedback post-Fase 7) completadas 2026-10-20** · **Fase 7 (panel de administración) COMPLETA (7.1–7.6)** · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **B — Precio final con impuestos incluidos** (alcance aprobado: vitrina/carrito/drawer/checkout con **sólo precio final + «IVA incluido»**; desglose base+IVA sólo en `/receipt` y panel admin — como Zara) — **pendiente de plan/spec** |
-| **Estado** | **345 backend + 448 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend congelada en **77 / 76 / 74 / 79** (medida **85.84 / 81.78 / 83.33 / 87.91**) + umbral por fichero **`src/lib/api.ts` ≥ 99** · **E2E local 36 pasados / 14 omitidos / 0 fallos** (Chromium + WebKit; Firefox = fallo ambiental `Could not find profile folder` (D10), se valida en CI) · **axe 14/14 sin hallazgos** · **Lighthouse en verde en 4 rutas** |
-| **Pendiente** | Escribir el plan y la spec de la **B** (impuestos) y pasar el punto de bloqueo SDD; después la **C** (colores + cuidados, migración V16) y volver a la **8.1 Dockerfile** |
-| **Última actualización** | 2026-10-20 |
+| **Rama actual** | `feat/final-price-display` — **B implementada y verificada, lista para PR** (T15: pendiente de permiso); siguiente: la **C** |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster), la 7.5, la 7.6, la mini-feature `checkout-payment-grid` y la mini-feature `final-price-display` completadas** · **Fase 7 (panel de administración) COMPLETA (7.1–7.6)** · fases 1–5 y 3.x/4.x completadas |
+| **Tarea actual** | **B — Precio final con impuestos incluidos — COMPLETA** (`specs/final-price-display/`): PDP, carrito, drawer y ficha del cliente con **sólo precio final + «Impuestos incluidos (X %)»** (copy único en `src/lib/taxes.ts`), desglose **sólo** en `/receipt` y panel admin — **ambos intactos** |
+| **Estado** | **345 backend + 461 frontend** (448 base + 13 nuevos) · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend **85,91 / 81,94 / 83,45 / 87,98** sobre los umbrales congelados **77 / 76 / 74 / 79** + `api.ts` ≥ 99 · **axe 14/14** · verificación programática (PDP sin desglose · carrito/drawer `Total == Subtotal` con la parte real · pedido con enlace al recibo · `/receipt` **con** desglose · UK «(20 %)») |
+| **Pendiente** | T13 `/spec-check` + **T15 pedir permiso** para commit/push/PR de la **B**; después la **C** (colores + cuidados, migración V16) y volver a la **8.1 Dockerfile** |
+| **Última actualización** | 2026-10-22 |
 
 ---
 
