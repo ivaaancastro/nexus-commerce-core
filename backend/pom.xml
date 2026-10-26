@@ -152,6 +152,22 @@
 					</excludes>
 				</configuration>
 			</plugin>
+			<!--
+				RT9 (spec order-status-emails): NINGÚN test con red real.
+				`spring.mail.username` vacío a la JVM de tests ⇒ todos los
+				contextos corren en MODO DESARROLLO (loguean, cero SMTP) aunque
+				`backend/.env` tenga credenciales de Mailtrap en local. Las
+				única salida real la decide la aplicación, nunca un test.
+			-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<systemPropertyVariables>
+						<spring.mail.username></spring.mail.username>
+					</systemPropertyVariables>
+				</configuration>
+			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
