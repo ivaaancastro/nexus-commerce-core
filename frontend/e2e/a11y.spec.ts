@@ -1,6 +1,7 @@
 // Tarea 4.3 (R2) — accesibilidad **ejecutada**, no leída.
 //
-// Las 14 rutas del App Router se abren en un navegador real y se les pasa axe.
+// Las 14 rutas del App Router se abren en un navegador real y se les pasa axe
+// (V2: +1 auditoría con el visor ampliado = 15 en total).
 // Esto es lo que complementa a la 4.1: ESLint comprueba que el JSX esté
 // *bien escrito*, y aquí se comprueba que la página *funcione* para quien usa
 // teclado o lector de pantalla.
@@ -21,7 +22,7 @@ import { ensureOrderNumber } from "./helpers/orders";
  * de la suite con **cero señal nueva**; la variación real entre motores ya la
  * cubre la 4.2 con los flujos de compra, sesión y bolsa.
  *
- * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 14 pruebas
+ * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 15 pruebas
  * siguen existiendo en los tres proyectos y el motivo queda visible en el
  * informe, no escondido en la config.
  */
@@ -122,6 +123,20 @@ test.describe("Accesibilidad · ficha de producto", () => {
     test(`la ruta ${route} no tiene violaciones bloqueantes`, async ({ page }) => {
         await open(page, route);
         await audit(page, route);
+    });
+
+    // V2 (R9): el visor ampliado **también** se audita — el gate cubre el
+    // estado abierto, no sólo el cerrado. Sin supresiones: si el diálogo tiene
+    // una violación, se arregla el diálogo.
+    test(`la ficha con el visor ampliado no tiene violaciones bloqueantes`, async ({ page }) => {
+        await open(page, route);
+        await page.getByRole("button", { name: /^Ampliar imagen:/ }).first().click();
+        // Ojo: el `CartDrawer` vive siempre en el DOM (rol `dialog` y todo),
+        // así que hay que nombrar al nuestro — nunca `getByRole("dialog")` a secas.
+        await page
+            .getByRole("dialog", { name: "Galería ampliada de producto" })
+            .waitFor();
+        await audit(page, `${route} · visor ampliado`);
     });
 });
 
