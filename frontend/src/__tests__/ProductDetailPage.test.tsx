@@ -3,7 +3,9 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ProductDetailPage from "@/app/products/[reference]/page";
-import { GALLERY_SIZES } from "@/components/ProductGallery";
+// R8.3 (V2): cambia SÓLO este import — `GALLERY_SIZES` se mudó a `lib/gallery-sizes`
+// (D3). Las aserciones de GALLERY_SIZES de este fichero no se tocan.
+import { GALLERY_SIZES } from "@/lib/gallery-sizes";
 import { AuthProvider } from "@/context/AuthContext";
 import { MarketProvider } from "@/context/MarketContext";
 import { CartProvider } from "@/context/CartContext";
