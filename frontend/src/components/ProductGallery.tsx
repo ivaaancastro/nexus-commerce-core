@@ -1,11 +1,15 @@
+"use client";
+
+import { useRef, useState } from "react";
 import ProductImage from "@/components/ProductImage";
+import ProductLightbox from "@/components/ProductLightbox";
 import { getProductImages, imageAlt } from "@/lib/product-images";
 
 interface ProductGalleryProps {
     referenceCode: string;
     name: string;
     family: string;
-    /** `sizes` de las imágenes (R6); lo decide la página que la monta. */
+    /** `sizes` de las imágenes (R6 de la 3.3); lo decide la página que la monta. */
     sizes: string;
 }
 
@@ -23,39 +27,21 @@ interface ProductGalleryProps {
 const EAGER_IMAGES = 2;
 
 /**
- * `sizes` de la galería (R6), derivado del layout real de la ficha —
- * contenedor `max-w-6xl px-6`, tarjeta `p-8 sm:p-12`, rejilla de 12 columnas
- * con `md:gap-x-12` y galería de 2 columnas con `gap-2`.
- *
- * <p>Cada tramo es el ancho medido de la imagen, **redondeado hacia arriba** para
- * que el navegador nunca pida menos de lo que ocupa la caja. Ojo: el ancho útil
- * es el del `<img>`, no el de su contenedor — el borde de la tarjeta resta
- * 2 px, y esos 2 px bastan para cruzar de bucket a DPR alto (278 px × 3 = 834
- * pediría `1080w` cuando `828w` ya es exacto).</p>
- *
- * <ul>
- *   <li>`<640px`: 1 columna, `px-6` (48) + borde (2) + `p-8` (64) →
- *       `100vw - 114px`</li>
- *   <li>`640–767px`: igual pero con `p-12` (96) → `100vw - 146px`</li>
- *   <li>`768–1166px`: 2 columnas dentro del `col-span-7` → `30vw - 60px`</li>
- *   <li>`≥1167px`: `max-w-6xl` deja de crecer → fijo `280px`</li>
- * </ul>
- */
-export const GALLERY_SIZES =
-    "(max-width: 639px) calc(100vw - 114px), " +
-    "(max-width: 767px) calc(100vw - 146px), " +
-    "(max-width: 1166px) calc(30vw - 60px), " +
-    "280px";
-
-/**
- * Galería de la ficha de producto (Tarea 3.3, R7).
+ * Galería de la ficha de producto (Tarea 3.3, R7; **ampliada en la V2** con
+ * lightbox — `specs/zoom-lightbox/`).
  *
  * <p>1 columna por debajo de 768px y 2 columnas a partir de ahí, con `gap-2`.
- * Es un bloque vertical sin lightbox ni carrusel, en línea con el scroll puro
- * que ya elegimos para la navegación del catálogo.</p>
+ * El scroll vertical **no cambia**: la V2 sólo añade un botón por celda que
+ * abre el visor {@link ProductLightbox} con la imagen pulsada (D2 —
+ * `ProductImage` se comparte con tarjeta y buscador, así que no se toca).</p>
  *
  * <p>Si el manifiesto no tiene la referencia se pinta **una sola** caja de
- * placeholder: la ficha conserva su layout y no se pide ningún fichero (R9).</p>
+ * placeholder **fuera de ningún botón**: no hay nada que ampliar, la ficha
+ * conserva su layout y no se pide ningún fichero (R9 de la 3.3).</p>
+ *
+ * <p>Este componente pasa a cliente en la V2 (estado del visor), así que
+ * `GALLERY_SIZES` vive ahora en `src/lib/gallery-sizes.ts`: la página (servidor)
+ * lo consume como valor y el grafo de servidor no importa de módulos cliente.</p>
  */
 export default function ProductGallery({
     referenceCode,
@@ -67,19 +53,61 @@ export default function ProductGallery({
     const items: (string | undefined)[] =
         images.length > 0 ? images : [undefined];
 
+    const [abierto, setAbierto] = useState(false);
+    const [indice, setIndice] = useState(0);
+    /** Botón que abrió el visor: a él vuelve el foco al cerrar (R4 de la V2). */
+    const gatilloRef = useRef<HTMLButtonElement | null>(null);
+
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2" data-testid="product-gallery">
-            {items.map((src, index) => (
-                <ProductImage
-                    key={src ?? "placeholder"}
-                    src={src}
-                    alt={imageAlt(name, index)}
-                    sizes={sizes}
+        <>
+            <div
+                className="grid grid-cols-1 md:grid-cols-2 gap-2"
+                data-testid="product-gallery"
+            >
+                {items.map((src, index) => {
+                    const alt = imageAlt(name, index);
+                    const imagen = (
+                        <ProductImage
+                            key={src ?? "placeholder"}
+                            src={src}
+                            alt={alt}
+                            sizes={sizes}
+                            name={name}
+                            family={family}
+                            eager={index < EAGER_IMAGES}
+                        />
+                    );
+                    if (!src) return imagen;
+                    return (
+                        <button
+                            key={src}
+                            type="button"
+                            aria-label={`Ampliar imagen: ${alt}`}
+                            className="block w-full cursor-zoom-in"
+                            onClick={(e) => {
+                                gatilloRef.current = e.currentTarget;
+                                setIndice(index);
+                                setAbierto(true);
+                            }}
+                        >
+                            {imagen}
+                        </button>
+                    );
+                })}
+            </div>
+            {abierto && (
+                <ProductLightbox
+                    images={images}
                     name={name}
                     family={family}
-                    eager={index < EAGER_IMAGES}
+                    index={indice}
+                    setIndex={setIndice}
+                    onClose={() => {
+                        setAbierto(false);
+                        gatilloRef.current?.focus();
+                    }}
                 />
-            ))}
-        </div>
+            )}
+        </>
     );
 }
