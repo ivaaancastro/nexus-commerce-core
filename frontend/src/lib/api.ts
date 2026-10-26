@@ -27,6 +27,8 @@ import {
     AdminOrderStatusData,
     AdminOrderTrackingData,
     AdminDashboard,
+    Wishlist,
+    WishlistItem,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation, AdminUserPage, AdminUser, AdminUserRoleData, AdminUserSuspensionData } from "@/types/auth";
 
@@ -180,6 +182,45 @@ export const api = {
             }
         );
         return handleResponse<ProductReturn>(res);
+    },
+
+    // ── Favoritos (spec V3 wishlist, R3/R4) ────────────────────────────────
+    // Los 4 endpoints son authenticated(): sin el header el backend responde
+    // 401 y el corazón redirige a /login antes de llegar aquí (R5.3).
+
+    getWishlist: async (): Promise<Wishlist> => {
+        const res = await fetch(`${BASE_URL}/api/v1/wishlist`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<Wishlist>(res);
+    },
+
+    /** Idempotente: repetir devuelve el ítem existente (200) sin fila nueva (R3.2). */
+    addWishlistItem: async (productId: number): Promise<WishlistItem> => {
+        const res = await fetch(`${BASE_URL}/api/v1/wishlist/items`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify({ productId }),
+        });
+        return handleResponse<WishlistItem>(res);
+    },
+
+    /** 204 siempre, exista o no el ítem (R3.3) — `handleResponse` tolera el vacío. */
+    removeWishlistItem: async (productId: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/wishlist/items/${productId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        return handleResponse<void>(res);
+    },
+
+    clearWishlist: async (): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/wishlist`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        return handleResponse<void>(res);
     },
 
     // Autenticación
