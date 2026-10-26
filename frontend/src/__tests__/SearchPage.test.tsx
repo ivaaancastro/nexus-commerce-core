@@ -12,6 +12,14 @@ import { api } from "@/lib/api";
 import type { Market, SemanticSearchResult } from "@/types/commerce";
 import type { User } from "@/types/auth";
 
+// V3 wishlist (R8.3): `WishlistButton` —el corazón de `ProductCard`— llama a
+// `useRouter()` para `/login` sin sesión. Mismo mock que el resto de la suite
+// (Header.test, ProtectedRoute.test): sólo el router, ninguna aserción cambia.
+vi.mock("next/navigation", () => ({
+    useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+    useParams: vi.fn(),
+}));
+
 vi.mock("@/lib/api", () => ({
     api: {
         getCurrentUser: vi.fn(),

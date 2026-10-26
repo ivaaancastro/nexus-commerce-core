@@ -5,6 +5,7 @@ import { CartProvider } from "@/context/CartContext";
 import { MarketProvider } from "@/context/MarketContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 import CartDrawer from "@/components/CartDrawer";
 
 const geistSans = Geist({
@@ -32,10 +33,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <MarketProvider>
             <CartProvider>
-              <CartDrawerProvider>
-                {children}
-                <CartDrawer />
-              </CartDrawerProvider>
+              {/* V3 wishlist: cuelga de AuthProvider (necesita la sesión) y
+                  vive dentro del árbol de cliente como cualquier otro contexto. */}
+              <WishlistProvider>
+                <CartDrawerProvider>
+                  {children}
+                  <CartDrawer />
+                </CartDrawerProvider>
+              </WishlistProvider>
             </CartProvider>
           </MarketProvider>
         </AuthProvider>

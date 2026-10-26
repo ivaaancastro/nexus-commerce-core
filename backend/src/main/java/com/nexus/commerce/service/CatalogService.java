@@ -87,7 +87,13 @@ public class CatalogService {
                 .map(this::mapToResponse);
     }
 
-    private ProductResponse mapToResponse(Product product) {
+    /**
+     * Mapea la entidad a la ficha de la vitrina. <strong>Visible en paquete</strong>
+     * para que {@code WishlistService} reutilice la MISMA definición (patrón
+     * {@code OrderService.mapToOrderResponse}, plan D5 de la V3): una sola
+     * ficha de producto, jamás dos mappers que divergen.
+     */
+    ProductResponse mapToResponse(Product product) {
         List<SkuResponse> skuResponses = product.getSkus().stream()
                 .map(this::mapSkuToResponse)
                 .toList();

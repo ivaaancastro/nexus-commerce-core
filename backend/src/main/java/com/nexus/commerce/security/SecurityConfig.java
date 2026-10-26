@@ -73,6 +73,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/orders/**").authenticated()
 
+                //    V3 wishlist: favoritos del usuario autenticado (spec
+                //    specs/wishlist/, R4.1). Sin esta regla el denyAll de
+                //    aquí abajo la cerraría también a sesión iniciada.
+                .requestMatchers("/api/v1/wishlist/**").authenticated()
+
                 // 7) Zona admin (Tarea 7.1): exige ROLE_ADMIN en el
                 //    SecurityContext, que el filtro sólo concede con el claim
                 //    `role` del JWT (sin claim → USER, mínimo privilegio).

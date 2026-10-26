@@ -1,7 +1,7 @@
 // Tarea 4.3 (R2) — accesibilidad **ejecutada**, no leída.
 //
-// Las 14 rutas del App Router se abren en un navegador real y se les pasa axe
-// (V2: +1 auditoría con el visor ampliado = 15 en total).
+// Las rutas del App Router se abren en un navegador real y se les pasa axe
+// (V2: +1 auditoría con el visor ampliado = 15 · V3: +1 `/wishlist` = 16).
 // Esto es lo que complementa a la 4.1: ESLint comprueba que el JSX esté
 // *bien escrito*, y aquí se comprueba que la página *funcione* para quien usa
 // teclado o lector de pantalla.
@@ -22,7 +22,7 @@ import { ensureOrderNumber } from "./helpers/orders";
  * de la suite con **cero señal nueva**; la variación real entre motores ya la
  * cubre la 4.2 con los flujos de compra, sesión y bolsa.
  *
- * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 15 pruebas
+ * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 16 pruebas
  * siguen existiendo en los tres proyectos y el motivo queda visible en el
  * informe, no escondido en la config.
  */
@@ -141,7 +141,9 @@ test.describe("Accesibilidad · ficha de producto", () => {
 });
 
 test.describe("Accesibilidad · sesión iniciada", () => {
-    for (const route of ["/orders", "/profile", "/addresses"]) {
+    // V3: `/wishlist` entra en el grupo autenticado — `ProtectedRoute` redirige
+    // a /login sin sesión, así que se audita tras iniciar sesión igual que las demás.
+    for (const route of ["/orders", "/profile", "/addresses", "/wishlist"]) {
         test(`la ruta ${route} no tiene violaciones bloqueantes`, async ({ page }) => {
             await login(page);
             await open(page, route);
