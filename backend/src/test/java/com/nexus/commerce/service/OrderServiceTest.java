@@ -69,6 +69,9 @@ class OrderServiceTest {
     @Mock
     private ReturnEligibilityService returnEligibilityService;
 
+    @Mock
+    private OrderEmailNotifier orderEmailNotifier;
+
     @InjectMocks
     private OrderService orderService;
 
@@ -182,6 +185,49 @@ class OrderServiceTest {
         verify(orderRepository).save(captor.capture());
         assertThat(captor.getValue().getUser()).isSameAs(user);
         assertThat(captor.getValue().getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
+    }
+
+    @Test
+    @DisplayName("V1 order-status-emails (R1) - el checkout encola el email «hemos recibido tu pedido» en CONFIRMED")
+    void debeEncolarElEmailDeCompraEnElCheckout() {
+        // GIVEN — mismo camino que el checkout exitoso (fixture espejo)
+        String idempotencyKey = "key-email-01";
+        String email = "ana@nexus.dev";
+        User user = User.builder().id(USER_ID).email(email).build();
+
+        CheckoutRequest request = new CheckoutRequest("ES", List.of(
+                new CheckoutItemRequest(1L, "WH-MAD-01", 2)
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD);
+
+        when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
+                .thenReturn(Optional.of(validAddress()));
+        when(warehouseSelectionService.selectOptimalWarehouse(any(), any(), any(), any()))
+                .thenReturn("WH-MAD-01");
+        when(inventoryService.reserveStock(any(ReserveStockRequest.class))).thenReturn(
+                new StockReservationResponse(1L, "WH-MAD-01", 2, 8, "RESERVED")
+        );
+        when(pricingService.calculatePrice(1L, "ES")).thenReturn(Optional.of(new PriceCalculationResponse(
+                1L, "ES", "EUR",
+                new BigDecimal("50.00"), new BigDecimal("50.00"), false,
+                new BigDecimal("41.32"), new BigDecimal("8.68"), new BigDecimal("21.00")
+        )));
+        when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order o = invocation.getArgument(0);
+            o.setId(100L);
+            return o;
+        });
+
+        // WHEN
+        orderService.processCheckout(idempotencyKey, request, email);
+
+        // THEN — una sola fila, al usuario del pedido y al estado CONFIRMED
+        ArgumentCaptor<Order> pedidoCapturado = ArgumentCaptor.forClass(Order.class);
+        verify(orderEmailNotifier).notificar(pedidoCapturado.capture(), eq(OrderStatus.CONFIRMED));
+        assertThat(pedidoCapturado.getValue().getUser()).isSameAs(user);
+        assertThat(pedidoCapturado.getValue().getOrderNumber()).isNotBlank();
     }
 
     @Test

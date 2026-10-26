@@ -47,6 +47,7 @@ import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -81,6 +82,7 @@ class AdminOrderServiceTest {
     @Mock private ProductReturnRepository productReturnRepository;
     @Mock private InventoryService inventoryService;
     @Mock private OrderService orderService;
+    @Mock private OrderEmailNotifier orderEmailNotifier;
 
     @InjectMocks private AdminOrderService service;
 
@@ -311,6 +313,28 @@ class AdminOrderServiceTest {
         assertThatThrownBy(() -> service.actualizarTracking(
                 "ORD-NOEXISTE", new AdminOrderTrackingRequest("SEUR", "X")))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("V1 order-status-emails (R2) - cada transición exitosa encola su email; el 409 no encola nada")
+    void debeEncolarElEmailEnCadaTransicion() {
+        // GIVEN
+        when(orderService.mapToOrderResponse(any(Order.class))).thenReturn(respuesta());
+        Order pedido = pedido(OrderStatus.CONFIRMED);
+        when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pedido));
+
+        // WHEN — CONFIRMED → SHIPPED
+        service.cambiarEstado(NUM, new AdminOrderStatusRequest(OrderStatus.SHIPPED));
+
+        // THEN — una fila por transición, al estado de destino (misma transacción)
+        verify(orderEmailNotifier).notificar(pedido, OrderStatus.SHIPPED);
+
+        // WHEN — repetir el mismo estado (la guarda anti doble clic de la 7.4)
+        assertThatThrownBy(() -> service.cambiarEstado(NUM, new AdminOrderStatusRequest(OrderStatus.SHIPPED)))
+                .isInstanceOf(OrderStateConflictException.class);
+
+        // THEN — el 409 no llega a generar ningún email adicional
+        verify(orderEmailNotifier, times(1)).notificar(any(Order.class), any(OrderStatus.class));
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────
