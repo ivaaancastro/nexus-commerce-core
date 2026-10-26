@@ -61,6 +61,8 @@ public class AdminOrderService {
     private final InventoryService inventoryService;
     /** Reutiliza {@code mapToOrderResponse}: una sola definición de la forma del pedido. */
     private final OrderService orderService;
+    /** V1: un email de outbox por cada transición exitosa (misma transacción). */
+    private final OrderEmailNotifier orderEmailNotifier;
 
     // ── Lectura ────────────────────────────────────────────────────────────
 
@@ -148,7 +150,7 @@ public class AdminOrderService {
         if (actual == destino) {
             // Guarda anti doble clic: «enviar» dos veces no descuenta stock dos veces.
             throw new OrderStateConflictException(
-                    "El pedido " + orderNumber + " ya está en estado " + etiqueta(actual));
+                    "El pedido " + orderNumber + " ya está en estado " + actual.etiqueta());
         }
 
         Set<OrderStatus> permitidas = TRANSICIONES.getOrDefault(actual, Set.of());
@@ -156,10 +158,10 @@ public class AdminOrderService {
             String sugerencia = permitidas.isEmpty()
                     ? "es un estado final"
                     : "sólo se puede mover a " + permitidas.stream()
-                            .map(AdminOrderService::etiqueta).sorted().toList();
+                            .map(OrderStatus::etiqueta).sorted().toList();
             throw new OrderStateConflictException(
-                    "Transición no permitida: un pedido " + etiqueta(actual) +
-                            " no puede pasar a " + etiqueta(destino) + " (" + sugerencia + ").");
+                    "Transición no permitida: un pedido " + actual.etiqueta() +
+                            " no puede pasar a " + destino.etiqueta() + " (" + sugerencia + ").");
         }
 
         switch (destino) {
@@ -172,6 +174,12 @@ public class AdminOrderService {
         order.setStatus(destino);
         orderRepository.save(order);
         log.info("Pedido {} cambia de {} a {}", orderNumber, actual, destino);
+
+        // V1 order-status-emails (R2/D2): el email se encola DENTRO de esta
+        // misma transacción — si el commit sobrevive, la intención queda
+        // garantizada; si algo hiciera rollback después, no quedaría ningún
+        // email de un hecho que no ocurrió (R5). El envío lo hace el poller.
+        orderEmailNotifier.notificar(order, destino);
 
         return toDetail(order);
     }
@@ -238,16 +246,5 @@ public class AdminOrderService {
         }
         String limpio = valor.trim();
         return limpio.isEmpty() ? null : limpio;
-    }
-
-    /** Etiqueta en español para los mensajes de la máquina (espejo del frontend). */
-    private static String etiqueta(OrderStatus status) {
-        return switch (status) {
-            case PENDING -> "Pendiente";
-            case CONFIRMED -> "Confirmado";
-            case SHIPPED -> "Enviado";
-            case DELIVERED -> "Entregado";
-            case CANCELLED -> "Cancelado";
-        };
     }
 }

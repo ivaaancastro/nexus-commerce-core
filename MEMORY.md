@@ -10,12 +10,12 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/final-price-display` — **B implementada y verificada, lista para PR** (T15: pendiente de permiso); siguiente: la **C** |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica, previa), 7.1, 7.2, 7.3, 7.4, la mini-feature `product-photos` (fotos IA Gemini→FLUX→póster), la 7.5, la 7.6, la mini-feature `checkout-payment-grid` y la mini-feature `final-price-display` completadas** · **Fase 7 (panel de administración) COMPLETA (7.1–7.6)** · fases 1–5 y 3.x/4.x completadas |
-| **Tarea actual** | **B — Precio final con impuestos incluidos — COMPLETA** (`specs/final-price-display/`): PDP, carrito, drawer y ficha del cliente con **sólo precio final + «Impuestos incluidos (X %)»** (copy único en `src/lib/taxes.ts`), desglose **sólo** en `/receipt` y panel admin — **ambos intactos** |
-| **Estado** | **345 backend + 461 frontend** (448 base + 13 nuevos) · ESLint **0 errores, 0 warnings** · `tsc` 0 · `npm run build` 0 · cobertura frontend **85,91 / 81,94 / 83,45 / 87,98** sobre los umbrales congelados **77 / 76 / 74 / 79** + `api.ts` ≥ 99 · **axe 14/14** · verificación programática (PDP sin desglose · carrito/drawer `Total == Subtotal` con la parte real · pedido con enlace al recibo · `/receipt` **con** desglose · UK «(20 %)») |
-| **Pendiente** | T13 `/spec-check` + **T15 pedir permiso** para commit/push/PR de la **B**; después la **C** (colores + cuidados, migración V16) y volver a la **8.1 Dockerfile** |
-| **Última actualización** | 2026-10-22 |
+| **Rama actual** | `main` — **V1 `order-status-emails` completada y mergeada**; specs en `specs/order-status-emails/` |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica), 7.1–7.6, `product-photos`, `checkout-payment-grid`, `final-price-display` (B), `color-and-care` (C) y la V1 `order-status-emails` completadas y MERGEADAS a `main`** · **Fase 7 (panel) COMPLETA** · fases 1–5 y 3.x/4.x completadas · **bloque «Mejoras de vitrina» V1–V6 en curso (V1 cerrada) — aprobado ANTES de la Fase 8** (la 8 queda aplazada) |
+| **Tarea actual** | **V2 — Zoom/lightbox en la galería de la ficha** (`specs/zoom-lightbox/` **por crear** — ⏳ SDD: nada de código sin spec); revisa la decisión D5 de la 3.3 («sólo scroll, sin lightbox»), sólo frontend |
+| **Estado** | **380 backend + 470 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · build 0 · cobertura frontend **85,94 / 81,78 / 83,75 / 88,03** sobre los umbrales congelados **77 / 76 / 74 / 79** + `api.ts` ≥ 99 · **axe 14/14** · **E2E rápido 25/25** · CI verde |
+| **Pendiente** | **Plan + spec de la V2 (zoom/lightbox)** — ⛔ punto de bloqueo SDD; después **V3 wishlist → V4 reviews → V5 cupones → V6 fotos por color + demo multicolor**; **PSP = fase propia**; la **Fase 8** espera al cierre del bloque |
+| **Última actualización** | 2026-10-26 |
 
 ---
 
@@ -312,8 +312,19 @@
 - [x] **7.3 — Gestión de stock y precios (multimercado)** ✅ **completada 2026-10-15** — spec `specs/admin-stock-pricing/` (sin ADR) · 249/359 tests
 - [x] **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** ✅ **completada 2026-10-15** — spec `specs/admin-orders/` (sin ADR) · 287/387 tests
 - [x] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) ✅ **completada 2026-10-19** — spec `specs/admin-users/` (sin ADR) · 325/441 tests
-- [x] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) ✅ **completada 2026-10-19** — spec `specs/admin-users/` (sin ADR) · 325/441 tests
 - [x] 7.6 — Dashboard con métricas (ventas, productos, usuarios) ✅ **completada 2026-10-20** — spec `specs/admin-dashboard/` (sin ADR) · 345/448 tests
+
+### 🔧 Bloque «Mejoras de vitrina» — aprobado 2026-10-22, ANTES de la Fase 8
+> Orden aprobado por **tamaño y riesgo** (decisión del usuario). La **pasarela de pago (PSP)** queda **fuera**: fase propia, ubicación (antes/después de la 8) por decidir. **La Fase 8 queda aplazada** hasta cerrar este bloque.
+
+- [x] **V1 — Notificaciones de pedido por email** ✅ **completada 2026-10-26** · `specs/order-status-emails/` (plan D1–D12 · spec R1–R9/RT1–RT9 (2ª redacción aprobada) · tasks 100 %) · email de compra + un email por transición del panel · **plantilla HTML compartida de los 3 emails** (`EmailHtmlTemplates`, text block + tokens `{{...}}`/`String.replace`, CSS inline, pila Geist — previews **byte-idénticos** tras convertir `String.format` → tokens) · **outbox transaccional `V17` + poller con reintentos** (fila en la misma tx: rollback ⇒ sin fila · CAS `PENDING→SENDING`, alquiler 10 min · backoff 30 s duplicando, tope ~1 h, 8 intentos → `FAILED` · nacen a `created+30 s` · nunca lanza) · RT9 reforzado en `pom.xml` (surefire sin `spring.mail.username` → **0 SMTP medido en toda la suite**) · **349 → 380 backend** (+31: 25 en 5 clases nuevas, +4 `EmailServiceTest` con R8.3, +1+1 con diff = adiciones puras) · **470 frontend intactos** · E2E rápido 25/25 · `/spec-check` **APROBADO** · **stack real medido** (compra `ORD-977046A0` → fila → log → `SENT`; transición panel → fila «— Enviado» → log con tracking; repetir estado → `409` sin fila) · sin ADR, sin frontend y sin PR de documentación de cierre
+- [ ] **V2 — Zoom/lightbox en la galería de la ficha** — revisa la decisión D5 de la 3.3 («sólo scroll»); sólo frontend
+- [ ] **V3 — Wishlist / favoritos** — «Guardar» en ficha y catálogo + página de favoritos
+- [ ] **V4 — Reviews / valoraciones en la ficha** — sólo quien compró el producto; entidad + migración nueva
+- [ ] **V5 — Cupones de descuento** — `/cart` + reglas (%, tope, vigencia); mejor **antes** de que exista cobro real
+- [ ] **V6 — Fotos por color (`photos-per-color`)** — manifiesto de dos niveles + **producto multicolor de demo** (migración de semilla + fotos con la cadena de IA, decisión del usuario) para que se vea en la demo
+
+> **Deuda que sigue sin planificar** (análisis 2026-10-09): pasarela de pago (→ fase propia PSP) · y lo resuelto en la Fase 6 ya está fuera de la lista.
 
 ### Fase 8 — Instalación y configuración (reduce la fricción del comprador)
 - [ ] 8.1 — Dockerfile de producción (backend + frontend + Postgres)

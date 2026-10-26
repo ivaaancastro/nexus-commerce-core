@@ -48,6 +48,8 @@ public class OrderService {
     private final PricingService pricingService;
     private final WarehouseSelectionService warehouseSelectionService;
     private final ReturnEligibilityService returnEligibilityService;
+    /** V1: email de «hemos recibido tu pedido» encolado en esta misma transacción. */
+    private final OrderEmailNotifier orderEmailNotifier;
 
     @Transactional
     public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request, String userEmail) {
@@ -151,6 +153,11 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         log.info("Orden {} creada con éxito. Total: {} {}", savedOrder.getOrderNumber(), savedOrder.getTotalAmount(), currency);
+
+        // V1 order-status-emails (R1/D2): «hemos recibido tu pedido», encolado
+        // dentro de la misma transacción (R5: si hay rollback, no queda email).
+        // El pedido nace CONFIRMED sin cobro, así que el copy jamás dice «pagado».
+        orderEmailNotifier.notificar(savedOrder, OrderStatus.CONFIRMED);
 
         return mapToOrderResponse(savedOrder);
     }
