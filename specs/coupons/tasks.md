@@ -167,8 +167,8 @@
 - [ ] **Integrar `CouponSummary` en `/checkout`** — sección "Resumen de descuentos" antes de confirmar pedido
 - [ ] **Integrar `AdminCouponsPage` en `/admin/coupons`** — nueva página de panel admin
 
-### 2.5. Tests ⏳
-- [ ] **`CouponInput.test.tsx`** — test debounce, validación exitosa/inválida, toast messages
+### 2.5. Tests ✅
+- [x] **`CouponInput.test.tsx`** — test debounce, validación exitosa/inválida, toast messages
 - [ ] **`AdminCouponsPage.test.tsx`** — test CRUD básico (mock API, verificar tabla renderiza datos)
 
 ---
