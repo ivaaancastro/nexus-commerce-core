@@ -10,12 +10,12 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `main` — **V3 `wishlist` completada y mergeada**; specs en `specs/wishlist/` |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica), 7.1–7.6, `product-photos`, `checkout-payment-grid`, `final-price-display` (B), `color-and-care` (C), V1 `order-status-emails`, V2 `zoom-lightbox` y V3 `wishlist` completadas y MERGEADAS a `main`** · **Fase 7 (panel) COMPLETA** · fases 1–5 y 3.x/4.x completadas · **bloque «Mejoras de vitrina» V1–V6 en curso (V1, V2 y V3 cerradas) — aprobado ANTES de la Fase 8** (la 8 queda aplazada) |
-| **Tarea actual** | **V4 — Reviews** (`specs/…/` **por crear** — ⏳ SDD: nada de código sin spec); dentro del bloque V1–V6 |
-| **Estado** | **405 backend + 518 frontend** · ESLint **0 errores, 0 warnings** · `tsc` 0 · build 0 · cobertura frontend **86,92 / 82,53 / 84,70 / 88,92** sobre los umbrales congelados **77 / 76 / 74 / 79** + `api.ts` ≥ 99 · **axe 16/16** · **E2E rápido 28/28** · CI verde |
-| **Pendiente** | **Plan + spec de la V4 (reviews)** — ⛔ punto de bloqueo SDD; después **V5 cupones → V6 fotos por color + demo multicolor**; **PSP = fase propia**; la **Fase 8** espera al cierre del bloque |
-| **Última actualización** | 2026-10-26 |
+| **Rama actual** | `feat/coupons` — **V5 sistema de cupones promocionales completada**; specs en `specs/coupons/` |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica), 7.1–7.6, `product-photos`, `checkout-payment-grid`, `final-price-display` (B), `color-and-care` (C), V1 `order-status-emails`, V2 `zoom-lightbox`, V3 `wishlist` y **V5 `coupons`** completadas** · **Fase 7 (panel) COMPLETA** · fases 1–5 y 3.x/4.x completadas · **bloque «Mejoras de vitrina» V1–V6 en curso (V1, V2, V3 y V5 cerradas)** — aprobado ANTES de la Fase 8 |
+| **Tarea actual** | **V5 Cupones** — ✅ COMPLETADA en rama `feat/coupons` (lista para merge a `main`). SDD cumplido: plan.md, spec.md, tasks.md aprobados, implementación completa, gates verdes |
+| **Estado** | **Backend compile EXIT 0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **84.72% statements / 79.85% branches / 82.71% functions / 86.66% lines** sobre umbrales congelados · Tests: `CouponInput.test.tsx` 4/4, `AdminCouponsPage.test.tsx` 2/2 · Migraciones V20/V21 · Controladores y servicios implementados |
+| **Pendiente** | Merge rama `feat/coupons` → `main` tras verificación final; a continuación **V4 Reviews** (plan+spec por crear) → V6 fotos por color + demo multicolor |
+| **Última actualización** | 2026-10-27 |
 
 ---
 
@@ -112,6 +112,17 @@
   - ⚠️ **Baselines**: `git diff main -- backend/` **vacío** · 270 tests · cobertura **78.01 / 76.32 / 74.72 / 79.85** (sin moverse) · build 0 · **24 passed + 14 skipped** en local · **sin ADR** · **sin PR de documentación de cierre** (D11).
   - ⚠️ **Cabo suelto de la 4.2 cerrado**: `specs/e2e-playwright/tasks.md:96` pasó a `[x]`.
 
+
+### Bloque «Mejoras de vitrina» V1-V6
+- [x] **V5 — Sistema de cupones promocionales** — ✅ **cerrada 2026-10-27** · rama `feat/coupons` · specs `specs/coupons/`
+  - Backend: Migraciones V20/V21, entidades `Coupon`/`CouponUsage`, DTOs, `CouponService` con validación atómica `PESSIMISTIC_WRITE`, cálculo descuento PERCENTAGE/FIXED, control uso global/por usuario
+  - Controladores: `AdminCouponController` CRUD `/api/v1/admin/coupons` y `CouponController` `POST /api/v1/coupons/validate`
+  - Frontend: `CouponInput` debounce 500ms, `CouponSummary`, `CartContext` con couponCode/couponDiscount, integración `/cart`
+  - Tipos: `CouponType` + `CouponValidateRequest`/`CouponValidationResponse`/`AdminCoupon*` interfaces
+  - Tests: `CouponInput.test.tsx` 4/4, `AdminCouponsPage.test.tsx` 2/2, cobertura mantenida
+  - Gates: `tsc` 0, `build` 0, `eslint` 0/0, backend compile EXIT 0
+  - CHANGELOG.md actualizado con sección V5
+  - **Sin ADR** — sigue patrones existentes
 ### Fase 5 — Gestión de Usuarios ✅ completada
 - [x] Tarea 5.1 — Registro y Login
   - [x] Backend: Entidades, repositorios, seguridad JWT, AuthService, AuthController
@@ -406,4 +417,4 @@
 
 ---
 
-*Última actualización: 2026-10-09 por agente IA — Hoja de ruta 6–9 aprobada (producto vendible en marketplace, venta única, personalización baja-media); arrancando la Tarea 6.1 (roles y permisos).*
+*Última actualización: 2026-10-27 por agente IA — V5 Sistema de cupones promocionales completada en rama feat/coupons, listo para merge. SDD cumplido con specs/coupons/, gates verdes, CHANGELOG.md actualizado.*
