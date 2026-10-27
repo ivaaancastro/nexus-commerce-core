@@ -33,6 +33,8 @@ import {
     AdminReviewPageResponse,
     CreateReviewRequest,
     WishlistItem,
+    CouponValidateRequest,
+    CouponValidationResponse,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation, AdminUserPage, AdminUser, AdminUserRoleData, AdminUserSuspensionData } from "@/types/auth";
 
@@ -629,6 +631,16 @@ export const api = {
             cache: "no-store",
         });
         return handleResponse<AdminReviewPageResponse>(res);
+    },
+
+    // V5: Validar cupón promocional
+    validateCoupon: async (data: CouponValidateRequest): Promise<CouponValidationResponse> => {
+        const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<CouponValidationResponse>(res);
     },
 
 };
