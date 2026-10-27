@@ -615,3 +615,79 @@ export interface CreateReviewRequest {
     comment?: string;
 }
 export type CouponType = "PERCENTAGE" | "FIXED";
+
+export interface CouponValidateRequest {
+    code: string;
+    subtotal: number;
+}
+
+export interface CouponValidationResponse {
+    valid: boolean;
+    message: string;
+    discountAmount: number;
+    coupon: {
+        code: string;
+        type: CouponType;
+        value: number;
+    };
+}
+export interface AdminCouponPageResponse {
+    coupons: AdminCouponDetailResponse[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
+export interface AdminCouponCreateRequest {
+    code: string;
+    type: CouponType;
+    value: number;
+    minOrderAmount?: number;
+    maxDiscountAmount?: number;
+    validFrom?: string;
+    validUntil?: string;
+    usageLimit?: number;
+    perUserLimit?: number;
+    active?: boolean;
+}
+
+export interface AdminCouponUpdateRequest {
+    code: string;
+    type?: CouponType;
+    value?: number;
+    minOrderAmount?: number;
+    maxDiscountAmount?: number;
+    validFrom?: string;
+    validUntil?: string;
+    usageLimit?: number;
+    perUserLimit?: number;
+    active?: boolean;
+}
+
+export interface AdminCouponDetailResponse {
+    id: number;
+    code: string;
+    type: CouponType;
+    value: number;
+    minOrderAmount?: number;
+    maxDiscountAmount?: number;
+    validFrom?: string;
+    validUntil?: string;
+    usageLimit?: number;
+    perUserLimit?: number;
+    usageCount: number;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
+    recentUsages: AdminCouponRecentUsage[];
+}
+
+
+export interface AdminCouponRecentUsage {
+    id: number;
+    userEmail: string;
+    orderNumber: string;
+    discountAmount: number;
+    usedAt: string;
+}
