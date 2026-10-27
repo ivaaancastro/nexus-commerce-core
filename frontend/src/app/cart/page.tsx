@@ -13,6 +13,8 @@ import { api } from "@/lib/api";
 import { JUST_CHECKED_OUT_KEY } from "@/lib/checkout";
 import { getFriendlyErrorMessage } from "@/lib/errors";
 import { taxesIncludedLabel } from "@/lib/taxes";
+import { CouponInput } from "@/components/CouponInput";
+import { CouponSummary } from "@/components/CouponSummary";
 import { Address } from "@/types/auth";
 import {
     PAYMENT_METHODS,
@@ -38,6 +40,8 @@ export default function CartPage() {
         clearCart,
         isRepricing,
         hasUnavailableItems,
+        couponCode,
+        couponDiscount,
     } = useCart();
     const { isAuthenticated } = useAuth();
     const { market } = useMarket();
@@ -188,6 +192,9 @@ export default function CartPage() {
                             </div>
                         </div>
 
+                        {/* Cupón promocional */}
+                        <CouponInput />
+
                         {/* Resumen */}
                         <div className="lg:col-span-1">
                             <div className="bg-white border border-neutral-200 p-6 sticky top-24">
@@ -227,7 +234,15 @@ export default function CartPage() {
                                     </div>
                                 </div>
 
-                                {/* ── Dirección de envío (Tarea 5.5, R1) ─────────────── */}
+                
+                                    {/* Resumen de cupón (V5) */}
+                                    <CouponSummary
+                                        couponCode={couponCode}
+                                        discountAmount={couponDiscount}
+                                        couponType="PERCENTAGE"
+                                    />
+
+                {/* ── Dirección de envío (Tarea 5.5, R1) ─────────────── */}
                                 <div className="mt-6 pt-4 border-t border-neutral-100">
                                     <label
                                         htmlFor="checkout-address"
