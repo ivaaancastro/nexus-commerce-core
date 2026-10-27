@@ -6,7 +6,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 export const CouponInput: React.FC = () => {
     const [code, setCode] = useState('');
     const [validating, setValidating] = useState(false);
-    const [validation, setValidation] = useState<any | null>(null);
+    type CouponValidation = { valid: boolean; message?: string; discountAmount?: number; couponType?: 'PERCENTAGE' | 'FIXED' };
+    const [validation, setValidation] = useState<CouponValidation | null>(null);
 
     // Debounce para validación (500ms)
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,10 +60,10 @@ export const CouponInput: React.FC = () => {
                     {validation.valid ? (
                         <div className="flex items-center space-x-2">
                             <span className="text-sm font-medium text-neutral-900">
-                                {getMessage(validation.valid, validation.discountAmount, validation.couponType)}
+                                {getMessage(validation.valid, validation.discountAmount, validation.couponType ?? 'PERCENTAGE')}
                             </span>
                             <span className="text-sm text-neutral-600">
-                                -{getDiscountFormatted(validation.discountAmount, validation.couponType)}
+                                -{getDiscountFormatted(validation.discountAmount, validation.couponType ?? 'PERCENTAGE')}
                             </span>
                         </div>
                     ) : (
@@ -75,20 +76,20 @@ export const CouponInput: React.FC = () => {
 };
 
 /** Devuelve el mensaje según el tipo de cupón */
-const getMessage = (valid: boolean, discount: number, type: 'PERCENTAGE' | 'FIXED') => {
+const getMessage = (valid: boolean, discount: number | undefined, type: 'PERCENTAGE' | 'FIXED') => {
     if (valid) {
         if (type === 'PERCENTAGE') {
-            return `Descuento del ${discount}% aplicado`;
+            return `Descuento del ${discount ?? 0}% aplicado`;
         }
-        return `Descuento de $${discount} aplicado`;
+        return `Descuento de $${discount ?? 0} aplicado`;
     }
     return 'Cupón no aplicable';
 };
 
 /** Formatea el descuento para mostrarlo */
-const getDiscountFormatted = (discount: number, type: 'PERCENTAGE' | 'FIXED'): string => {
+const getDiscountFormatted = (discount: number | undefined, type: 'PERCENTAGE' | 'FIXED'): string => {
     if (type === 'PERCENTAGE') {
-        return `${discount}%`;
+        return `${discount ?? 0}%`;
     }
-    return `$${discount}`;
+    return `$${discount ?? 0}`;
 };
