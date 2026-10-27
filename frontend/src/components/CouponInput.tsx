@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { CouponValidationResponse, CouponType } from '@/types/commerce';
-import { api } from '@/lib/api';
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 /** Componente de input para cupón promocional en el carrito. */
 export const CouponInput: React.FC = () => {
     const [code, setCode] = useState('');
     const [validating, setValidating] = useState(false);
-    const [validation, setValidation] = useState<CouponValidationResponse | null>(null);
+    const [validation, setValidation] = useState<any | null>(null);
 
     // Debounce para validación (500ms)
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -20,10 +20,15 @@ export const CouponInput: React.FC = () => {
 
             setValidating(true);
             try {
-                const response = await api.validateCoupon({
-                    code: code.toUpperCase().trim(),
-                    subtotal: 0,
+                const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        code: code.toUpperCase().trim(),
+                        subtotal: 0,
+                    }),
                 });
+                const response = await res.json();
                 setValidation(response);
 
                 if (!response.valid) {
@@ -54,10 +59,10 @@ export const CouponInput: React.FC = () => {
                     {validation.valid ? (
                         <div className="flex items-center space-x-2">
                             <span className="text-sm font-medium text-neutral-900">
-                                {getMessage(validation.valid, validation.discountAmount, validation.coupon.type)}
+                                {getMessage(validation.valid, validation.discountAmount, validation.couponType)}
                             </span>
                             <span className="text-sm text-neutral-600">
-                                -{getDiscountFormatted(validation.discountAmount, validation.coupon.type)}
+                                -{getDiscountFormatted(validation.discountAmount, validation.couponType)}
                             </span>
                         </div>
                     ) : (
@@ -70,7 +75,7 @@ export const CouponInput: React.FC = () => {
 };
 
 /** Devuelve el mensaje según el tipo de cupón */
-const getMessage = (valid: boolean, discount: number, type: CouponType) => {
+const getMessage = (valid: boolean, discount: number, type: 'PERCENTAGE' | 'FIXED') => {
     if (valid) {
         if (type === 'PERCENTAGE') {
             return `Descuento del ${discount}% aplicado`;
@@ -81,7 +86,7 @@ const getMessage = (valid: boolean, discount: number, type: CouponType) => {
 };
 
 /** Formatea el descuento para mostrarlo */
-const getDiscountFormatted = (discount: number, type: CouponType): string => {
+const getDiscountFormatted = (discount: number, type: 'PERCENTAGE' | 'FIXED'): string => {
     if (type === 'PERCENTAGE') {
         return `${discount}%`;
     }
