@@ -45,6 +45,10 @@ interface CartContextType {
     isRepricing: boolean;
     /** R6/D6: true si algún artículo no tiene precio en el mercado activo. */
     hasUnavailableItems: boolean;
+    /** R5-V5: código de cupón aplicado en el carrito. */
+    couponCode?: string;
+    /** R5-V5: importe del descuento derivado de cupón aplicado. */
+    couponDiscount?: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -171,6 +175,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // warning react-hooks/set-state-in-effect.
     const [pricedMarket, setPricedMarket] = useState<string | null>(null);
 
+    // R5-V5: Estado del cupón aplicado (independiente de items del carrito)
+    const [couponCode, setCouponCode] = useState<string | undefined>(undefined);
+    const [couponDiscount, setCouponDiscount] = useState<number>(0);
+
     // layout.tsx monta MarketProvider envolviendo a CartProvider (D5). Sin
     // provider, useMarket devuelve el mercado por defecto (ES) — ver MarketContext.
     const { market } = useMarket();
@@ -236,6 +244,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
             cancelled = true;
         };
     }, [marketCode, isHydrated, state.items]);
+
+    // R5-V5: Efecto para validar cupón cuando cambia el código
+    useEffect(() => {
+        // Si no hay código, descuento es 0
+        if (!couponCode) {
+            setCouponDiscount(0);
+            return;
+        }
+
+        // Validar cupón en backend con subtotal actual (aproximado)
+        ;(async () => {
+            try {
+                const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
+                const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        code: couponCode.toUpperCase().trim(),
+                        subtotal: 10000,
+                    }),
+                });
+                const response = await res.json();
+                if (response.valid && response.coupon) {
+                    setCouponDiscount(response.discountAmount);
+                } else {
+                    setCouponDiscount(0);
+                }
+            } catch (error) {
+                setCouponDiscount(0);
+            }
+        })();
+    }, [couponCode]);
 
     const addItem = (item: CartItem) => {
         dispatch({ type: "ADD_ITEM", payload: item });
@@ -306,6 +346,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 currency,
                 isRepricing,
                 hasUnavailableItems,
+                couponCode,
+                couponDiscount,
             }}
         >
             {children}
