@@ -74,6 +74,22 @@ class SecurityRulesTest {
     }
 
     @Test
+    @DisplayName("Sin token - GET /wishlist -> 401")
+    void wishlistGetSinToken401() throws Exception {
+        mockMvc.perform(get("/api/v1/wishlist"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Sin token - POST /wishlist/items -> 401")
+    void wishlistPostSinToken401() throws Exception {
+        mockMvc.perform(post("/api/v1/wishlist/items")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"productId\":1}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Con token - los tres POST pasan la puerta y responden su codigo de negocio")
     void losTresConTokenRespondenSuNegocio() throws Exception {
         // reserve con cuerpo vacío: llega a la validación -> 400. Si la

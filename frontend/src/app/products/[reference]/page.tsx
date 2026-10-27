@@ -6,6 +6,7 @@ import Header from "@/components/Header";
 import ProductDetailSkeleton from "@/components/ProductDetailSkeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AddToCartButton from "@/components/AddToCartButton";
+import WishlistButton from "@/components/WishlistButton";
 import ProductGallery from "@/components/ProductGallery";
 import { GALLERY_SIZES } from "@/lib/gallery-sizes";
 import { api } from "@/lib/api";
@@ -341,29 +342,41 @@ export default function ProductDetailPage() {
 
                             {/* Acción de Compra Idempotente */}
                             <div className="pt-6">
-                                {selectedSku ? (
-                                    <AddToCartButton
+                                {/* Fila «Añadir a la bolsa» + corazón (V3 wishlist, R5.1):
+                                    misma fila en escritorio; el corazón iguala la altura
+                                    con `items-stretch` y el mensaje «no comprable» también
+                                    convive con él — guardar un producto no exige talla (D2). */}
+                                <div className="flex items-stretch gap-3">
+                                    <div className="flex-1">
+                                        {selectedSku ? (
+                                            <AddToCartButton
+                                                productId={product.id}
+                                                referenceCode={product.referenceCode}
+                                                name={product.name}
+                                                family={product.family}
+                                                skuId={selectedSku.id}
+                                                size={selectedSku.size}
+                                                color={selectedSku.color}
+                                                unitPrice={pricing?.finalPrice ?? 0}
+                                                currency={pricing?.currency ?? market.currency}
+                                                disabled={
+                                                    priceUnavailable ||
+                                                    !stock?.inStock ||
+                                                    !stock?.breakdown.some(w => w.netAvailable > 0)
+                                                }
+                                            />
+                                        ) : (
+                                            /* Sin SKUs aún no hay nada que añadir a la bolsa (7.2/D9). */
+                                            <p className="text-[11px] uppercase tracking-widest text-neutral-600 text-center h-full flex items-center justify-center">
+                                                No comprable hasta que tenga al menos un SKU con precio y stock
+                                            </p>
+                                        )}
+                                    </div>
+                                    <WishlistButton
                                         productId={product.id}
-                                        referenceCode={product.referenceCode}
-                                        name={product.name}
-                                        family={product.family}
-                                        skuId={selectedSku.id}
-                                        size={selectedSku.size}
-                                        color={selectedSku.color}
-                                        unitPrice={pricing?.finalPrice ?? 0}
-                                        currency={pricing?.currency ?? market.currency}
-                                        disabled={
-                                            priceUnavailable ||
-                                            !stock?.inStock ||
-                                            !stock?.breakdown.some(w => w.netAvailable > 0)
-                                        }
+                                        productName={product.name}
                                     />
-                                ) : (
-                                    /* Sin SKUs aún no hay nada que añadir a la bolsa (7.2/D9). */
-                                    <p className="text-[11px] uppercase tracking-widest text-neutral-600 text-center">
-                                        No comprable hasta que tenga al menos un SKU con precio y stock
-                                    </p>
-                                )}
+                                </div>
 
                                 <div className="mt-4 text-center">
                                     <span className="text-[10px] uppercase tracking-wider text-neutral-600 block">

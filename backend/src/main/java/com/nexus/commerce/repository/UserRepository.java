@@ -2,9 +2,11 @@ package com.nexus.commerce.repository;
 
 import com.nexus.commerce.entity.Role;
 import com.nexus.commerce.entity.User;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +18,19 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
+
+    /**
+     * Misma búsqueda que {@link #findByEmail} tomando la <strong>fila del
+     * usuario en escritura</strong> (V3 wishlist): serializa el get-or-create
+     * de la lista cuando dos pestañas guardan a la vez — bloqueo pesimista
+     * del proyecto (§4.2). La wishlist sólo adquiere este bloqueo y no toca
+     * después ningún otro recurso bloqueable, así que no hay ciclos de
+     * interbloqueo. El {@code UNIQUE(user_id)} de la V18 queda como última
+     * línea de defensa por si el bloqueo se colara.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.email = :email")
+    Optional<User> findByEmailForUpdate(@Param("email") String email);
 
     /**
      * Listado del panel (Tarea 7.5, R1): <strong>todos</strong> los usuarios,
