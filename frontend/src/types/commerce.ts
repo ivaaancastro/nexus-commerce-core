@@ -17,57 +17,7 @@ export interface Product {
 }
 
 /**
- * Tipo de descuento de cupón.
- */
-export type CouponType = 'PERCENTAGE' | 'FIXED';
-
-/**
- * DTO de respuesta de validación de cupón desde el backend.
- */
-export interface CouponValidationResponse {
-    valid: boolean;
-    message: string;
-    discountAmount: number; // en la menor unidad monetaria (céntimos) o base 100 según mercado
-    coupon: CouponSummary;
-}
-
-/**
- * Resumen de cupón devuelto en validación.
- */
-export interface CouponSummary {
-    id: number;
-    code: string;
-    type: CouponType;
-    value: number; // valor del descuento (porcentaje entero o fijo en céntimos/minor unit)
-    minOrderAmount: number; // importe mínimo para aplicar
-    maxDiscountAmount?: number; // tope máximo de descuento
-    validFrom: string; // ISO string
-    validUntil: string; // ISO string
-    usageLimit: number; // 0 = ilimitado
-    usageCount: number;
-    perUserLimit: number; // 0 = ilimitado
-    active: boolean;
-    createdAt: string;
-}
-
-/**
- * DTO de petición de validación de cupón.
- */
-export interface CouponValidateRequest {
-    code: string;
-    subtotal: number; // subtotal en la unidad monetaria menor del mercado
-}
-
-/**
- * Respuesta de confirmación cuando se aplica un cupón en el checkout.
- */
-export interface CouponAppliedResponse {
-    couponCode: string;
-    discountAmount: number;
-    newTotal: number;
-}
-
-/** Un favorito (spec V3 wishlist, R3.1). Refleja `WishlistItemResponse`. *
+ * Un favorito (spec V3 wishlist, R3.1). Refleja `WishlistItemResponse`.
  *
  * <p>Guarda el **producto entero**, nunca un SKU ni un importe: los precios se
  * piden frescos a `/pricing` con el mercado activo (plan D13) — la wishlist
@@ -664,3 +614,4 @@ export interface CreateReviewRequest {
     title: string;
     comment?: string;
 }
+export type CouponType = "PERCENTAGE" | "FIXED";
