@@ -1,4 +1,4 @@
-/* @vitest/globals */
+import { describe, it, expect, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -9,12 +9,12 @@ describe("AdminCouponsPage — V5 cupones", () => {
         // Mock API calls for admin coupon endpoints
     });
 
-    test("renders the page title", () => {
+    it("renders the page title", () => {
         render(<></>);
         expect(true).toBe(true);
     });
 
-    test("test page structure", () => {
+    it("test page structure", () => {
         expect(screen.getByText).toBeDefined;
     });
 });

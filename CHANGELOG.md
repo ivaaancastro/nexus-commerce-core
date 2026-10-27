@@ -5,6 +5,15 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+
+### Added
+- **V5: Sistema de cupones promocionales** (feature `feat/coupons`):
+  - Backend: Migraciones V20 + V21, entidades `Coupon` + `CouponUsage`, DTOs, servicios `CouponService` con validación atómica `PESSIMISTIC_WRITE`, cálculo de descuento PERCENTAGE/FIXED con tope, control de uso global y por usuario, fechas, estados activos.
+  - Controladores: `AdminCouponController` CRUD `/api/v1/admin/coupons` y `CouponController` `POST /api/v1/coupons/validate`.
+  - Frontend: Tipos `CouponType` + `CouponValidateRequest`/`CouponValidationResponse`/`AdminCoupon*`. `CouponInput` con debounce 500ms y validación fetch. `CouponSummary`. Integración en `/cart` con `CartContext` (couponCode + couponDiscount).
+  - Tests: `CouponInput.test.tsx` 4/4 passing, `AdminCouponsPage.test.tsx` 2/2 passing. Cobertura mantenida (84.72% statements, 79.85% branches, 82.71% functions, 86.66% lines).
+  - Build y TypeScript limpios, lint 0 errors/0 warnings.
+
 ### Added
 - **Wishlist / favoritos con precios en vivo por mercado** (V3 del bloque «Mejoras de vitrina», spec `specs/wishlist/`):
   - **Persistencia en servidor `V18`** (R1/D1): `wishlists` (`user_id` **`UNIQUE NOT NULL`** con FK → `users` **`ON DELETE CASCADE`**) y `wishlist_items` (FK a la lista y al producto **ambas `CASCADE`** + **`UNIQUE(wishlist_id, product_id)`**), con `IF NOT EXISTS` reejecutable y **sin tocar ninguna tabla existente** (ni `ALTER` ni `UPDATE`). `GET /wishlist` **no crea fila** — leer no escribe — y el `POST` hace *get-or-create* de la lista con **bloqueo pesimista** (`findByEmailForUpdate`, patrón del pedido), quedando el `UNIQUE` como última línea de defensa. Borrar un producto desde el panel (7.2) **limpia sus favoritos por cascade**: sin fantasmas en la lista.
