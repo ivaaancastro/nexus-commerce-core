@@ -15,6 +15,7 @@ import { taxesIncludedLabel } from "@/lib/taxes";
 import { useMarket } from "@/context/MarketContext";
 import { Product, Sku, PriceBreakdown, StockInfo } from "@/types/commerce";
 import { useParams } from "next/navigation";
+import { ProductReviewsSection } from "@/components/ProductReviewsSection";
 
 export default function ProductDetailPage() {
     const params = useParams();
@@ -419,6 +420,11 @@ export default function ProductDetailPage() {
                                 </p>
                             </div>
                         )}
+
+                        {/* V4: Reviews */}
+                        <div className="md:col-start-1 md:col-span-7 md:row-start-4">
+                            <ProductReviewsSection productId={product.id} />
+                        </div>
                     </div>
                 </main>
             </div>
