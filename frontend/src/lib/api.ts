@@ -33,8 +33,6 @@ import {
     AdminReviewPageResponse,
     CreateReviewRequest,
     WishlistItem,
-    CouponValidateRequest,
-    CouponValidationResponse,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation, AdminUserPage, AdminUser, AdminUserRoleData, AdminUserSuspensionData } from "@/types/auth";
 
