@@ -28,6 +28,9 @@ import {
     AdminOrderTrackingData,
     AdminDashboard,
     Wishlist,
+    ProductReview,
+    ReviewSummaryResponse,
+    CreateReviewRequest,
     WishlistItem,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation, AdminUserPage, AdminUser, AdminUserRoleData, AdminUserSuspensionData } from "@/types/auth";
@@ -56,7 +59,8 @@ async function handleResponse<T>(res: Response): Promise<T> {
 
 function getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem("nexus-auth-token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    return token ? { Authorization: `Bearer ${token}` } : {
+};
 }
 
 export const api = {
@@ -583,4 +587,39 @@ export const api = {
         });
         return handleResponse<AdminDashboard>(res);
     },
+
+    // ── Reseñas de producto (V4 Reviews) ──────────────────────────────────
+
+    getProductReviews: async (productId: number): Promise<ReviewSummaryResponse> => {
+        const res = await fetch(`${BASE_URL}/api/v1/products/${productId}/reviews`, {
+            cache: "no-store",
+        });
+        return handleResponse<ReviewSummaryResponse>(res);
+    },
+
+    createProductReview: async (productId: number, data: CreateReviewRequest): Promise<ProductReview> => {
+        const res = await fetch(`${BASE_URL}/api/v1/products/${productId}/reviews`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<ProductReview>(res);
+    },
+
+    deleteProductReview: async (productId: number, reviewId: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/products/${productId}/reviews/${reviewId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        await handleResponse(res);
+    },
+
+    adminDeleteProductReview: async (reviewId: number): Promise<void> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/reviews/${reviewId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+        await handleResponse(res);
+    },
+
 };

@@ -563,3 +563,33 @@ export interface AdminDashboard {
     products: DashboardProducts;
     users: DashboardUsers;
 }
+
+// ── Reseñas de producto (V4 Reviews) ─────────────────────────────────────────
+
+/**
+ * Una reseña de producto (1-5 estrellas).
+ * Refleja `ReviewResponse` del backend.
+ */
+export interface ProductReview {
+    id: number;
+    productId: number;
+    userEmail: string;
+    rating: number;
+    title: string;
+    comment?: string;
+    createdAt: string;
+}
+
+/** Resumen de reseñas para un producto. Refleja `ReviewSummaryResponse` del backend. */
+export interface ReviewSummaryResponse {
+    averageRating: number;
+    totalReviews: number;
+    reviews: ProductReview[];
+}
+
+/** Payload para crear una reseña. */
+export interface CreateReviewRequest {
+    rating: number;
+    title: string;
+    comment?: string;
+}
