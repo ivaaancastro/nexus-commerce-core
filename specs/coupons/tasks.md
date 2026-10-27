@@ -3,7 +3,7 @@
 > **Feature**: V5 cupones (promocionales).
 > **Rama**: `feat/coupons` (desde `main` post-merge V4).
 > **Fecha**: 2026-10-27.
-> **Estado actual**: Backend implementation completed (compilación limpia), frontend por iniciar.
+> **Estado actual**: Backend y Frontend implementation completed (compilación limpia, tsc 0, build OK, tests passing)
 
 ---
 
