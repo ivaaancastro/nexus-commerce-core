@@ -32,6 +32,12 @@ import {
     ReviewSummaryResponse,
     CreateReviewRequest,
     WishlistItem,
+    CouponValidateRequest,
+    CouponValidationResponse,
+    AdminCouponPageResponse,
+    AdminCouponCreateRequest,
+    AdminCouponUpdateRequest,
+    AdminCouponDetailResponse,
 } from "@/types/commerce";
 import { RegisterData, LoginData, AuthResponse, User, Address, AddressData, ProfileUpdateData, SizeRecommendation, AdminUserPage, AdminUser, AdminUserRoleData, AdminUserSuspensionData } from "@/types/auth";
 
@@ -60,7 +66,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 function getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem("nexus-auth-token");
     return token ? { Authorization: `Bearer ${token}` } : {
-};
+}
 }
 
 export const api = {
@@ -621,5 +627,57 @@ export const api = {
         });
         await handleResponse(res);
     },
+    // V5: Validar cupón promocional
+    validateCoupon: async (data: CouponValidateRequest): Promise<CouponValidationResponse> => {
+        const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+            body: JSON.stringify(data),
+        });
+        return handleResponse<CouponValidationResponse>(res);
+    },
+    // V5: Admin coupon endpoints
+    getAdminCoupons: async (page: number = 0, size: number = 20, code?: string, type?: string, active?: boolean) => {
+        const query = new URLSearchParams();
+        if (page) query.set('page', String(page));
+        if (size) query.set('size', String(size));
+        if (code) query.set('code', code);
+        if (type) query.set('type', type);
+        if (active !== undefined) query.set('active', String(active));
+        const qs = query.toString();
+        const res = await fetch(`${BASE_URL}/api/v1/admin/coupons${qs ? '?' + qs : ''}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            cache: 'no-store'
+        });
+        return handleResponse<AdminCouponPageResponse>(res);
+    },
+
+    createAdminCoupon: async (coupon: AdminCouponCreateRequest) => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/coupons`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify(coupon),
+        });
+        return handleResponse<AdminCouponDetailResponse>(res);
+    },
+
+    updateAdminCoupon: async (id: number, coupon: AdminCouponUpdateRequest) => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/coupons/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+            body: JSON.stringify(coupon),
+        });
+        return handleResponse<AdminCouponDetailResponse>(res);
+    },
+
+    deleteAdminCoupon: async (id: number) => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/coupons/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        await handleResponse(res);
+    },
+
 
 };
