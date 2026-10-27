@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Product, SemanticSearchResult } from "@/types/commerce";
 import ProductImage from "@/components/ProductImage";
+import WishlistButton from "@/components/WishlistButton";
 import { getProductImages } from "@/lib/product-images";
 
 /**
@@ -93,16 +94,33 @@ export default function ProductCard({
     // Codificamos la referencia para soportar barras en la URL (ej: 0432/021 -> 0432%2F021)
     const productHref = `/products/${encodeURIComponent(reference)}`;
 
+    // Favoritos a nivel de producto (V3 wishlist, R6): el modo texto de la
+    // búsqueda trae `productId` en su resultado, así que ambas tarjetas lo heredan.
+    const productId = product?.id ?? semanticItem?.productId;
+
     return (
         <article className="group flex flex-col border border-neutral-200 bg-white hover:border-black transition-all duration-300">
-            <ProductImage
-                src={getProductImages(reference)[0]}
-                alt={name}
-                sizes={sizes}
-                name={name}
-                family={family}
-                eager={eager}
-            />
+            {/* Contenedor relativo para el corazón superpuesto: la imagen NO
+                está envuelta en un enlace (sólo «Ver Detalle» lo está), así
+                que el botón queda como HERMANO de cualquier `<a>` — nunca
+                dentro (plan D7, trampa de a11y por interactividad anidada). */}
+            <div className="relative">
+                <ProductImage
+                    src={getProductImages(reference)[0]}
+                    alt={name}
+                    sizes={sizes}
+                    name={name}
+                    family={family}
+                    eager={eager}
+                />
+                {productId !== undefined && (
+                    <WishlistButton
+                        productId={productId}
+                        productName={name}
+                        variant="overlay"
+                    />
+                )}
+            </div>
 
             <div className="flex flex-1 flex-col justify-between p-6">
                 <div>

@@ -778,4 +778,60 @@ describe("api — puerta única a la API (R4)", () => {
             expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
         });
     });
+
+    describe("favoritos (V3 wishlist, R3/R4)", () => {
+        beforeEach(() => {
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        it("getWishlist: GET con Authorization y sin caché, parsea la lista", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ items: [{ id: 3, addedAt: "2026-10-26T10:00:00Z", product: { id: 5 } }] })
+            );
+
+            const wishlist = await api.getWishlist();
+
+            expect(wishlist.items).toHaveLength(1);
+            expect(wishlist.items[0].product.id).toBe(5);
+            expect(lastUrl()).toContain("/api/v1/wishlist");
+            expect(lastInit()?.method).toBeUndefined(); // GET por defecto
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("addWishlistItem: POST JSON con productId, Authorization y 201 parseado", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ id: 3, addedAt: "2026-10-26T10:00:00Z", product: { id: 5 } }, 201)
+            );
+
+            const item = await api.addWishlistItem(5);
+
+            expect(item.id).toBe(3);
+            expect(lastUrl()).toContain("/api/v1/wishlist/items");
+            expect(lastInit()?.method).toBe("POST");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({ productId: 5 });
+        });
+
+        it("removeWishlistItem: DELETE al ítem, 204 → undefined sin parsear", async () => {
+            fetchMock.mockResolvedValue(response(204, "No Content", ""));
+
+            await expect(api.removeWishlistItem(7)).resolves.toBeUndefined();
+
+            expect(lastUrl()).toContain("/api/v1/wishlist/items/7");
+            expect(lastInit()?.method).toBe("DELETE");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+        });
+
+        it("clearWishlist: DELETE a la raíz con Authorization", async () => {
+            fetchMock.mockResolvedValue(response(204, "No Content", ""));
+
+            await expect(api.clearWishlist()).resolves.toBeUndefined();
+
+            expect(lastUrl()).toContain("/api/v1/wishlist");
+            expect(lastInit()?.method).toBe("DELETE");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+        });
+    });
 });

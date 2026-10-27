@@ -172,3 +172,64 @@ test.describe("Ficha de producto", () => {
         await expect(confirmation).toBeHidden({ timeout: 6_000 });
     });
 });
+
+test.describe("Favoritos", () => {
+    // V3 wishlist — cadena completa: corazón → POST /wishlist/items → Spring →
+    // JPA → PostgreSQL, y de vuelta al pintar /wishlist con precios de /pricing.
+    test("guardar un favorito persiste en el servidor y se puede quitar", async ({ page }) => {
+        // GIVEN una sesión activa
+        await login(page);
+
+        // AND una lista vacía — el usuario de E2E es compartido entre corridas
+        await page.goto("/wishlist");
+        const vaciar = page.getByRole("button", { name: "Vaciar favoritos" });
+        if (await vaciar.isVisible()) {
+            // `window.confirm` necesita que se acepte el diálogo (auto-dismiss por defecto)
+            page.once("dialog", (dialog) => void dialog.accept());
+            await vaciar.click();
+            await expect(
+                page.getByText(/Tu lista de favoritos está vacía/)
+            ).toBeVisible();
+        }
+
+        // WHEN guarda el blazer desde la ficha (el corazón no exige talla: D2)
+        await page.goto("/catalog");
+        await page
+            .getByRole("article")
+            .filter({ hasText: PRODUCT.name })
+            .getByRole("link", { name: "Ver Detalle" })
+            .click();
+        await page.waitForURL(/\/products\//);
+        await page
+            .getByRole("button", { name: `Guardar ${PRODUCT.name} en favoritos` })
+            .click();
+        await expect(
+            page.getByRole("button", { name: `Quitar ${PRODUCT.name} de favoritos` })
+        ).toHaveAttribute("aria-pressed", "true");
+
+        // THEN aparece en /wishlist con su precio «desde» del mercado activo
+        await page.goto("/wishlist");
+        await expect(
+            page.getByRole("heading", { name: PRODUCT.name })
+        ).toBeVisible();
+        await expect(page.getByText(/Desde/)).toBeVisible();
+
+        // AND sobrevive a una recarga: la lista vive en PostgreSQL, no en el navegador
+        await page.reload();
+        await expect(
+            page.getByRole("heading", { name: PRODUCT.name })
+        ).toBeVisible();
+
+        // AND al quitarlo desaparece y la recarga lo confirma (DELETE idempotente)
+        await page
+            .getByRole("button", { name: `Quitar ${PRODUCT.name} de favoritos` })
+            .click();
+        await expect(
+            page.getByText(/Tu lista de favoritos está vacía/)
+        ).toBeVisible();
+        await page.reload();
+        await expect(
+            page.getByText(/Tu lista de favoritos está vacía/)
+        ).toBeVisible();
+    });
+});

@@ -17,6 +17,25 @@ export interface Product {
 }
 
 /**
+ * Un favorito (spec V3 wishlist, R3.1). Refleja `WishlistItemResponse`.
+ *
+ * <p>Guarda el **producto entero**, nunca un SKU ni un importe: los precios se
+ * piden frescos a `/pricing` con el mercado activo (plan D13) — la wishlist
+ * jamás snapshota precios.</p>
+ */
+export interface WishlistItem {
+    id: number;
+    /** ISO-8601 con zona. El servidor ordena por aquí, más reciente primero (R3.1). */
+    addedAt: string;
+    product: Product;
+}
+
+/** Lista de favoritos del usuario autenticado (`WishlistResponse`). */
+export interface Wishlist {
+    items: WishlistItem[];
+}
+
+/**
  * Familia textil con su recuento de productos (Tarea 3.1, R1).
  * Refleja exactamente `FamilyResponse` del backend.
  *
