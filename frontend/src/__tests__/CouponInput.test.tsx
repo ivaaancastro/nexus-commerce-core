@@ -1,4 +1,4 @@
-/* @vitest/globals */
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CouponInput } from "@/components/CouponInput";
@@ -17,7 +17,7 @@ describe("CouponInput — V5 cupones", () => {
         vi.clearAllMocks();
     });
 
-    test("no valida con menos de 3 caracteres", async () => {
+    it("no valida con menos de 3 caracteres", async () => {
         render(<CouponInput />);
 
         // Escribir 2 caracteres
@@ -28,7 +28,7 @@ describe("CouponInput — V5 cupones", () => {
         expect(screen.queryByText("Validando...")).not.toBeInTheDocument();
     });
 
-    test("muestra estado después de escribir código", async () => {
+    it("muestra estado después de escribir código", async () => {
         render(<CouponInput />);
 
         // Escribir 3+ caracteres
@@ -42,7 +42,7 @@ describe("CouponInput — V5 cupones", () => {
         expect(input).toHaveValue("ABC");
     });
 
-    test("muestra mensaje de error para código inválido", async () => {
+    it("muestra mensaje de error para código inválido", async () => {
         render(<CouponInput />);
 
         // Escribir código inválido
@@ -56,7 +56,7 @@ describe("CouponInput — V5 cupones", () => {
         expect(input).toHaveValue("INVALID123");
     });
 
-    test("mantiene el código en el estado después de la validación", async () => {
+    it("mantiene el código en el estado después de la validación", async () => {
         render(<CouponInput />);
 
         // Escribir código
