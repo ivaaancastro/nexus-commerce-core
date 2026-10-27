@@ -127,31 +127,31 @@
 
 ---
 
-## 2. Frontend — ESTADO: POR INICIAR 📋
+## 2. Frontend — ESTADO: PARCIAL (70%) ⚠️
 
-### 2.1. Tipos y API Client ⏳
-- [ ] Crear tipos TypeScript en `frontend/src/types/commerce.ts` o `coupons.ts`:
+### 2.1. Tipos y API Client ✅ COMPLETADO
+- [x] Crear tipos TypeScript en `frontend/src/types/commerce.ts` o `coupons.ts`:
   - `CouponType: 'PERCENTAGE' | 'FIXED'`
   - `CouponValidationResponse` interface
   - `CouponSummaryResponse` interface
-- [ ] Añadir endpoint en `frontend/src/lib/api.ts`:
-  - `POST /api/v1/coupons/validate` — body: `{ code: string, subtotal: number }`; response: validation
-  - `GET /api/v1/admin/coupons` — listado admin (requiere auth)
+- [x] Añadir endpoint en `frontend/src/lib/api.ts`:
+  - [x] `POST /api/v1/coupons/validate` — body: `{ code: string, subtotal: number }`; response: validation
+  - [x] `GET /api/v1/admin/coupons` — listado admin (requiere auth) — endpoints en api.ts, página admin pendiente
 
-### 2.2. Componentes ⏳
-- [ ] **`CouponInput`** — `components/CouponInput.tsx`:
+### 2.2. Componentes PARCIAL ✅
+- [x] **`CouponInput`** — `components/CouponInput.tsx`:
   - Input text con debounce 500ms
   - Llama a `api.coupons.validate()` al perder foco o después de debounce
   - Muestra toast con mensaje (`valid`/`invalid`) y descuento calculado
   - Estilo: `border`, `focus-visible:ring-neutral-900`, `text-neutral-900` en input
-- [ ] **`CouponSummary`** — `components/CouponSummary.tsx`:
+- [x] **`CouponSummary`** — `components/CouponSummary.tsx`:
   - Muestra: "Cupón: {code} - {discount} ({type})"
   - Botón "Quitar" que limpia `CartContext.couponCode`
-- [ ] **`AdminCouponForm`** — `components/admin/AdminCouponForm.tsx`:
+- [ ] **`AdminCouponForm`** — `components/admin/AdminCouponForm.tsx`: PENDIENTE — página admin no implementada
   - Formulario react-hook-form + zod validation
   - Fields: code, type (select PERCENTAGE/FIXED), value, minOrderAmount, maxDiscountAmount, validFrom/validUntil, usageLimit, perUserLimit, active
   - Botón "Crear"/"Actualizar" con envío al backend
-- [ ] **`AdminCouponsPage`** — `app/admin/coupons/page.tsx`:
+- [ ] **`AdminCouponsPage`** — `app/admin/coupons/page.tsx`: PENDIENTE — directorio vacío
   - Tabla con paginación (usando `useTable` de TanStack o similar)
   - Columnas: Código, Tipo, Valor, Mín. pedido, Máx. descuento, Vigencia, Usos, Activo, Acciones (Editar/Eliminar)
   - Modal para crear/editar (usando `AdminCouponForm`)
@@ -162,14 +162,14 @@
   - [x] Selector `useCart` que devuelve `couponCode` y `couponDiscount`
   - [x] Integración en `/cart` y `/checkout` para mostrar/resumir el cupón aplicado
 
-### 2.4. Páginas ⏳
-- [ ] **Integrar `CouponInput` en `/cart`** — debajo del formulario de dirección o en el resumen
-- [ ] **Integrar `CouponSummary` en `/checkout`** — sección "Resumen de descuentos" antes de confirmar pedido
-- [ ] **Integrar `AdminCouponsPage` en `/admin/coupons`** — nueva página de panel admin
+### 2.4. Páginas PARCIAL ✅
+- [x] **Integrar `CouponInput` en `/cart`** — debajo del formulario de dirección o en el resumen
+- [x] **Integrar `CouponSummary` en flujo de pedido** — integrado en `/cart` y orden
+- [ ] **Integrar `AdminCouponsPage` en `/admin/coupons`** — PENDIENTE — directorio vacío
 
 ### 2.5. Tests ✅
 - [x] **`CouponInput.test.tsx`** — test debounce, validación exitosa/inválida, toast messages
-- [ ] **`AdminCouponsPage.test.tsx`** — test CRUD básico (mock API, verificar tabla renderiza datos)
+- [ ] **`AdminCouponsPage.test.tsx`** — test CRUD básico (mock API, verificar tabla renderiza datos) — test placeholder creado, página no implementada
 
 ---
 
@@ -183,8 +183,8 @@
 ## 4. Gates de Calidad ⚠️
 - [x] **`./mvnw compile`** EXIT 0 en backend ✅
 - [ ] **`./mvnw test`** EXIT 0 en backend (168 errors son Mockito ambientales preexistentes, NO lógica de cupones)
-- [ ] **`npm run test:coverage`** EXIT 0 en frontend (umbrales: 77/76/74/79 congelados)
-- [ ] **`tsc`** 0 errores, **`lint`** 0 warnings, **`build`** 0 errores en frontend
+- [x] **`npm run test:coverage`** EXIT 0 en frontend (umbrales: 84.72%/79.85%/82.71%/86.66% sobre 77/76/74/79 congelados)
+- [x] **`tsc`** 0 errores, **`lint`** 0 warnings, **`build`** 0 errores en frontend
 - [ ] Accesibilidad axe: pasar en `/cart`, `/checkout`, `/admin/coupons`
 
 ---
@@ -204,7 +204,7 @@
 
 **Backend**: ✅ **100% completado** — todas las entidades, repositorios, migraciones, DTOs, excepciones, servicios y controladores están implementados y la compilación es limpia.
 
-**Frontend**: ✅ **100% completado** — toda la feature V5 Cupones implementada. **CHANGELOG.md actualizado**.
+**Frontend**: ⚠️ **70% completado** — core de cupones en carrito completo, **página admin pendiente**. CHANGELOG.md actualizado.
 
 **Tests**: ⚠️ **96% estructural, 0% de contenido nuevo** — los tests existentes tienen problemas Mockito ambientales preexistentes no relacionados con la lógica de cupones; nuevos tests por escribir.
 
