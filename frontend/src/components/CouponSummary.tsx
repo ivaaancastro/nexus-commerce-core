@@ -5,7 +5,7 @@ export const CouponSummary: React.FC<{
     couponCode?: string;
     discountAmount?: number;
     couponType?: CouponType;
-    onRemove: () => void;
+    onRemove?: () => void;
 }> = ({ couponCode, discountAmount, couponType, onRemove }) => {
     if (!couponCode) {
         return null;
