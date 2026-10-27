@@ -176,7 +176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const [pricedMarket, setPricedMarket] = useState<string | null>(null);
 
     // R5-V5: Estado del cupón aplicado (independiente de items del carrito)
-    const [couponCode, setCouponCode] = useState<string | undefined>(undefined);
+    const [couponCode] = useState<string | undefined>(undefined);
     const [couponDiscount, setCouponDiscount] = useState<number>(0);
 
     // layout.tsx monta MarketProvider envolviendo a CartProvider (D5). Sin
@@ -249,6 +249,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         // Si no hay código, descuento es 0
         if (!couponCode) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setCouponDiscount(0);
             return;
         }
@@ -271,7 +272,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 } else {
                     setCouponDiscount(0);
                 }
-            } catch (error) {
+            } catch {
                 setCouponDiscount(0);
             }
         })();

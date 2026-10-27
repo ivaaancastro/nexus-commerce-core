@@ -11,8 +11,6 @@ export const CouponSummary: React.FC<{
         return null;
     }
 
-    const typeLabel = couponType === 'PERCENTAGE' ? '%' : '$';
-
     return (
         <div className="flex items-center space-x-2 border-l-2 border-neutral-900 p-3 rounded-md bg-neutral-950">
             <span className="text-sm font-medium text-neutral-100">{couponCode}</span>
