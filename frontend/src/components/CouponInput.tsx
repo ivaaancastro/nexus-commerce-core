@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { CouponValidateRequest, CouponValidationResponse, CouponType } from '@/types/commerce';
+import { useState } from 'react';
+import { CouponValidationResponse, CouponType } from '@/types/commerce';
 import { api } from '@/lib/api';
 
 /** Componente de input para cupón promocional en el carrito. */
@@ -7,14 +7,12 @@ export const CouponInput: React.FC = () => {
     const [code, setCode] = useState('');
     const [validating, setValidating] = useState(false);
     const [validation, setValidation] = useState<CouponValidationResponse | null>(null);
-    const debounceRef = useRef<NodeJS.Timeout>();
 
     // Debounce para validación (500ms)
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setCode(e.target.value);
 
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(async () => {
+        setTimeout(async () => {
             if (code.length < 3) {
                 setValidation(null);
                 return;
@@ -24,16 +22,13 @@ export const CouponInput: React.FC = () => {
             try {
                 const response = await api.validateCoupon({
                     code: code.toUpperCase().trim(),
-                    subtotal: 0, // Se calculará en el checkout, aquí usamos 0 como placeholder
+                    subtotal: 0,
                 });
                 setValidation(response);
 
                 if (!response.valid) {
-                    // Mostrar mensaje de error simple
-                    alert(response.message);
+                    window.alert(response.message);
                 }
-            } catch (error) {
-                alert('Error al validar el cupón');
             } finally {
                 setValidating(false);
             }
