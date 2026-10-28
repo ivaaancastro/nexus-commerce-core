@@ -628,7 +628,15 @@ export const api = {
         });
         await handleResponse(res);
     },
-    // V5: Validar cupón promocional
+    getAdminReviews: async (page: number = 0, size: number = 20): Promise<AdminReviewPageResponse> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/reviews?page=${page}&size=${size}`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<AdminReviewPageResponse>(res);
+    },
+
+    // V5: Cupones
     validateCoupon: async (data: CouponValidateRequest): Promise<CouponValidationResponse> => {
         const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {
             method: "POST",
@@ -637,7 +645,7 @@ export const api = {
         });
         return handleResponse<CouponValidationResponse>(res);
     },
-    // V5: Admin coupon endpoints
+
     getAdminCoupons: async (page: number = 0, size: number = 20, code?: string, type?: string, active?: boolean) => {
         const query = new URLSearchParams();
         if (page) query.set('page', String(page));
@@ -654,27 +662,6 @@ export const api = {
         return handleResponse<AdminCouponPageResponse>(res);
     },
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    getAdminReviews: async (page: number = 0, size: number = 20): Promise<AdminReviewPageResponse> => {
-        const res = await fetch(`${BASE_URL}/api/v1/admin/reviews?page=${page}&size=${size}`, {
-            headers: getAuthHeaders(),
-            cache: "no-store",
-        });
-        return handleResponse<AdminReviewPageResponse>(res);
-    },
-
-    // V5: Validar cupón promocional
-    validateCoupon: async (data: CouponValidateRequest): Promise<CouponValidationResponse> => {
-        const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-            body: JSON.stringify(data),
-        });
-        return handleResponse<CouponValidationResponse>(res);
-    },
-
-=======
     createAdminCoupon: async (coupon: AdminCouponCreateRequest) => {
         const res = await fetch(`${BASE_URL}/api/v1/admin/coupons`, {
             method: 'POST',
@@ -701,36 +688,4 @@ export const api = {
         await handleResponse(res);
     },
 
-
->>>>>>> 4057d62 (feat(coupons): V5 complete - admin API endpoints, types, docs, changelog)
 };
-=======
-    createAdminCoupon: async (coupon: AdminCouponCreateRequest) => {
-        const res = await fetch(`${BASE_URL}/api/v1/admin/coupons`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify(coupon),
-        });
-        return handleResponse<AdminCouponDetailResponse>(res);
-    },
-
-    updateAdminCoupon: async (id: number, coupon: AdminCouponUpdateRequest) => {
-        const res = await fetch(`${BASE_URL}/api/v1/admin/coupons/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-            body: JSON.stringify(coupon),
-        });
-        return handleResponse<AdminCouponDetailResponse>(res);
-    },
-
-    deleteAdminCoupon: async (id: number) => {
-        const res = await fetch(`${BASE_URL}/api/v1/admin/coupons/${id}`, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-        await handleResponse(res);
-    },
-
-
-};
->>>>>>> 4057d62 (feat(coupons): V5 complete - admin API endpoints, types, docs, changelog)
