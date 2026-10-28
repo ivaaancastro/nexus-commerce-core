@@ -41,6 +41,21 @@ public class Order {
     private OrderStatus status;
 
     /**
+     * V5 cupones: columnas que añade {@code V21__orders_coupon_fields} (todas
+     * nullable — las órdenes anteriores no llevan cupón). {@code couponId} va
+     * como escalar y no como {@code @ManyToOne}: aquí sólo se persiste la
+     * referencia, el uso en sí vive en {@code coupon_usages}.
+     */
+    @Column(name = "coupon_code", length = 20)
+    private String couponCode;
+
+    @Column(name = "coupon_id")
+    private Long couponId;
+
+    @Column(name = "discount_amount", precision = 10, scale = 2)
+    private BigDecimal discountAmount;
+
+    /**
      * Transportista del envío (Tarea 7.4, R5). {@code null} salvo que el admin
      * lo registre — en las órdenes anteriores a la migración {@code V14} y en
      * las que se envían sin tracking.

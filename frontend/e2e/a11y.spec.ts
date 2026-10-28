@@ -1,7 +1,8 @@
 // Tarea 4.3 (R2) — accesibilidad **ejecutada**, no leída.
 //
 // Las rutas del App Router se abren en un navegador real y se les pasa axe
-// (V2: +1 auditoría con el visor ampliado = 15 · V3: +1 `/wishlist` = 16).
+// (V2: +1 auditoría con el visor ampliado = 15 · V3: +1 `/wishlist` = 16 ·
+// V5: +1 `/admin/coupons` = 17).
 // Esto es lo que complementa a la 4.1: ESLint comprueba que el JSX esté
 // *bien escrito*, y aquí se comprueba que la página *funcione* para quien usa
 // teclado o lector de pantalla.
@@ -14,6 +15,9 @@ import { expect, test, type Page } from "@playwright/test";
 import { E2E_USER, PRODUCT } from "./helpers/config";
 import { ensureOrderNumber } from "./helpers/orders";
 
+/** Semilla `V13` (README): la única cuenta con rol ADMIN. */
+const ADMIN = { email: "admin@nexus.dev", password: "Admin1234!" };
+
 /**
  * D5 — **sólo Chromium**.
  *
@@ -22,7 +26,7 @@ import { ensureOrderNumber } from "./helpers/orders";
  * de la suite con **cero señal nueva**; la variación real entre motores ya la
  * cubre la 4.2 con los flujos de compra, sesión y bolsa.
  *
- * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 16 pruebas
+ * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 17 pruebas
  * siguen existiendo en los tres proyectos y el motivo queda visible en el
  * informe, no escondido en la config.
  */
@@ -150,6 +154,23 @@ test.describe("Accesibilidad · sesión iniciada", () => {
             await audit(page, route);
         });
     }
+});
+
+test.describe("Accesibilidad · panel de administración", () => {
+    // V5: `/admin/coupons` (spec specs/coupons/ §3). `AdminRoute` exige rol
+    // ADMIN, así que la auditoría de esta ruta necesita la semilla `V13`
+    // (README) — el usuario E2E es USER y el layout lo redirigiría.
+    test("la ruta /admin/coupons no tiene violaciones bloqueantes", async ({ page }) => {
+        await page.goto("/login");
+        await page.getByLabel("Email").fill(ADMIN.email);
+        await page.getByLabel("Contraseña").fill(ADMIN.password);
+        await page.getByRole("button", { name: "Entrar", exact: true }).click();
+        await expect(page.getByRole("link", { name: "PEDIDOS" })).toBeVisible();
+        await open(page, "/admin/coupons");
+        // El listado pide la API al montar: sin esto axe auditaría «Cargando…»
+        await expect(page.getByRole("heading", { name: "Cupones" })).toBeVisible();
+        await audit(page, "/admin/coupons");
+    });
 });
 
 test.describe("Accesibilidad · pedidos concretos", () => {

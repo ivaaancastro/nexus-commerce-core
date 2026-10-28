@@ -2,8 +2,10 @@
 
 > Feature V5 dentro del bloque V1–V6 (mejoras de vitrina).
 > Rama: `feat/coupons`.
-> Estado: plan aprobado, spec pendiente de aprobación usuario.
-> Aprobación requerida antes de implementar código.
+> **Estado: ✅ APROBADA por el usuario el 2026-10-28, con las dos aclaraciones
+> de §2.6 incorporadas** (el código previo de la rama se escribió antes de esta
+> aprobación — incumplimiento SDD heredado de la sesión anterior, registrado
+> aquí; a partir de este punto, spec y código avanzan juntos).
 
 ---
 
@@ -96,6 +98,14 @@ Excepciones de dominio mapeadas a HTTP:
 
 `PUT /api/v1/admin/coupons/{id}`
 - Body CouponUpdateRequest (code no mutable).
+- **Las fechas NO exigen vigencia en edición** (decisión 2026-10-28, medida en
+  navegador): la ventana de un cupón creado es un hecho histórico, así que el
+  PUT acepta `validFrom` pasado (re-guardar sin mover fechas) y `validUntil`
+  pasado (cerrar un cupón antes). La exigencia `@FutureOrPresent`/`@Future`
+  vive sólo en la **creación** (`CouponCreateRequest`). Derivada UX: el
+  `datetime-local` del form sólo tiene precisión de minuto, así que la
+  creación empuja un `validFrom` ya vencido al presente con margen de 5 s
+  (`isoVigente`), la misma regla que el E2E.
 - 200 CouponDetailResponse.
 
 `DELETE /api/v1/admin/coupons/{id}`
@@ -105,7 +115,9 @@ Excepciones de dominio mapeadas a HTTP:
 
 `POST /api/v1/coupons/validate`
 - Auth: USER/ADMIN (session).
-- Body: `{ code: string, subtotal: number }` (subtotal en menor unidad del mercado).
+- Body: `{ code: string, subtotal: number }` (**subtotal = total del carrito en
+  unidades mayores, GROSS con impuestos incluidos** — ver §2.6; el hardcode
+  `10000` en céntimos que tenía el frontend era erróneo y se corrige).
 - 200 CouponValidationResponse
   - `valid: boolean`
   - `message: string`
@@ -142,7 +154,11 @@ Componentes:
   - Muestra mensaje valid/invalid.
   - Estilo: `text-neutral-900` input, focus ring neutral-900.
 - **CouponSummary** en carrito/checkout muestra cupón aplicado y botón quitar.
-- **AdminCouponForm** con react-hook-form + zod.
+- **AdminCouponForm** con validación manual espejo de la jakarta (patrón
+  `AdminProductForm`, decisión D8 de 7.2 — **decidido con el usuario
+  2026-10-28**: la redacción original pedía react-hook-form + zod y se
+  descarta por consistencia y para no añadir dependencias de runtime por un
+  formulario).
 - **AdminCouponsPage** tabla paginada, crear/editar/eliminar.
 
 Estado global:
@@ -154,40 +170,77 @@ Estado global:
 - La validación en frontend es solo preview; la fuente de verdad es la validación en checkout bajo transacción.
 - Un mismo cupón puede usarse múltiples veces por usuario si `perUserLimit = 0`.
 - `usageCount` y `CouponUsage` deben quedar consistentes en transacción.
-- El descuento se calcula sobre subtotal antes de impuestos? Según decisiones de pricing existentes: descuento sobre subtotal sin impuestos, impuestos calculados sobre base reducida. (Ver spec pricing existente).
-- No aplicar cupón si pedido ya con cupón. El checkout puede sobrescribir? Decisión: un pedido solo un cupón.
+- **Base del descuento: el total del carrito con impuestos incluidos (GROSS)** — ver §2.6.
+- **Un pedido solo un cupón** (el checkout no aplica cupón sobre pedido ya descontado).
+
+### 2.6. Aclaraciones aprobadas por el usuario (2026-10-28)
+
+Dos ambigüedades de la redacción original se resolvieron en la aprobación:
+
+**A. Unidades: siempre unidades mayores (BigDecimal, 2 decimales).**
+El enunciado original decía «subtotal en menor unidad del mercado» (céntimos):
+**queda descartado**. El sistema entero maneja unidades mayores
+(`market_prices`, `orders`, `min_order_amount DECIMAL(10,2)`) y una mezcla
+obligaría a conversiones ×100 con dos sitios donde fallar. En consecuencia:
+- `CouponValidateRequest.subtotal` = total del carrito en euros/dólares
+  (p. ej. `79.95`), tal cual lo calcula `CartContext.subtotal`.
+- `minOrderAmount` y `maxDiscountAmount` se comparan en esa misma unidad.
+- `discountAmount` persistido en `Order` y `CouponUsage` = misma unidad.
+- El frontend envía el subtotal real del carrito (el `10000` hardcodeado era
+  un placeholder erróneo) redondeado a 2 decimales con `toFixed(2)` antes del
+  `JSON.stringify` para no arrastrar ruido de punto flotante.
+
+**B. Base del descuento: total del carrito GROSS (con impuestos incluidos).**
+El enunciado decía «subtotal antes de impuestos» con cita a la spec de
+pricing: **queda sustituido** por el total que el usuario ve en el carrito.
+Razones: (1) `CartContext.subtotal` es *final price* con impuestos dentro
+(spec `final-price-display`, D3), (2) el número que se muestra
+(`discountAmount`) debe ser el que el usuario ve descontado, sin traducciones
+entre neto y bruto, y (3) `minOrderAmount` —«pedido mínimo 50 €»— se compara
+con lo que el carrito muestra, no con una base interna.
+
+Consecuencia en checkout (`processCheckout`):
+- El descuento se calcula sobre `totalAccumulator` (bruto).
+- `Order.totalAmount = totalAccumulator − discountAmount`.
+- La parte imponible se **deriva del nuevo total** con la inversa del cálculo
+  de `PricingService` (`net = total / (1 + rate)`, `tax = total − net`,
+  HALF_UP escala 2), de modo que `subtotalAmount + taxAmount = totalAmount`
+  sigue cuadrando — «impuestos sobre la base reducida» se cumple en su forma
+  bruta: el descuento reduce el bruto y el neto se re-extrae de él.
+- `Order.discountAmount` guarda el descuento tal cual (el número del
+  carrito).
 
 ---
 
 ## 3. Criterios de aceptación
 
 ### Backend
-- [ ] Migraciones V20 y V21 aplican sin error.
-- [ ] `POST /admin/coupons` crea cupón y valida constraints.
-- [ ] `GET /admin/coupons` lista paginado con filtros.
-- [ ] `PUT /admin/coupons/{id}` actualiza sin cambiar code.
-- [ ] `DELETE /admin/coupons/{id}` devuelve 409 si usageCount > 0.
-- [ ] `POST /coupons/validate` devuelve valid=false con mensajes correctos para: inactivo, expirado, no válido aún, límite global, límite usuario, mínimo no alcanzado.
-- [ ] Cálculo descuento correcto para PERCENTAGE y FIXED con maxDiscountAmount.
-- [ ] Checkout con cupón válido persiste descuento, incrementa usageCount e inserta CouponUsage dentro de transacción.
-- [ ] Concurrencia: dos peticiones simultáneas con mismo cupón al límite solo permiten el número permitido.
-- [ ] Idempotencia: mismo idempotencyKey + mismo cupón → mismo descuento, sin duplicar uso.
+- [x] Migraciones V20 y V21 aplican sin error. *(medido: aplicadas; BD local alineada al fichero 2026-10-28)*
+- [x] `POST /admin/coupons` crea cupón y valida constraints.
+- [x] `GET /admin/coupons` lista paginado con filtros.
+- [x] `PUT /admin/coupons/{id}` actualiza sin cambiar code.
+- [x] `DELETE /admin/coupons/{id}` devuelve 409 si usageCount > 0.
+- [x] `POST /coupons/validate` devuelve valid=false con mensajes correctos para: inactivo, expirado, no válido aún, límite global, límite usuario, mínimo no alcanzado.
+- [x] Cálculo descuento correcto para PERCENTAGE y FIXED con maxDiscountAmount, **sobre el total GROSS en unidades mayores (§2.6)**.
+- [x] Checkout con cupón válido persiste descuento, incrementa usageCount e inserta CouponUsage dentro de transacción.
+- [x] Concurrencia: dos peticiones simultáneas con mismo cupón al límite solo permiten el número permitido.
+- [x] Idempotencia: mismo idempotencyKey + mismo cupón → mismo descuento, sin duplicar uso.
 
 ### Frontend
-- [ ] `CouponInput` debounce 500 ms, no dispara con <3 caracteres.
-- [ ] Muestra mensaje y descuento tras validación.
-- [ ] `CartContext` actualiza `couponCode` tras validación exitosa.
-- [ ] En `/cart` se muestra `CouponSummary` con opción quitar.
-- [ ] En checkout, el total refleja descuento.
-- [ ] Panel admin lista CRUD funcional.
-- [ ] Accesibilidad axe pasa en /cart, /checkout, /admin/coupons.
-- [ ] `tsc` 0, `lint` 0, `build` 0.
+- [x] `CouponInput` debounce 500 ms, no dispara con <3 caracteres.
+- [x] Muestra mensaje y descuento tras validación.
+- [x] `CartContext` actualiza `couponCode` tras validación exitosa.
+- [x] En `/cart` se muestra `CouponSummary` con opción quitar.
+- [x] En checkout, el total refleja descuento.
+- [x] Panel admin lista CRUD funcional.
+- [x] Accesibilidad axe pasa en /cart, /checkout, /admin/coupons.
+- [x] `tsc` 0, `lint` 0, `build` 0.
 
 ### Tests
-- [ ] `CouponServiceTest` cubre validaciones y canje atómico.
-- [ ] `CouponControllerTest` cubre endpoints admin y validate.
-- [ ] `CouponInput.test.tsx` cubre debounce y estados.
-- [ ] E2E flujo carrito → cupón → checkout → pedido con descuento.
+- [x] `CouponServiceTest` cubre validaciones y canje atómico.
+- [x] `CouponControllerTest` cubre endpoints admin y validate.
+- [x] `CouponInput.test.tsx` cubre debounce y estados.
+- [x] E2E flujo carrito → cupón → checkout → pedido con descuento.
 
 ---
 
@@ -209,4 +262,4 @@ Estado global:
 
 ---
 
-Aprobación requerida antes de implementar.
+**Aprobación: concedida por el usuario el 2026-10-28** (con §2.6).
