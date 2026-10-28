@@ -11,6 +11,8 @@ interface ProductGalleryProps {
     family: string;
     /** `sizes` de las imágenes (R6 de la 3.3); lo decide la página que la monta. */
     sizes: string;
+    /** Color activo (V6): si tiene fotos propias, la galería las muestra. */
+    color?: string;
 }
 
 /**
@@ -48,8 +50,9 @@ export default function ProductGallery({
     name,
     family,
     sizes,
+    color,
 }: ProductGalleryProps) {
-    const images = getProductImages(referenceCode);
+    const images = getProductImages(referenceCode, color);
     const items: (string | undefined)[] =
         images.length > 0 ? images : [undefined];
 

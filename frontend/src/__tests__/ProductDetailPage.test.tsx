@@ -482,7 +482,7 @@ describe("ProductDetailPage — color y cuidados (spec color-and-care)", () => {
         expect(screen.queryByText("Cuidados")).not.toBeInTheDocument();
     });
 
-    it("R8 — cambiar de color NO cambia la galería: las fotos son por referencia", async () => {
+    it("V6 — cambiar de color cambia la galería a las fotos de ese color (supersede R8 de color-and-care)", async () => {
         const usuario = userEvent.setup();
         renderPage();
         await screen.findByTestId("product-color");
@@ -495,9 +495,9 @@ describe("ProductDetailPage — color y cuidados (spec color-and-care)", () => {
         // WHEN — el usuario elige otro color
         await usuario.click(screen.getByRole("button", { name: "Negro" }));
 
-        // THEN — el color cambia, las fotos no (comprobación negativa, R8)
+        // THEN — el color cambia y la galería se actualiza (V6)
         expect(await screen.findByText("Color: Negro")).toBeInTheDocument();
         expect(api.getPrice).toHaveBeenLastCalledWith(41, "ES");
-        expect(fotosDeLaReferencia()).toEqual(antes);
+        expect(fotosDeLaReferencia()).not.toEqual(antes);
     });
 });
