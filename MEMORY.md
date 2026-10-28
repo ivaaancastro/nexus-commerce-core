@@ -390,6 +390,7 @@
 | **DOM 3.3** | El orden es galería → compra → descripción **en el DOM** y la disposición de escritorio se consigue con colocación explícita de rejilla, **nunca reordenando con `order`** |
 | **ADR 3.3** | No hace falta (R10): no cambia stack ni arquitectura — las imágenes son assets |
 | **Estado 3.3** | El bloque de estado de `AGENTS.md` se redacta **en la feature PR**, formulado para ser verdad después del merge y **sin números de PR ni SHA** (viven en git y GitHub) → **no existe PR de documentación de cierre** (D11) |
+| **V6** | Galería que sigue al color activo (supersede R8 de color-and-care): `getProductImages(ref, color?)` con fallback silencioso; naming `{ref}-{COLOR}-{n}.webp`; manifiesto plano + claves compuestas; demo multicolor vía V22 (Negro/Crudo al 0432/021); generador descubre colores en array y genera por color; 12 ficheros nuevos sin tocar los 12 intactas; sin ADR ni PR de docs de cierre |
 | **V5 §2.6** | Descuento sobre el **bruto GROSS** del carrito (A. unidades mayores `subtotal.toFixed(2)`, B. bruto); checkout `total = totalAccumulator − discount` y neto/impuesto re-extraídos con la inversa de `PricingService.netAmount()` |
 | **V5 validación** | `AdminCouponForm` con validación manual espejo de la jakarta (decisión del usuario 2026-10-28, NO react-hook-form+zod); `isoVigente` empuja `validFrom` al presente +5 s por la precisión de minuto del `datetime-local` |
 | **V5 edición** | `CouponUpdateRequest` pierde `@FutureOrPresent`/`@Future`: la ventana de un cupón creado es un hecho histórico (medido en navegador 2026-10-28) |

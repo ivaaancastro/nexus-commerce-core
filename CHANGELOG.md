@@ -7,6 +7,17 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 
 
 ### Added
+- **V6: Fotos por color (`photos-per-color`)** (feature `feat/photos-per-color`):
+  - Manifiesto plano preservado para las fotos genéricas + claves compuestas `{reference}::{COLOR}` para las por color (ej. `0432/021::NEGRO`).
+  - `getProductImages(reference, color?)` con fallback silencioso a las genéricas (nunca vacía, sin 404).
+  - `ProductGallery` gana prop `color?`; la PDP pasa el color activo → la galería sigue al color.
+  - `ProductCard` y buscador siguen con las fotos genéricas (no reciben color).
+  - Migración `V22` añade SKUs Negro/Crudo (M, L) al producto 0432/021 con precios y stock espejo (formato VALUES V12 para que el generador descubra los colores).
+  - Generador `generate-product-images.mjs`: descubre colores en array (antes uno solo) y genera por color con el prompt incluyendo el color; `npm run images` produjo 12 ficheros nuevos (Marino/Negro/Crudo ×3) sin tocar las 12 intactas.
+  - Tests: `ProductDetailPage` R8 actualizado a la nueva aserción (galería cambia con el color); fixture del generador gana `colors: []`. `AdminStockControllerTest` ajustado al nuevo conteo de SKUs (11 = 10 sembrados + 1 de prueba).
+  - Gates: backend 410/0/0, frontend 526/526, `tsc` 0, ESLint 0/0, build 0, axe sin regresión.
+
+### Added
 - **V5: Sistema de cupones promocionales** (feature `feat/coupons`):
   - Backend: Migraciones V20 + V21, entidades `Coupon` + `CouponUsage`, DTOs, servicios `CouponService` con validación atómica `PESSIMISTIC_WRITE`, cálculo de descuento PERCENTAGE/FIXED con tope, control de uso global y por usuario, fechas, estados activos.
   - Controladores: `AdminCouponController` CRUD `/api/v1/admin/coupons` y `CouponController` `POST /api/v1/coupons/validate`.
