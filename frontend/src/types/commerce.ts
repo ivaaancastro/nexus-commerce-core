@@ -587,6 +587,27 @@ export interface ReviewSummaryResponse {
     reviews: ProductReview[];
 }
 
+/** Reseña tal como la ve el admin en la moderación global. */
+export interface AdminProductReview {
+    id: number;
+    productId: number;
+    productName: string;
+    userEmail: string;
+    rating: number;
+    title: string;
+    comment?: string;
+    createdAt: string;
+}
+
+/** Página de reseñas para moderación admin. */
+export interface AdminReviewPageResponse {
+    reviews: AdminProductReview[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+}
+
 /** Payload para crear una reseña. */
 export interface CreateReviewRequest {
     rating: number;
