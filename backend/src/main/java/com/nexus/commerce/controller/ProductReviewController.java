@@ -1,5 +1,7 @@
 package com.nexus.commerce.controller;
 
+import com.nexus.commerce.dto.AdminReviewPageResponse;
+import com.nexus.commerce.dto.AdminReviewResponse;
 import com.nexus.commerce.dto.CreateReviewRequest;
 import com.nexus.commerce.dto.ReviewResponse;
 import com.nexus.commerce.dto.ReviewSummaryResponse;
@@ -46,6 +48,14 @@ public class ProductReviewController {
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
         reviewService.deleteReview(productId, reviewId, userEmail, isAdmin);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/admin/reviews")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<AdminReviewPageResponse> getAdminReviews(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(reviewService.getAdminReviews(page, size));
     }
 
     @DeleteMapping("/admin/reviews/{reviewId}")

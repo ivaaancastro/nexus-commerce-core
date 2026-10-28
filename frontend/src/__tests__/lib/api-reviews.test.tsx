@@ -54,4 +54,19 @@ describe("api.ts — Product Reviews (V4)", () => {
             method: "DELETE",
         }));
     });
+
+    it("getAdminReviews llama al endpoint correcto y parsea la página", async () => {
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            text: () => Promise.resolve(JSON.stringify({
+                reviews: [{ id: 1, productId: 1, productName: "Blazer", userEmail: "a@b.com", rating: 5, title: "t", comment: "c", createdAt: "2026-10-28T00:00:00Z" }],
+                page: 0, size: 20, totalElements: 1, totalPages: 1,
+            })),
+        });
+
+        const res = await api.getAdminReviews(0, 20);
+        expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/admin/reviews"), expect.any(Object));
+        expect(res.reviews).toHaveLength(1);
+        expect(res.totalElements).toBe(1);
+    });
 });

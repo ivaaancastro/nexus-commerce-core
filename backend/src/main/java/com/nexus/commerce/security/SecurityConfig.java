@@ -69,6 +69,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/pricing/**").permitAll()
                 .requestMatchers("/api/v1/markets").permitAll()
 
+                // 6) V4 product-reviews: creación y borrado exigen sesión
+                //    (spec §2.4). Van ANTES del denyAll; la lectura ya es
+                //    pública por el GET /products/** de arriba.
+                .requestMatchers(HttpMethod.POST, "/api/v1/products/*/reviews").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/products/*/reviews/*").authenticated()
+
                 // 6) Zona autenticada: perfil, direcciones y pedidos.
                 .requestMatchers("/api/v1/users/**").authenticated()
                 .requestMatchers("/api/v1/orders/**").authenticated()
