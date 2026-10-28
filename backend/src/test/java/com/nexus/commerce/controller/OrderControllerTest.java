@@ -55,13 +55,14 @@ class OrderControllerTest {
     void shouldReturn201OnSuccessfulCheckout() throws Exception {
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, 5L, PaymentMethod.CARD);
+        ), "ES", 40.4168, -3.7038, 5L, PaymentMethod.CARD, null);
 
         OrderResponse response = new OrderResponse(
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, PaymentMethod.CARD, null, null, List.of()
+                null, PaymentMethod.CARD, null, null, List.of(),
+                null
         );
 
         when(orderService.processCheckout(eq("idem-uuid-001"), any(CheckoutRequest.class), eq(null)))
@@ -86,7 +87,7 @@ class OrderControllerTest {
         // Tarea 5.5 (R1 y R2): sin ellos no hay snapshot ni preferencia que guardar.
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, null, null);
+        ), "ES", 40.4168, -3.7038, null, null, null);
 
         // WHEN / THEN
         mockMvc.perform(post("/api/v1/orders/checkout")
@@ -106,7 +107,8 @@ class OrderControllerTest {
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, PaymentMethod.CARD, null, null, List.of()
+                null, PaymentMethod.CARD, null, null, List.of(),
+                null
         );
 
         when(orderService.getOrderByNumber("ORD-9999")).thenReturn(Optional.of(response));

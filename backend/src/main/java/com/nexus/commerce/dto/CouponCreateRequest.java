@@ -1,5 +1,6 @@
 package com.nexus.commerce.dto;
 
+import com.nexus.commerce.entity.Coupon;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;

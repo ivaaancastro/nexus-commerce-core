@@ -834,4 +834,121 @@ describe("api — puerta única a la API (R4)", () => {
             expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
         });
     });
+
+    describe("cupones (V5, spec specs/coupons/)", () => {
+        beforeEach(() => {
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        it("validateCoupon: POST JSON con sesión, parsea valid y descuento", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    valid: true,
+                    message: "Cupón aplicado",
+                    discountAmount: 9,
+                    coupon: { code: "SAVE10", type: "PERCENTAGE", value: 10 },
+                })
+            );
+
+            const res = await api.validateCoupon({ code: "SAVE10", subtotal: 89.95 });
+
+            expect(res.valid).toBe(true);
+            expect(res.discountAmount).toBe(9);
+            expect(lastUrl()).toContain("/api/v1/coupons/validate");
+            expect(lastInit()?.method).toBe("POST");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            // §2.6A: el subtotal viaja en unidades mayores, sin redondeos raros
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                code: "SAVE10",
+                subtotal: 89.95,
+            });
+        });
+
+        it("getAdminCoupons sin filtros manda sólo el tamaño y sin caché", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ coupons: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }));
+
+            await api.getAdminCoupons();
+
+            expect(lastUrl()).toContain("/api/v1/admin/coupons");
+            // page=0 se omite (falsy): la URL no arrastra `page=0` inútil
+            expect(lastUrl()).not.toContain("page=");
+            expect(lastUrl()).toContain("size=20");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("getAdminCoupons con size=0 omite la query entera (defaults del servidor)", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ coupons: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }));
+
+            await api.getAdminCoupons(0, 0);
+
+            // Sin `?`: page=0 y size=0 son falsy y Spring aplica sus defaults
+            expect(lastUrl()).not.toContain("?");
+            expect(lastUrl()).toContain("/api/v1/admin/coupons");
+        });
+
+        it("getAdminCoupons traduce los 3 filtros a query params", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ coupons: [], page: 1, size: 20, totalElements: 0, totalPages: 0 }));
+
+            await api.getAdminCoupons(1, 20, "SAVE", "PERCENTAGE", false);
+
+            expect(lastUrl()).toContain("page=1");
+            expect(lastUrl()).toContain("code=SAVE");
+            expect(lastUrl()).toContain("type=PERCENTAGE");
+            expect(lastUrl()).toContain("active=false");
+        });
+
+        it("createAdminCoupon: POST JSON con sesión y 201 parseado", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({ id: 10, code: "NUEVO10", type: "FIXED", value: 5 }, 201)
+            );
+
+            const creado = await api.createAdminCoupon({
+                code: "NUEVO10",
+                type: "FIXED",
+                value: 5,
+            });
+
+            expect(creado.code).toBe("NUEVO10");
+            expect(lastUrl()).toContain("/api/v1/admin/coupons");
+            expect(lastInit()?.method).toBe("POST");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                code: "NUEVO10",
+                type: "FIXED",
+                value: 5,
+            });
+        });
+
+        it("updateAdminCoupon: PUT al cupón con su payload (sin code: inmutable)", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ id: 10, code: "SAVE10", type: "PERCENTAGE", value: 15 }));
+
+            await api.updateAdminCoupon(10, { value: 15 });
+
+            expect(lastUrl()).toContain("/api/v1/admin/coupons/10");
+            expect(lastInit()?.method).toBe("PUT");
+            const body = JSON.parse(lastInit()?.body as string);
+            expect(body).toEqual({ value: 15 });
+            expect(body).not.toHaveProperty("code");
+        });
+
+        it("deleteAdminCoupon: DELETE con sesión, 204 → undefined sin parsear", async () => {
+            fetchMock.mockResolvedValue(response(204, "No Content", ""));
+
+            await expect(api.deleteAdminCoupon(10)).resolves.toBeUndefined();
+
+            expect(lastUrl()).toContain("/api/v1/admin/coupons/10");
+            expect(lastInit()?.method).toBe("DELETE");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+        });
+
+        it("deleteAdminCoupon propaga el 409 con su cuerpo (fila sin toast)", async () => {
+            fetchMock.mockResolvedValue(
+                response(409, "Conflict", '{"code":"COUPON_HAS_USAGES","message":"Ya usado"}')
+            );
+
+            await expect(api.deleteAdminCoupon(10)).rejects.toThrow(/409/);
+        });
+    });
 });

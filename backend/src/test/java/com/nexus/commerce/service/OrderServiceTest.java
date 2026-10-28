@@ -2,6 +2,7 @@ package com.nexus.commerce.service;
 
 import com.nexus.commerce.dto.*;
 import com.nexus.commerce.entity.Address;
+import com.nexus.commerce.entity.Coupon;
 import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
@@ -9,6 +10,7 @@ import com.nexus.commerce.entity.PaymentMethod;
 import com.nexus.commerce.entity.Product;
 import com.nexus.commerce.entity.Sku;
 import com.nexus.commerce.entity.User;
+import com.nexus.commerce.exception.CouponExpiredException;
 import com.nexus.commerce.repository.AddressRepository;
 import com.nexus.commerce.repository.OrderRepository;
 import com.nexus.commerce.repository.ProductReturnRepository;
@@ -37,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -71,6 +74,10 @@ class OrderServiceTest {
 
     @Mock
     private OrderEmailNotifier orderEmailNotifier;
+
+    /** V5 cupones: el checkout lo canjea bajo transacción (spec §2.3). */
+    @Mock
+    private CouponService couponService;
 
     @InjectMocks
     private OrderService orderService;
@@ -125,7 +132,7 @@ class OrderServiceTest {
 
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 2)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
@@ -197,7 +204,7 @@ class OrderServiceTest {
 
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 2)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
@@ -238,7 +245,7 @@ class OrderServiceTest {
         String email = "ana@nexus.dev";
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.BIZUM);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.BIZUM, null);
 
         User user = User.builder().id(USER_ID).email(email).build();
 
@@ -297,7 +304,7 @@ class OrderServiceTest {
 
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 2)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         // WHEN — la clave corta el flujo ANTES de resolver la dirección
         OrderResponse response = orderService.processCheckout(idempotencyKey, request, null);
@@ -317,7 +324,7 @@ class OrderServiceTest {
         String email = "ana@nexus.dev";
         CheckoutRequest request = new CheckoutRequest("US", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.PAYPAL);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.PAYPAL, null);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         when(userRepository.findByEmail(email))
@@ -650,7 +657,7 @@ class OrderServiceTest {
         String email = "ana@nexus.dev";
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         when(userRepository.findByEmail(email))
@@ -676,7 +683,7 @@ class OrderServiceTest {
         Address address = validAddress();
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         when(userRepository.findByEmail(email))
@@ -741,5 +748,177 @@ class OrderServiceTest {
         assertThat(response.shippingAddress()).isNull();
         assertThat(response.paymentMethod()).isNull();
         assertThat(response.returnDeadline()).isNotNull();
+    }
+
+    // ========== V5 cupones (spec specs/coupons/, §2.3/§2.6) ==========
+
+    /**
+     * Stub del camino feliz de checkout que comparten los tests V5 (fixture
+     * espejo del {@code shouldProcessCheckoutSuccessfully}): 2 unidades a
+     * 50,00 → bruto 100,00 con {@code taxRate} 21.00.
+     *
+     * <p>No incluye {@code orderRepository.save}: el test del cupón rechazado
+     * no llega a él y los stubs sin usar rompen con los strict stubs de
+     * MockitoExtension.</p>
+     */
+    private void stubCaminoFelizCupon(String idempotencyKey, String email, User user) {
+        when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
+                .thenReturn(Optional.of(validAddress()));
+        when(warehouseSelectionService.selectOptimalWarehouse(any(), any(), any(), any()))
+                .thenReturn("WH-MAD-01");
+        when(inventoryService.reserveStock(any(ReserveStockRequest.class))).thenReturn(
+                new StockReservationResponse(1L, "WH-MAD-01", 2, 8, "RESERVED")
+        );
+        PriceCalculationResponse price = new PriceCalculationResponse(
+                1L, "ES", "EUR",
+                new BigDecimal("50.00"), new BigDecimal("50.00"), false,
+                new BigDecimal("41.32"), new BigDecimal("8.68"), new BigDecimal("21.00")
+        );
+        when(pricingService.calculatePrice(1L, "ES")).thenReturn(Optional.of(price));
+        when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
+    }
+
+    private CheckoutRequest checkoutConCupon(String couponCode) {
+        return new CheckoutRequest("ES", List.of(
+                new CheckoutItemRequest(1L, "WH-MAD-01", 2)
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, couponCode);
+    }
+
+    @Test
+    @DisplayName("V5 - checkout con cupón: descuenta del bruto, persiste discountAmount y registra el uso")
+    void debeAplicarCuponEnElCheckout() {
+        // GIVEN — camino feliz con un cupón FIXED de 5,00 (§2.6B: opera sobre
+        // el bruto del carrito y neto/impuesto se re-extraen del nuevo total)
+        String idempotencyKey = "key-cupon-01";
+        String email = "ana@nexus.dev";
+        User user = User.builder().id(USER_ID).email(email).build();
+        stubCaminoFelizCupon(idempotencyKey, email, user);
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order o = invocation.getArgument(0);
+            o.setId(100L);
+            return o;
+        });
+
+        Coupon cupon = Coupon.builder()
+                .id(9L).code("SAVE10")
+                .type(Coupon.DiscountType.FIXED)
+                .value(new BigDecimal("5.00"))
+                .active(true)
+                .build();
+        when(couponService.redeemCoupon(eq("SAVE10"), any(BigDecimal.class), eq(USER_ID)))
+                .thenReturn(new CouponService.CouponDiscountResult(cupon, new BigDecimal("5.00")));
+
+        // WHEN
+        OrderResponse response = orderService.processCheckout(
+                idempotencyKey, checkoutConCupon("SAVE10"), email);
+
+        // THEN — el descuento se aplica al bruto de 100,00
+        assertThat(response.discountAmount()).isEqualByComparingTo("5.00");
+        assertThat(response.totalAmount()).isEqualByComparingTo("95.00");
+        // Identidad subtotal + impuesto = total sobre la base reducida:
+        // 95,00 / 1,21 = 78,51 neto y 16,49 de impuesto (inversa de PricingService)
+        assertThat(response.subtotalAmount()).isEqualByComparingTo("78.51");
+        assertThat(response.taxAmount()).isEqualByComparingTo("16.49");
+
+        // El canje recibió el BRUTO del carrito (§2.6), no el total ya descontado
+        ArgumentCaptor<BigDecimal> bruto = ArgumentCaptor.forClass(BigDecimal.class);
+        verify(couponService).redeemCoupon(eq("SAVE10"), bruto.capture(), eq(USER_ID));
+        assertThat(bruto.getValue()).isEqualByComparingTo("100.00");
+
+        // La orden persiste código, id e importe del descuento
+        ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
+        verify(orderRepository).save(captor.capture());
+        assertThat(captor.getValue().getCouponCode()).isEqualTo("SAVE10");
+        assertThat(captor.getValue().getCouponId()).isEqualTo(9L);
+        assertThat(captor.getValue().getDiscountAmount()).isEqualByComparingTo("5.00");
+
+        // Y el uso queda registrado en la MISMA transacción (spec §3)
+        verify(couponService).recordCouponUsage(
+                eq("SAVE10"), eq(USER_ID), any(Order.class), eq(new BigDecimal("5.00")));
+    }
+
+    @Test
+    @DisplayName("V5 - checkout sin cupón: nunca toca el servicio de cupones y discountAmount es 0")
+    void debeProcesarSinCuponSinTocarElServicio() {
+        // GIVEN — mismo camino feliz sin código de cupón
+        String idempotencyKey = "key-cupon-sin";
+        String email = "ana@nexus.dev";
+        User user = User.builder().id(USER_ID).email(email).build();
+        stubCaminoFelizCupon(idempotencyKey, email, user);
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
+            Order o = invocation.getArgument(0);
+            o.setId(100L);
+            return o;
+        });
+
+        // WHEN
+        OrderResponse response = orderService.processCheckout(
+                idempotencyKey, checkoutConCupon(null), email);
+
+        // THEN — descuento 0 explícito («DEFAULT 0» de la spec §2.1) y total intacto
+        assertThat(response.discountAmount()).isEqualByComparingTo("0");
+        assertThat(response.totalAmount()).isEqualByComparingTo("100.00");
+        verifyNoInteractions(couponService);
+    }
+
+    @Test
+    @DisplayName("V5 - cupón rechazado en el canje: la excepción propaga y NO se crea el pedido")
+    void debePropagarElRechazoSinCrearPedido() {
+        // GIVEN — el cupón estaba bien en el carrito pero caducó entre el
+        // preview y el checkout: lo decide el backend bajo transacción (§2.5)
+        String idempotencyKey = "key-cupon-rechazado";
+        String email = "ana@nexus.dev";
+        User user = User.builder().id(USER_ID).email(email).build();
+        stubCaminoFelizCupon(idempotencyKey, email, user);
+        when(couponService.redeemCoupon(eq("SAVE10"), any(BigDecimal.class), eq(USER_ID)))
+                .thenThrow(new CouponExpiredException("El cupón ha expirado"));
+
+        // WHEN / THEN — el rollback de @Transactional deshace la reserva;
+        // aquí se prueba que nadie se traga la excepción (regla §5.5)
+        assertThatThrownBy(() -> orderService.processCheckout(
+                idempotencyKey, checkoutConCupon("SAVE10"), email))
+                .isInstanceOf(CouponExpiredException.class)
+                .hasMessage("El cupón ha expirado");
+
+        verify(orderRepository, never()).save(any(Order.class));
+        verifyNoInteractions(orderEmailNotifier);
+        verify(couponService, never()).recordCouponUsage(any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("V5 - idempotencia: misma clave + mismo cupón devuelve la orden existente sin re-canjar")
+    void noDebeVolverACanjearEnLaIdempotencia() {
+        // GIVEN — la orden de la primera petición ya descontó y ya registró uso
+        String idempotencyKey = "key-cupon-idem";
+        Order existingOrder = Order.builder()
+                .id(50L)
+                .orderNumber("ORD-EXISTING")
+                .idempotencyKey(idempotencyKey)
+                .marketCode("ES")
+                .currency("EUR")
+                .status(OrderStatus.CONFIRMED)
+                .subtotalAmount(new BigDecimal("78.51"))
+                .taxAmount(new BigDecimal("16.49"))
+                .totalAmount(new BigDecimal("95.00"))
+                .couponCode("SAVE10")
+                .couponId(9L)
+                .discountAmount(new BigDecimal("5.00"))
+                .createdAt(Instant.now())
+                .build();
+        when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.of(existingOrder));
+
+        // WHEN — misma clave, mismo cupón (reenvío del mismo checkout)
+        OrderResponse response = orderService.processCheckout(
+                idempotencyKey, checkoutConCupon("SAVE10"), null);
+
+        // THEN — devuelve la orden original con SU descuento y sin re-canjar:
+        // usageCount no se incrementa dos veces por un reenvío
+        assertThat(response.orderNumber()).isEqualTo("ORD-EXISTING");
+        assertThat(response.discountAmount()).isEqualByComparingTo("5.00");
+        assertThat(response.totalAmount()).isEqualByComparingTo("95.00");
+        verifyNoInteractions(couponService);
+        verify(orderRepository, never()).save(any());
     }
 }

@@ -2,6 +2,7 @@
 
 import {
     createContext,
+    useCallback,
     useContext,
     useEffect,
     useReducer,
@@ -47,9 +48,24 @@ interface CartContextType {
     hasUnavailableItems: boolean;
     /** R5-V5: código de cupón aplicado en el carrito. */
     couponCode?: string;
-    /** R5-V5: importe del descuento derivado de cupón aplicado. */
-    couponDiscount?: number;
+    /** R5-V5: importe del descuento derivado de cupón aplicado (0 sin cupón). */
+    couponDiscount: number;
+    /**
+     * R5-V5 (spec §2.4): aplica un código de cupón. La validación es en
+     * tiempo real contra `POST /api/v1/coupons/validate` — el estado sólo
+     * se consolida (`couponCode`) cuando el servidor responde `valid`.
+     */
+    applyCoupon: (code: string) => void;
+    /** R5-V5: quita el cupón (✕ del resumen o input vacío). */
+    removeCoupon: () => void;
+    /** Mensaje de la última validación («Cupón aplicado» o por qué no aplica). */
+    couponMessage: string | null;
+    /** Estado de la validación: el input muestra «Validando...» con `validating`. */
+    couponStatus: CouponStatus;
 }
+
+/** R5-V5: ciclo de vida de la validación del cupón. */
+export type CouponStatus = "idle" | "validating" | "valid" | "invalid";
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
@@ -175,14 +191,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // warning react-hooks/set-state-in-effect.
     const [pricedMarket, setPricedMarket] = useState<string | null>(null);
 
-    // R5-V5: Estado del cupón aplicado (independiente de items del carrito)
-    const [couponCode] = useState<string | undefined>(undefined);
+    // R5-V5: Estado del cupón (spec §2.4). `couponCode` sólo se consolida
+    // tras una validación exitosa — criterio de aceptación de la spec: el
+    // intento inválido deja mensaje pero nunca un cupón aplicado.
+    const [couponCode, setCouponCode] = useState<string | undefined>(undefined);
     const [couponDiscount, setCouponDiscount] = useState<number>(0);
+    const [couponMessage, setCouponMessage] = useState<string | null>(null);
+    const [couponStatus, setCouponStatus] = useState<CouponStatus>("idle");
+    // Descarta respuestas de validación obsoletas (código o subtotal cambió
+    // mientras la petición anterior volvía).
+    const couponSeqRef = useRef(0);
 
     // layout.tsx monta MarketProvider envolviendo a CartProvider (D5). Sin
     // provider, useMarket devuelve el mercado por defecto (ES) — ver MarketContext.
     const { market } = useMarket();
     const marketCode = market.code;
+
+    // Derivados de render — calculados AQUÍ porque la validación del cupón
+    // (más abajo) necesita `subtotal`: antes vivían tras los efectos y por eso
+    // el validate de cupón tuvo que inventar un subtotal.
+    const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
+    const subtotal = state.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    // R8: la tasa sale del mercado activo — antes era TAX_RATE = 0.21 fijo (ES).
+    // D3: `subtotal` **ya es precio final** (los precios de `market_prices`
+    // incluyen el impuesto), así que la parte incluida se *deriva* dividiendo:
+    // 79,95 al 21 % → 13,88. Sumarle el 21 % encima (el viejo `taxEstimate`)
+    // enseñaba 96,74 en pantalla cuando el backend cobra 79,95.
+    const taxIncluded = taxesIncludedAmount(subtotal, market.taxRate);
+    const currency = market.currency;
+    const hasUnavailableItems = state.items.some((item) => item.priceUnavailable === true);
+    // Derivado: true mientras los precios no estén validados para el mercado activo.
+    const isRepricing = state.items.length > 0 && pricedMarket !== marketCode;
 
     useEffect(() => {
         if (isHydrated) {
@@ -245,38 +284,73 @@ export function CartProvider({ children }: { children: ReactNode }) {
         };
     }, [marketCode, isHydrated, state.items]);
 
-    // R5-V5: Efecto para validar cupón cuando cambia el código
+    // R5-V5 (spec §2.4): validar el cupón en backend cuando cambia el código
+    // o el subtotal («Validar al actualizar importe» de la spec). El endpoint
+    // exige sesión (SecurityConfig), así que `api.validateCoupon` lleva los
+    // headers de auth — el fetch suelto anterior recibía 401.
     useEffect(() => {
-        // Si no hay código, descuento es 0
-        if (!couponCode) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setCouponDiscount(0);
+        const code = couponCode?.trim() ?? "";
+        if (code.length < 3) {
+            // Sin `setState` aquí (regla `react-hooks/set-state-in-effect`):
+            // `removeCoupon` ya pone estado a idle en su handler y `applyCoupon`
+            // sólo se invoca con ≥3 caracteres; este ramo sólo puede alcanzarse
+            // con el estado ya correcto.
             return;
         }
 
-        // Validar cupón en backend con subtotal actual (aproximado)
-        ;(async () => {
-            try {
-                const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
-                const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        code: couponCode.toUpperCase().trim(),
-                        subtotal: 10000,
-                    }),
-                });
-                const response = await res.json();
-                if (response.valid && response.coupon) {
-                    setCouponDiscount(response.discountAmount);
+        // Subtotal real del carrito en unidades mayores (§2.6A) — el `10000`
+        // hardcodeado anterior no tenía relación con el carrito. `toFixed(2)`
+        // elimina el ruido de punto flotante antes del JSON.stringify.
+        const subtotalSnapshot = subtotal;
+        const seq = ++couponSeqRef.current;
+
+        api.validateCoupon({ code: code.toUpperCase(), subtotal: Number(subtotalSnapshot.toFixed(2)) })
+            .then((res) => {
+                // Descarta respuestas obsoletas (otro código o subtotal ganó).
+                if (seq !== couponSeqRef.current) return;
+                if (res.valid) {
+                    setCouponStatus("valid");
+                    setCouponMessage(res.message ?? "Cupón aplicado");
+                    setCouponDiscount(res.discountAmount ?? 0);
                 } else {
+                    // §2.4: un intento inválido deja mensaje pero **nunca** un
+                    // cupón aplicado — se retira el código para que el checkout
+                    // no lo envíe y el resumen no lo pinte.
+                    setCouponStatus("invalid");
+                    setCouponMessage(res.message ?? "Cupón no válido");
                     setCouponDiscount(0);
+                    setCouponCode(undefined);
                 }
-            } catch {
+            })
+            .catch(() => {
+                if (seq !== couponSeqRef.current) return;
+                setCouponStatus("invalid");
+                setCouponMessage("No se pudo validar el cupón. Inténtalo de nuevo.");
                 setCouponDiscount(0);
-            }
-        })();
-    }, [couponCode]);
+                setCouponCode(undefined);
+            });
+    }, [couponCode, subtotal]);
+
+    const applyCoupon = useCallback(
+        (code: string) => {
+            // Mismo código ya consolidado: no se re-dispara (evita un bucle de
+            // validación con el debounce del input).
+            if (code === couponCode) return;
+            // Handler de evento (no efecto): puede marcar «Validando...» al
+            // instante; el efecto de arriba se dispara con el nuevo código.
+            setCouponStatus("validating");
+            setCouponCode(code);
+        },
+        [couponCode]
+    );
+
+    const removeCoupon = useCallback(() => {
+        couponSeqRef.current++; // invalida cualquier validación en vuelo
+        setCouponCode(undefined);
+        setCouponDiscount(0);
+        setCouponMessage(null);
+        setCouponStatus("idle");
+    }, []);
 
     const addItem = (item: CartItem) => {
         dispatch({ type: "ADD_ITEM", payload: item });
@@ -317,20 +391,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const clearCart = () => {
         dispatch({ type: "CLEAR_CART" });
         setItems([]);
+        // El pedido desaparece: el cupón aplicado sobre él tampoco aplica.
+        removeCoupon();
     };
-
-    const totalItems = state.items.reduce((sum, item) => sum + item.quantity, 0);
-    const subtotal = state.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-    // R8: la tasa sale del mercado activo — antes era TAX_RATE = 0.21 fijo (ES).
-    // D3: `subtotal` **ya es precio final** (los precios de `market_prices`
-    // incluyen el impuesto), así que la parte incluida se *deriva* dividiendo:
-    // 79,95 al 21 % → 13,88. Sumarle el 21 % encima (el viejo `taxEstimate`)
-    // enseñaba 96,74 en pantalla cuando el backend cobra 79,95.
-    const taxIncluded = taxesIncludedAmount(subtotal, market.taxRate);
-    const currency = market.currency;
-    const hasUnavailableItems = state.items.some((item) => item.priceUnavailable === true);
-    // Derivado: true mientras los precios no estén validados para el mercado activo.
-    const isRepricing = state.items.length > 0 && pricedMarket !== marketCode;
 
     return (
         <CartContext.Provider
@@ -349,6 +412,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
                 hasUnavailableItems,
                 couponCode,
                 couponDiscount,
+                applyCoupon,
+                removeCoupon,
+                couponMessage,
+                couponStatus,
             }}
         >
             {children}
