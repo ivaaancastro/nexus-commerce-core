@@ -5,7 +5,7 @@ import com.nexus.commerce.entity.*;
 import com.nexus.commerce.exception.*;
 import com.nexus.commerce.repository.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Slf4j;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -27,6 +27,15 @@ public class CouponService {
     private final CouponRepository couponRepository;
     private final CouponUsageRepository couponUsageRepository;
     private final UserRepository userRepository;
+
+    /**
+     * Resultado del canje atómico en checkout: el cupón bloqueado y el descuento
+     * ya calculado y acotado. Va de servicio a servicio ({@code OrderService}),
+     * nunca sale por HTTP, así que no es un DTO de la capa {@code dto}.
+     *
+     * <p>Precedente: {@link WishlistService.AddResult}.</p>
+     */
+    public record CouponDiscountResult(Coupon coupon, BigDecimal discount) {}
 
     // ========== ADMIN CRUD ==========
 
@@ -77,11 +86,13 @@ public class CouponService {
                 .type(req.type())
                 .value(req.value())
                 .minOrderAmount(req.minOrderAmount() != null ? req.minOrderAmount() : BigDecimal.ZERO)
-                .maxDiscountAmount(req.maxDiscountAmount)
+                .maxDiscountAmount(req.maxDiscountAmount())
                 .validFrom(req.validFrom())
                 .validUntil(req.validUntil())
-                .usageLimit(req.usageLimit())
-                .perUserLimit(req.perUserLimit())
+                // Integer (DTO, opcional) → int (entidad): sin la guarda, un
+                // create sin límites revienta con NPE al desempaquetar null.
+                .usageLimit(req.usageLimit() != null ? req.usageLimit() : 0)
+                .perUserLimit(req.perUserLimit() != null ? req.perUserLimit() : 0)
                 .usageCount(0)
                 .active(true)
                 .build();
@@ -145,7 +156,7 @@ public class CouponService {
     // ========== VALIDACIÓN CLIENTE ==========
 
     @Transactional(readOnly = true)
-    public CouponValidationResponse validateCoupon(CouponValidateRequest req, Long userId) {
+    public CouponValidationResponse validateCoupon(CouponValidateRequest req, String email) {
         Optional<Coupon> optCoupon = couponRepository.findByCode(req.code().toUpperCase());
 
         if (optCoupon.isEmpty()) {
@@ -155,7 +166,7 @@ public class CouponService {
         Coupon coupon = optCoupon.get();
 
         // 1. Activo
-        if (!coupon.getActive()) {
+        if (!coupon.isActive()) {
             return invalid("Este cupón no está disponible", req.subtotal());
         }
 
@@ -174,11 +185,17 @@ public class CouponService {
             return invalid("Se ha alcanzado el límite de usos de este cupón", req.subtotal());
         }
 
-        // 4. Límite por usuario
+        // 4. Límite por usuario (la identidad en sesión es el email: se resuelve
+        //    aquí con userRepository, patrón de OrderService.requireUser).
         if (coupon.getPerUserLimit() > 0) {
-            Long userUsages = couponRepository.countUsagesByUser(coupon.getId(), userId);
-            if (userUsages >= coupon.getPerUserLimit()) {
-                return invalid("Ya has usado este cupón el máximo de veces permitido", req.subtotal());
+            Long userId = userRepository.findByEmail(email).map(User::getId).orElse(null);
+            // Usuario sin fila (token válido de una cuenta ya borrada): no puede
+            // tener usos, así que el límite no lo bloquea.
+            if (userId != null) {
+                Long userUsages = couponRepository.countUsagesByUser(coupon.getId(), userId);
+                if (userUsages >= coupon.getPerUserLimit()) {
+                    return invalid("Ya has usado este cupón el máximo de veces permitido", req.subtotal());
+                }
             }
         }
 
@@ -218,7 +235,7 @@ public class CouponService {
         OffsetDateTime now = OffsetDateTime.now();
 
         // Re-validar todo bajo lock
-        if (!coupon.getActive()) {
+        if (!coupon.isActive()) {
             throw new CouponInactiveException("Este cupón no está disponible");
         }
         if (now.isBefore(coupon.getValidFrom())) {
@@ -314,7 +331,7 @@ public class CouponService {
                 c.getMinOrderAmount(), c.getMaxDiscountAmount(),
                 c.getValidFrom(), c.getValidUntil(),
                 c.getUsageLimit(), c.getUsageCount(), c.getPerUserLimit(),
-                c.getActive(), c.getCreatedAt()
+                c.isActive(), c.getCreatedAt()
         );
     }
 
@@ -334,7 +351,7 @@ public class CouponService {
                 c.getMinOrderAmount(), c.getMaxDiscountAmount(),
                 c.getValidFrom(), c.getValidUntil(),
                 c.getUsageLimit(), c.getUsageCount(), c.getPerUserLimit(),
-                c.getActive(), c.getCreatedAt(), c.getUpdatedAt(),
+                c.isActive(), c.getCreatedAt(), c.getUpdatedAt(),
                 usages
         );
     }

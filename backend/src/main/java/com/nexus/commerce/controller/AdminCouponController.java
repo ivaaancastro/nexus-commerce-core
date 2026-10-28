@@ -15,7 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.*;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.OffsetDateTime;
 
 /** V5: Controlador admin para gestión de cupones promocionales. */
 @RestController
@@ -31,8 +33,10 @@ public class AdminCouponController {
     @GetMapping
     @Operation(summary = "Listado paginado de cupones con filtros")
     public AdminCouponPageResponse list(
-            @Parameter(description = "Página (0-based)", defaultValue = "0") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Tamaño página", defaultValue = "20") @RequestParam(defaultValue = "20") int size,
+            // defaultValue vive en @Schema, no en @Parameter de Swagger: el
+            // valor por defecto real lo fija @RequestParam (runtime).
+            @Parameter(description = "Página (0-based)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Tamaño página") @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Filtrar por código (contains, case-insensitive)", required = false) @RequestParam(required = false) String code,
             @Parameter(description = "Filtrar por tipo", required = false) @RequestParam(required = false) Coupon.DiscountType type,
             @Parameter(description = "Filtrar por estado activo", required = false) @RequestParam(required = false) Boolean active,

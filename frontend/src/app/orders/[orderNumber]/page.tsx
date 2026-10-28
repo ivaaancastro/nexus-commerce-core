@@ -532,6 +532,23 @@ export default function OrderDetailPage() {
                                 {order.totalAmount.toFixed(2)} {order.currency}
                             </span>
                         </div>
+                        {/*
+                            V5 cupones: el descuento **ya está aplicado** en
+                            `totalAmount` (y en subtotal/impuestos, re-extraídos
+                            sobre la base reducida en el checkout), así que la
+                            línea va DEBAJO del total y es informativa — si
+                            restara aquí, el usuario lo pagaría dos veces.
+                        */}
+                        {order.discountAmount != null && order.discountAmount > 0 && (
+                            <div className="flex justify-between text-xs uppercase tracking-wider">
+                                <span className="text-neutral-600">
+                                    Descuento de cupón (ya aplicado)
+                                </span>
+                                <span className="text-neutral-900">
+                                    −{order.discountAmount.toFixed(2)} {order.currency}
+                                </span>
+                            </div>
+                        )}
                         <div className="flex justify-between text-xs uppercase tracking-wider">
                             <span className="text-neutral-600">
                                 {taxesIncludedLabel(orderTaxRate)}

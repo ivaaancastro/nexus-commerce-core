@@ -42,6 +42,7 @@ export default function CartPage() {
         hasUnavailableItems,
         couponCode,
         couponDiscount,
+        removeCoupon,
     } = useCart();
     const { isAuthenticated } = useAuth();
     const { market } = useMarket();
@@ -125,6 +126,9 @@ export default function CartPage() {
                     destinationLongitude: -3.7038,
                     addressId: selectedAddress.id,
                     paymentMethod,
+                    // V5: el código validado viaja al checkout, que lo
+                    // revalida bajo transacción (fuente de verdad, spec §2.5).
+                    couponCode: couponCode ?? undefined,
                 },
                 idempotencyKey
             );
@@ -218,6 +222,19 @@ export default function CartPage() {
                                             {subtotal.toFixed(2)} {currency}
                                         </span>
                                     </div>
+                                    {/*
+                                        V5: el descuento es una línea **negativa**
+                                        que resta del total (§2.6B: el cupón opera
+                                        sobre el bruto del carrito).
+                                    */}
+                                    {couponDiscount > 0 && (
+                                        <div className="flex justify-between">
+                                            <span className="text-neutral-600">Descuento</span>
+                                            <span className="text-neutral-900">
+                                                −{couponDiscount.toFixed(2)} {currency}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-neutral-600">
                                             {taxesIncludedLabel(market.taxRate)}
@@ -229,18 +246,17 @@ export default function CartPage() {
                                     <div className="flex justify-between pt-3 border-t border-neutral-100">
                                         <span className="font-medium text-neutral-900">Total</span>
                                         <span className="font-medium text-neutral-900">
-                                            {subtotal.toFixed(2)} {currency}
+                                            {(subtotal - couponDiscount).toFixed(2)} {currency}
                                         </span>
                                     </div>
                                 </div>
 
-                
-                                    {/* Resumen de cupón (V5) */}
-                                    <CouponSummary
-                                        couponCode={couponCode}
-                                        discountAmount={couponDiscount}
-                                        couponType="PERCENTAGE"
-                                    />
+                                {/* Resumen de cupón (V5) */}
+                                <CouponSummary
+                                    couponCode={couponCode}
+                                    discountAmount={couponDiscount}
+                                    onRemove={removeCoupon}
+                                />
 
                 {/* ── Dirección de envío (Tarea 5.5, R1) ─────────────── */}
                                 <div className="mt-6 pt-4 border-t border-neutral-100">

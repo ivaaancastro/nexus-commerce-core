@@ -141,7 +141,11 @@ export function getFriendlyErrorMessage(error: unknown): string {
             message.includes('"RETURN_NOT_ALLOWED"') ||
             message.includes('"CATALOG_CONFLICT"') ||
             message.includes('"STOCK_CONFLICT"') ||
-            message.includes('"USER_CONFLICT"')
+            message.includes('"USER_CONFLICT"') ||
+            // V5 cupones: código duplicado al crear y borrar un cupón ya usado
+            // (el mensaje del servidor ya está redactado para el panel).
+            message.includes('"COUPON_CONFLICT"') ||
+            message.includes('"COUPON_HAS_USAGES"')
         ) {
             const serverMessage = extractServerMessage(message);
             if (serverMessage) return serverMessage;
