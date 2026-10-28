@@ -18,6 +18,9 @@ import java.util.List;
  *                         enviar — el comprador lo ve en su pedido. {@code null} pre-V14
  *                         o si nadie lo registró.
  * @param trackingNumber   nº de seguimiento; mismo criterio que {@code carrier}.
+ * @param discountAmount   V5 cupones: descuento ya aplicado (bruto, el número que
+ *                         ve el usuario — spec §2.6). {@code null} en las órdenes
+ *                         anteriores a V21 o sin cupón — el frontend no pinta nada.
  */
 public record OrderResponse(
         Long id,
@@ -35,5 +38,6 @@ public record OrderResponse(
         PaymentMethod paymentMethod,
         String carrier,
         String trackingNumber,
-        List<OrderItemResponse> items
+        List<OrderItemResponse> items,
+        BigDecimal discountAmount
 ) {}

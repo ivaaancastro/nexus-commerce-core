@@ -375,6 +375,6 @@ class AdminOrderServiceTest {
                 10L, NUM, "idem-" + NUM, "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("80.00"), new BigDecimal("16.80"),
                 new BigDecimal("96.80"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, null, null, null, List.of());
+                null, null, null, null, List.of(), null);
     }
 }

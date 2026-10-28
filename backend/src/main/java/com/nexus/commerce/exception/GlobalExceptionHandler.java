@@ -196,4 +196,74 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         ));
     }
+
+    /**
+     * 404 de cupón inexistente (V5): el mensaje ya viene redactado en español
+     * («Cupón no encontrado: …»).
+     */
+    @ExceptionHandler(CouponNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleCouponNotFound(CouponNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.NOT_FOUND.value(),
+                "error", "Not Found",
+                "code", "COUPON_NOT_FOUND",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /**
+     * 409 de unicidad de código al crear cupón (V5, §2.2). Con {@code code}
+     * para que el formulario lo traduzca como conflicto, no como stock.
+     */
+    @ExceptionHandler(CouponCodeExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleCouponCodeExists(CouponCodeExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "error", "Conflict",
+                "code", "COUPON_CONFLICT",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /**
+     * 409 de borrar un cupón ya usado (V5, §2.2): el panel muestra el mensaje
+     * del servidor bajo la fila, sin toast de éxito (patrón 7.3/7.4).
+     */
+    @ExceptionHandler(CouponHasUsagesException.class)
+    public ResponseEntity<Map<String, Object>> handleCouponHasUsages(CouponHasUsagesException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "error", "Conflict",
+                "code", "COUPON_HAS_USAGES",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /**
+     * 400 de rechazo del cupón en el canje atómico del checkout (V5, §2.3):
+     * inactivo, fechas, límites o mínimo. El mensaje («El cupón ha expirado»…)
+     * ya viene redactado para el cliente; el carrito lo muestra y retira el
+     * código. Sin este handler la respuesta por defecto de Spring no trae
+     * {@code message} y el usuario vería un genérico.
+     */
+    @ExceptionHandler({
+            CouponInactiveException.class,
+            CouponNotYetValidException.class,
+            CouponExpiredException.class,
+            CouponUsageLimitExceededException.class,
+            CouponPerUserLimitExceededException.class,
+            CouponMinOrderNotMetException.class
+    })
+    public ResponseEntity<Map<String, Object>> handleCouponRejected(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.BAD_REQUEST.value(),
+                "error", "Bad Request",
+                "code", "COUPON_INVALID",
+                "message", ex.getMessage()
+        ));
+    }
 }

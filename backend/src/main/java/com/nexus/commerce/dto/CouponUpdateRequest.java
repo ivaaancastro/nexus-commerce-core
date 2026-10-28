@@ -1,5 +1,6 @@
 package com.nexus.commerce.dto;
 
+import com.nexus.commerce.entity.Coupon;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -16,10 +17,14 @@ public record CouponUpdateRequest(
         @DecimalMin(value = "0.01", message = "El descuento máximo debe ser mayor que 0")
         BigDecimal maxDiscountAmount,
 
-        @FutureOrPresent(message = "La fecha de inicio no puede ser pasada")
+        // Sin @FutureOrPresent/@Future: la ventana de un cupón ya creado es un
+        // hecho histórico — el admin puede re-guardar su fecha original (medido
+        // en navegador 2026-10-28: un PUT con validFrom pasado devolvía 400 y
+        // hacía imposible editar cualquier cupón vigente) o cerrarlo antes
+        // moviendo validUntil al pasado. La exigencia de vigencia pertenece a
+        // la CREACIÓN (CouponCreateRequest), no a la edición.
         OffsetDateTime validFrom,
 
-        @Future(message = "La fecha de fin debe ser futura")
         OffsetDateTime validUntil,
 
         @Min(value = 0, message = "El límite de usos no puede ser negativo")

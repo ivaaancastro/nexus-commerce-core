@@ -50,6 +50,8 @@ public class OrderService {
     private final ReturnEligibilityService returnEligibilityService;
     /** V1: email de «hemos recibido tu pedido» encolado en esta misma transacción. */
     private final OrderEmailNotifier orderEmailNotifier;
+    /** V5: revalidación atómica del cupón y registro de su uso (spec §2.3). */
+    private final CouponService couponService;
 
     @Transactional
     public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request, String userEmail) {
@@ -71,6 +73,10 @@ public class OrderService {
 
         String orderNumber = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String currency = null;
+        // Tipo impositivo del mercado: único para todo el pedido (viene de
+        // `market.getTaxRate()`), necesario para re-extraer neto/impuesto si
+        // hay cupón (spec §2.6B).
+        BigDecimal marketTaxRate = null;
 
         BigDecimal subtotalAccumulator = BigDecimal.ZERO;
         BigDecimal taxAccumulator = BigDecimal.ZERO;
@@ -106,6 +112,7 @@ public class OrderService {
 
             if (currency == null) {
                 currency = priceResponse.currency();
+                marketTaxRate = priceResponse.taxRate();
             }
 
             Sku sku = skuRepository.findById(itemRequest.skuId())
@@ -132,7 +139,43 @@ public class OrderService {
             totalAccumulator = totalAccumulator.add(itemTotal);
         }
 
-        // 4. Creación y persistencia de la orden
+        // 4. Cupón (V5, spec §2.3/§2.6): se valida DESPUÉS de conocer el total
+        //    real (minOrderAmount) y ANTES de persistir. Todo ocurre en ESTA
+        //    misma transacción: `redeemCoupon` bloquea el cupón con
+        //    PESSIMISTIC_WRITE e incrementa usageCount — si la orden falla
+        //    después, el rollback deshace también el contador y la reserva.
+        //    Si no hay código, el pedido procesa sin cupón y discountAmount = 0.
+        BigDecimal discount = BigDecimal.ZERO;
+        Long couponId = null;
+        String couponCode = request.couponCode() == null
+                ? null
+                : request.couponCode().trim();
+
+        if (couponCode != null && !couponCode.isEmpty()) {
+            // El checkout exige sesión (SecurityConfig) y la dirección ya se
+            // resolvió contra user: no hay pedido con cupón y sin usuario.
+            CouponService.CouponDiscountResult redeemed = couponService.redeemCoupon(
+                    couponCode, totalAccumulator, user.getId());
+            discount = redeemed.discount();
+            couponId = redeemed.coupon().getId();
+
+            // §2.6B: el descuento resta al BRUTO; neto e impuesto se re-extraen
+            // del nuevo total con la inversa de PricingService
+            // (net = total / (1 + rate)), de modo que la identidad
+            // subtotal + tax = total sigue cuadrando sobre la base reducida.
+            BigDecimal newTotal = totalAccumulator.subtract(discount).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal taxFactor = BigDecimal.ONE.add(
+                    marketTaxRate.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP));
+            BigDecimal newNet = newTotal.divide(taxFactor, 2, RoundingMode.HALF_UP);
+
+            subtotalAccumulator = newNet;
+            taxAccumulator = newTotal.subtract(newNet);
+            totalAccumulator = newTotal;
+
+            log.info("Cupón {} aplicado a orden {}. Descuento: {}", couponCode, orderNumber, discount);
+        }
+
+        // 5. Creación y persistencia de la orden
         Order order = Order.builder()
                 .orderNumber(orderNumber)
                 .idempotencyKey(idempotencyKey)
@@ -142,6 +185,10 @@ public class OrderService {
                 .subtotalAmount(subtotalAccumulator)
                 .taxAmount(taxAccumulator)
                 .totalAmount(totalAccumulator)
+                // V5: siempre un valor (0 sin cupón → «DEFAULT 0» de la spec §2.1)
+                .couponCode(couponCode == null || couponCode.isEmpty() ? null : couponCode)
+                .couponId(couponId)
+                .discountAmount(discount)
                 .user(user)
                 .shippingAddress(shippingAddress)
                 .paymentMethod(request.paymentMethod())
@@ -153,6 +200,15 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
         log.info("Orden {} creada con éxito. Total: {} {}", savedOrder.getOrderNumber(), savedOrder.getTotalAmount(), currency);
+
+        // V5: registro del uso vinculado a la orden (misma transacción —
+        // usageCount y coupon_usages quedan consistentes por construcción).
+        // La condición es «hubo canje» (couponId), NO «descuento > 0»:
+        // redeemCoupon incrementa usageCount siempre que valida, y una
+        // cachita redondeada a 0,00 no debe dejar usageCount sin fila.
+        if (couponId != null) {
+            couponService.recordCouponUsage(couponCode, user.getId(), savedOrder, discount);
+        }
 
         // V1 order-status-emails (R1/D2): «hemos recibido tu pedido», encolado
         // dentro de la misma transacción (R5: si hay rollback, no queda email).
@@ -363,7 +419,9 @@ public class OrderService {
                 // lo ve en su pedido. `null` pre-V14 o si nadie lo rellenó.
                 order.getCarrier(),
                 order.getTrackingNumber(),
-                itemResponses
+                itemResponses,
+                // V5: null en órdenes previas a V21 (el frontend no pinta nada)
+                order.getDiscountAmount()
         );
     }
 

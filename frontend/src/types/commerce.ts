@@ -133,6 +133,11 @@ export interface CheckoutRequest {
     addressId: number;
     /** Obligatorio desde la Tarea 5.5 (R2): preferencia declarada, no se procesa. */
     paymentMethod: PaymentMethod;
+    /**
+     * V5 cupones (spec §2.3): código validado en carrito. El checkout lo
+     * revalida bajo transacción — el frontend es sólo preview (§2.5).
+     */
+    couponCode?: string;
 }
 
 /**
@@ -270,6 +275,12 @@ export interface Order {
     carrier: string | null;
     trackingNumber: string | null;
     items: OrderItem[];
+    /**
+     * V5 cupones: descuento ya aplicado al total (bruto, el número que ve el
+     * usuario — spec §2.6). `null`/ausente en órdenes anteriores a V21 o sin
+     * cupón → el pedido no pinta nada.
+     */
+    discountAmount?: number | null;
 }
 
 /**
@@ -653,7 +664,7 @@ export interface AdminCouponCreateRequest {
 }
 
 export interface AdminCouponUpdateRequest {
-    code: string;
+    /** El `code` **no** viaja: es inmutable (spec §2.2, patrón `referenceCode`). */
     type?: CouponType;
     value?: number;
     minOrderAmount?: number;
