@@ -30,6 +30,7 @@ import {
     Wishlist,
     ProductReview,
     ReviewSummaryResponse,
+    AdminReviewPageResponse,
     CreateReviewRequest,
     WishlistItem,
 } from "@/types/commerce";
@@ -620,6 +621,14 @@ export const api = {
             headers: getAuthHeaders(),
         });
         await handleResponse(res);
+    },
+
+    getAdminReviews: async (page: number = 0, size: number = 20): Promise<AdminReviewPageResponse> => {
+        const res = await fetch(`${BASE_URL}/api/v1/admin/reviews?page=${page}&size=${size}`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse<AdminReviewPageResponse>(res);
     },
 
 };
