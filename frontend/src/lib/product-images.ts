@@ -13,10 +13,20 @@ const manifest: Record<string, string[]> = rawManifest;
  * Rutas absolutas de las imágenes de un producto.
  *
  * @param referenceCode referencia tal cual está en BD (`0432/021`)
+ * @param color color activo (opcional). Si se pasa y existe una entrada con
+ *              clave compuesta `{reference}::{COLOR}`, se devuelven esas fotos;
+ *              si no, las fotos genéricas del producto (fallback silencioso).
  * @returns p. ej. `["/products/0432-021-1.webp", …]`. **Vacío** si la
- * referencia no está en el manifiesto — nunca lanza.
+ *          referencia no está en el manifiesto — nunca lanza.
  */
-export function getProductImages(referenceCode: string): string[] {
+export function getProductImages(referenceCode: string, color?: string): string[] {
+    if (color) {
+        const claveColor = `${referenceCode}::${color.trim().toUpperCase()}`;
+        const filesColor = manifest[claveColor];
+        if (filesColor && filesColor.length > 0) {
+            return filesColor.map((file) => `/products/${file}`);
+        }
+    }
     const files = manifest[referenceCode];
     if (!files || files.length === 0) {
         return [];
