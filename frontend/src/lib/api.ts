@@ -636,6 +636,35 @@ export const api = {
         return handleResponse<AdminReviewPageResponse>(res);
     },
 
+    // Fase 8: Operación interna y monitoring
+    // Health check (R1) - protegido con ADMIN
+    getHealth: async (): Promise<{
+        status: string;
+        details: { database: string; flyway: string; uptime_seconds: number };
+    }> => {
+        const res = await fetch(`${BASE_URL}/api/v1/health`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse(res);
+    },
+
+    // Métricas básicas (R2) - protegido con ADMIN
+    getMetrics: async (): Promise<{
+        uptime_seconds: number;
+        active_sessions: number;
+        total_requests_last_minute: number;
+        failed_requests_last_minute: number;
+        jvm_memory_used_mb: number;
+        jvm_memory_max_mb: number;
+    }> => {
+        const res = await fetch(`${BASE_URL}/api/v1/metrics`, {
+            headers: getAuthHeaders(),
+            cache: "no-store",
+        });
+        return handleResponse(res);
+    },
+
     // V5: Cupones
     validateCoupon: async (data: CouponValidateRequest): Promise<CouponValidationResponse> => {
         const res = await fetch(`${BASE_URL}/api/v1/coupons/validate`, {

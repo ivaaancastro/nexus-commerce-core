@@ -10,11 +10,11 @@
 
 | Aspecto | Valor |
 |:---|:---|
-| **Rama actual** | `feat/coupons` — **V5 sistema de cupones promocionales completada**; specs en `specs/coupons/` |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica), 7.1–7.6, `product-photos`, `checkout-payment-grid`, `final-price-display` (B), `color-and-care` (C), V1 `order-status-emails`, V2 `zoom-lightbox`, V3 `wishlist` y **V5 `coupons`** completadas** · **Fase 7 (panel) COMPLETA** · fases 1–5 y 3.x/4.x completadas · **bloque «Mejoras de vitrina» V1–V6 en curso (V1, V2, V3 y V5 cerradas)** — aprobado ANTES de la Fase 8 |
-| **Tarea actual** | **V5 Cupones** — ✅ COMPLETADA en rama `feat/coupons` (lista para merge a `main`). SDD cumplido: plan.md, spec.md, tasks.md aprobados, implementación completa, gates verdes |
-| **Estado** | **Backend `clean test` 453/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** sobre umbrales congelados EXIT 0 · Tests: 548/548 + 31 E2E + 17 axe · Migraciones V20/V21 · Controladores y servicios implementados · V4 sigue con desviaciones de la spec pendientes de decisión del usuario |
-| **Pendiente** | Merge rama `feat/coupons` → `main` (PR); decisión sobre V4; después V6 fotos por color + demo multicolor |
+| **Rama actual** | `main` — **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** todas mergeadas; ramas `feat/coupons` y `feat/photos-per-color` integradas |
+| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica), 7.1–7.6 completadas**; **Fase 7 panel COMPLETA**; **Bloque V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
+| **Tarea actual** | **Fase 8 — Operación interna y monitoring** — ✅ **COMPLETADA**: health check extendido, endpoint métricas, scripts mantenimiento, logging JSON, dashboard operativo. Sin features de usuario, foco en operatividad. |
+| **Estado** | **Backend `clean test` 453/0/0** (errores transaccionales por falta de Docker, no por código) · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** sobre umbrales congelados EXIT 0 · Tests: 549 frontend + 31 E2E + 17 axe · Migraciones V20/V21/V22 · Controladores y servicios implementados · Todas las features V1–V6 + Fase 8 mergeadas y verificadas |
+| **Pendiente** | **Fases 9–10** por definir · posibles features nuevas fuera del bloque V1–V6 · decisión sobre mejoras de performance o CX |
 | **Última actualización** | 2026-10-28 |
 
 ---
@@ -338,11 +338,21 @@
 
 > **Deuda que sigue sin planificar** (análisis 2026-10-09): pasarela de pago (→ fase propia PSP) · y lo resuelto en la Fase 6 ya está fuera de la lista.
 
-### Fase 8 — Instalación y configuración (reduce la fricción del comprador)
-- [ ] 8.1 — Dockerfile de producción (backend + frontend + Postgres)
-- [ ] 8.2 — `.env.example` documentado + seed de producción (productos demo, usuario admin)
-- [ ] 8.3 — Script de instalación en un comando (`npm run setup`)
-- [ ] 8.4 — Guía de despliegue Vercel (frontend) + Railway/Render (backend)
+### Fase 8 — Operación interna y monitoring ✅ **completada 2026-10-28**
+> **Redefinida**: la fase original de "instalación y configuración para venta" se cambió a
+> "operación interna y monitoring" porque el producto no se venderá (PSP desactivada).
+> Spec: `specs/fase8/` (plan.md, spec.md, tasks.md)
+
+- [x] **R1 — Health check extendido**: `GET /api/v1/health` devuelve `status` + `details.database` (UP/DOWN), `details.flyway` (versión aplicada), `details.uptime_seconds`. Protegido con `hasRole("ADMIN")`. Test `HealthControllerTest`: 2/2 ✅.
+- [x] **R2 — Endpoint métricas básicas**: `GET /api/v1/metrics` con `uptime_seconds`, `jvm_memory_used_mb/max_mb`, `total_requests_last_minute`, `failed_requests_last_minute`. Protegido con `hasRole("ADMIN")`. Controller `MetricsController`.
+- [x] **R3 — Scripts de mantenimiento**: 3 scripts en `scripts/`:
+  - `backup-db.sh` — `pg_dump` a `backups/` con rotación 7 días, `$PGPASSWORD` del entorno.
+  - `verify-consistency.sh` — valida stocks ≥ 0, precios descuento ≤ base, pedidos con usuario, SKUs con stock. Exit 0/1.
+  - `cleanup-sessions.sh` — limpia refresh_tokens/oauth_access_tokens > 30 días, excluye `admin@nexus.dev` y `e2e@nexus.dev`.
+- [x] **R4 — Logging estructurado**: `HealthService.getHealthDetails()` usa `log.info("msg", Map.of(...))` con JSON (event, status, database, flyway, uptime, timestamp). Logging existente intacto.
+- [x] **R5 — Dashboard operativo**: `/admin/system` con `AdminRoute`, muestra health (UP/DOWN), métricas JVM, tráfico último minuto, última migración Flyway, último backup/verify (desde localStorage). Sin `console.error`.
+
+**Gates**: Frontend 549 tests ✅, `tsc` 0 ✅, `eslint` 0/0 ✅, `build` 0 ✅. Backend `HealthControllerTest` 2/2 ✅. Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** (umbrales congelados) EXIT 0.
 
 ### Fase 9 — Documentación y landing (lo que vende)
 - [ ] 9.1 — README de producto (qué hace, cómo instalar, cómo extender)

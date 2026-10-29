@@ -18,6 +18,9 @@ import java.util.Map;
  * <p>Responde {@code 200 {"status":"UP"}} con la BD sana y
  * {@code 503 {"status":"DOWN"}} si el {@code SELECT 1} falla. Es público a
  * propósito: un health check que exige sesión no sirve para vigilar nada.</p>
+ *
+ * <p>Fase 8 (R1): respuesta extendida con detalles de dependencias
+ * ({@code details.database}, {@code details.flyway}, {@code details.uptime_seconds}).</p>
  */
 @RestController
 @RequestMapping("/api/v1")
@@ -29,10 +32,11 @@ public class HealthController {
 
     @GetMapping("/health")
     @Operation(summary = "Estado del sistema", description = "200 UP con BD sana, 503 DOWN si no responde")
-    public ResponseEntity<Map<String, String>> health() {
-        return healthService.isHealthy()
-                ? ResponseEntity.ok(Map.of("status", "UP"))
-                : ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                        .body(Map.of("status", "DOWN"));
+    public ResponseEntity<Map<String, Object>> health() {
+        Map<String, Object> details = healthService.getHealthDetails();
+        String status = (String) details.get("status");
+        return "UP".equals(status)
+                ? ResponseEntity.ok(details)
+                : ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(details);
     }
 }

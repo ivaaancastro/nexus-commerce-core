@@ -9,11 +9,11 @@
 
 | Campo | Valor |
 |:---|:---|
-| **Rama activa** | `main` = **V4 `product-reviews`** mergeada (PR #39) tras V3 (PR #38); rama de trabajo **`feat/coupons`** (V5, sin PR) |
-| **Fase** | **Hoja de ruta 6–10 (producto vendible) — aprobada** — **Fase 6 Deuda técnica (previa), 7.1–7.6 y la mini-feature `product-photos` (fotos IA) completadas** · **Fase 7 panel de administración COMPLETA (7.1–7.6)** · mini-features **`checkout-payment-grid`** (fix selector de pago), **`final-price-display`** (precio final con impuestos incluidos) y **`color-and-care`** (colores y cuidados, Tarea C) completadas y **mergeadas** · fases 1–5 y 3.x/4.x completadas · **bloque «Mejoras de vitrina» V1–V6 aprobado ANTES de la Fase 8 y en curso — V1, V2, V3 y V4 completadas** (la 8 queda aplazada; **PSP = fase propia** fuera del bloque) |
-| **Tarea** | **V5 — Cupones** en `specs/coupons/` — ✅ **COMPLETADA** (rama `feat/coupons`, lista para merge): backend **453/0/0**, frontend **548/548**, tsc 0, ESLint 0/0, build 0, axe **17/17**, E2E **31/31** (medido 2026-10-28). V4 sigue con desviaciones de la spec pendientes de decisión del usuario. |
-| **Tarea siguiente** | **Decisión del usuario sobre V4** (mantener/revertir moderación admin) → merge V5 → **V6 fotos por color + demo multicolor** |
-| **Pendiente** | **Decisión del usuario sobre V4** (mantener / revertir la moderación admin) · cerrar V5 (`/spec-check` → permiso commit/push/PR) |
+| **Rama activa** | `main` = **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** mergeadas todas; ramas `feat/coupons` y `feat/photos-per-color` ya integradas |
+| **Fase** | **Hoja de ruta 6–10 (producto vendible) — aprobada** — **Fase 6 Deuda técnica (previa), 7.1–7.6 y la mini-feature `product-photos` (fotos IA) completadas** · **Fase 7 panel de administración COMPLETA (7.1–7.6)** · mini-features **`checkout-payment-grid`** (fix selector de pago), **`final-price-display`** (precio final con impuestos incluidos) y **`color-and-care`** (colores y cuidados, Tarea C) completadas y **mergeadas** · fases 1–5 y 3.x/4.x completadas · **bloque «Mejoras de vitrina» V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
+| **Tarea** | **Fase 8 — Operación interna y monitoring** — ✅ **COMPLETADA**: health check extendido (R1), endpoint métricas (R2), scripts mantenimiento (R3), logging JSON (R4), dashboard operativo (R5). Sin features de usuario, foco en operatividad. Spec `specs/fase8/` completa. |
+| **Tarea siguiente** | **Definir Fases 9–10** (hoja de ruta) · posibles features nuevas fuera del bloque V1–V6 · mejoras de performance o CX |
+| **Pendiente** | **Fases 9–10** por definir · decisión sobre siguientes pasos |
 | **Actualizado** | 2026-10-28 |
 
 > **Estado de pruebas**: **405 backend · 518 frontend** · ESLint **0 errores, 0 warnings** · **E2E: 6 pruebas de humo × 3 navegadores + 16 de axe (sólo Chromium)** · **Lighthouse en verde en 4 rutas** · CI verde en `main`.

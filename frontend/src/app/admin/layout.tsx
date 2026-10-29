@@ -14,6 +14,7 @@ const SECCIONES = [
     { href: "/admin/users", label: "Usuarios" },
     { href: "/admin/reviews", label: "Reseñas" },
     { href: "/admin/coupons", label: "Cupones" },
+    { href: "/admin/system", label: "Sistema" },
 ];
 
 /**
