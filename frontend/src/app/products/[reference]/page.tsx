@@ -118,8 +118,8 @@ export default function ProductDetailPage() {
     const colores = Array.from(new Set((product?.skus ?? []).map((sku) => sku.color)));
 
     /**
-     * Tallas del color seleccionado (D2). Cambiar de color **no** mueve la
-     * galería: las fotos son por referencia (R8/D10).
+     * Tallas del color seleccionado (D2). La galería ahora SÍ sigue al color
+     * (V6): `ProductGallery` recibe `selectedColor`.
      */
     const tallasDelColor = (product?.skus ?? []).filter((sku) => sku.color === selectedColor);
 
@@ -190,6 +190,7 @@ export default function ProductDetailPage() {
                                 name={product.name}
                                 family={product.family}
                                 sizes={GALLERY_SIZES}
+                                color={selectedColor ?? undefined}
                             />
                         </div>
 

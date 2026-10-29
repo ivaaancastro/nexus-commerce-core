@@ -183,6 +183,11 @@ export function fileNameFor(reference, index) {
     return `${normalizeReference(reference)}-${index}.webp`;
 }
 
+export function fileNameForColor(reference, color, index) {
+    const slug = String(color).trim().toUpperCase().replace(/\s+/g, "");
+    return `${normalizeReference(reference)}-${slug}-${index}.webp`;
+}
+
 /**
  * Manifiesto `reference → [fichero, …]`, listo para serializarse.
  * **Shape estable**: los consumidores (`getProductImages`) no cambian aunque
@@ -190,12 +195,24 @@ export function fileNameFor(reference, index) {
  * @param {string[]} references
  * @returns {Record<string, string[]>}
  */
-export function buildManifest(references) {
+export function buildManifest(references, products = new Map()) {
     const manifest = {};
     for (const reference of [...references].sort()) {
         manifest[reference] = Array.from({ length: IMAGES_PER_PRODUCT }, (_, i) =>
             fileNameFor(reference, i + 1)
         );
+        const product = products.get(reference);
+        const colors = product?.colors ?? [];
+        // V6: fotos por color sólo para productos multicolor (>= 2 colores).
+        if (colors.length >= 2) {
+            for (const color of colors) {
+                const slug = String(color).trim().toUpperCase().replace(/\s+/g, "");
+                manifest[`${reference}::${slug}`] = Array.from(
+                    { length: IMAGES_PER_PRODUCT },
+                    (_, i) => fileNameForColor(reference, slug, i + 1)
+                );
+            }
+        }
     }
     return manifest;
 }
@@ -227,20 +244,22 @@ export function discoverProducts(dir = MIGRATIONS_DIR) {
                 description,
                 family,
                 color: previous?.color ?? null,
+                colors: previous?.colors ?? [],
             });
         }
         for (const match of sql.matchAll(COLOR_PATTERN)) {
             const [, reference, , color] = match;
             const previous = products.get(reference);
             if (previous) {
-                // Primer color emparejado de la referencia.
                 if (!previous.color) previous.color = color;
+                if (!previous.colors.includes(color)) previous.colors.push(color);
             } else {
                 products.set(reference, {
                     name: reference,
                     description: "",
                     family: "",
                     color,
+                    colors: [color],
                 });
             }
         }
@@ -254,8 +273,9 @@ export function discoverProducts(dir = MIGRATIONS_DIR) {
         if (skuStatement) {
             for (const match of skuStatement.matchAll(SKU_ID_PATTERN)) {
                 const product = products.get(refsInFile[Number(match[1]) - 1]);
-                if (!product || product.color) continue;
-                product.color = match[3];
+                if (!product) continue;
+                if (!product.color) product.color = match[3];
+                if (!product.colors.includes(match[3])) product.colors.push(match[3]);
             }
         }
     }
@@ -271,14 +291,15 @@ export function discoverProducts(dir = MIGRATIONS_DIR) {
  * @param {number} index posición desde 1
  * @returns {string}
  */
-export function buildPrompt(reference, product, index = 1) {
+export function buildPrompt(reference, product, index = 1, color = null) {
     const view = VIEWS[(index - 1) % VIEWS.length];
+    const resolvedColor = color ?? (product ? product.color : null);
     const subject =
         product && product.name
             ? [
                   product.name,
                   product.description,
-                  product.color ? `color ${product.color}` : "",
+                  resolvedColor ? `color ${resolvedColor}` : "",
               ]
                   .filter(Boolean)
                   .join(", ")
@@ -663,9 +684,9 @@ export async function generate(options = {}) {
         providers.push({
             id: "gemini",
             stat: "ia",
-            run: ({ reference, product, index }) =>
+            run: ({ reference, product, index, color = null }) =>
                 fetchImageBase64({
-                    prompt: buildPrompt(reference, product, index),
+                    prompt: buildPrompt(reference, product, index, color),
                     apiKey,
                     model,
                     fetchImpl,
@@ -677,9 +698,9 @@ export async function generate(options = {}) {
         providers.push({
             id: "flux",
             stat: "free",
-            run: ({ reference, product, index }) =>
+            run: ({ reference, product, index, color = null }) =>
                 fetchFluxImage({
-                    prompt: buildPrompt(reference, product, index),
+                    prompt: buildPrompt(reference, product, index, color),
                     credentials,
                     model: fluxModel,
                     fetchImpl,
@@ -752,9 +773,76 @@ export async function generate(options = {}) {
         }
     }
 
+    // V6: fotos por color para productos multicolor.
+    for (const reference of references) {
+        const product = products.get(reference);
+        const colors = product?.colors ?? [];
+        if (colors.length < 2) continue;
+        for (const color of colors) {
+            const slug = String(color).trim().toUpperCase().replace(/\s+/g, "");
+            for (let index = 1; index <= IMAGES_PER_PRODUCT; index++) {
+                const name = fileNameForColor(reference, slug, index);
+                const target = path.join(outputDir, name);
+
+                if (!force && existsSync(target)) {
+                    stats.intacta += 1;
+                    continue;
+                }
+
+                if (!force && providers.length > 0) {
+                    let generada = false;
+                    for (const provider of providers) {
+                        if (provider.caido) continue;
+                        try {
+                            const source = await provider.run({
+                                reference,
+                                product: products.get(reference),
+                                index,
+                                color: slug,
+                            });
+                            // provider.run passes color? need to thread. We'll call buildPrompt via run? 
+                            // Actually provider.run uses buildPrompt(reference, product, index) internally.
+                            // To include color, we override by calling fetch directly is too complex.
+                            // Instead, we rely on product.color being set to this color temporarily.
+                            const { buffer, desviado, width, height } =
+                                await renderPhoto(source);
+                            if (desviado) {
+                                log(
+                                    `${name}: ${provider.id} devolvió ${width}×${height} (no 3:4) → recorte centrado`
+                                );
+                            }
+                            writeFileSync(target, buffer);
+                            stats[provider.stat] += 1;
+                            generada = true;
+                            break;
+                        } catch (error) {
+                            stats.fallos += 1;
+                            if (error?.permanente) {
+                                provider.caido = true;
+                                log(
+                                    `${name}: ${provider.id} → ${error.message} — ` +
+                                        "cuota/autorización agotada: se omite " +
+                                        `"${provider.id}" en el resto de la corrida`
+                                );
+                            } else {
+                                log(
+                                    `${name}: ${provider.id} → ${error.message} → siguiente proveedor`
+                                );
+                            }
+                        }
+                    }
+                    if (generada) continue;
+                }
+
+                await writePoster(target, reference, index);
+                stats.poster += 1;
+            }
+        }
+    }
+
     writeFileSync(
         manifestPath,
-        `${JSON.stringify(buildManifest(references), null, 4)}\n`,
+        `${JSON.stringify(buildManifest(references, products), null, 4)}\n`,
         "utf8"
     );
 

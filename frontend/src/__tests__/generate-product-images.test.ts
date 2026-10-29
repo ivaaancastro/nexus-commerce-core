@@ -151,6 +151,7 @@ describe("discoverProducts (R2)", () => {
                 description: "Abrigo corto de prueba.",
                 family: "OUTERWEAR",
                 color: null,
+                colors: [],
             });
         } finally {
             rmSync(dir, { recursive: true, force: true });

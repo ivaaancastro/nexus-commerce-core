@@ -77,7 +77,7 @@ class AdminStockControllerTest {
     // ── R1: la matriz ──────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("C.1 - GET devuelve almacenes ordenados y TODOS los SKUs (7 filas = 6 sembrados + 1 de prueba)")
+    @DisplayName("C.1 - GET devuelve almacenes ordenados y TODOS los SKUs (11 filas = 10 sembrados + 1 de prueba)")
     void matrizCompleta() throws Exception {
         mockMvc.perform(get(BASE).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
@@ -86,16 +86,16 @@ class AdminStockControllerTest {
                 .andExpect(jsonPath("$.warehouses[0].name").isNotEmpty())
                 .andExpect(jsonPath("$.warehouses[0].countryCode").value("ES"))
                 .andExpect(jsonPath("$.warehouses[1].code").value("WH_ZARAGOZA"))
-                .andExpect(jsonPath("$.rows.length()").value(7))
+                .andExpect(jsonPath("$.rows.length()").value(11))
                 // Orden por referenceCode: el catálogo sembrado va primero…
                 .andExpect(jsonPath("$.rows[0].referenceCode").value("0432/021"))
                 .andExpect(jsonPath("$.rows[0].skuId").isNumber())
                 .andExpect(jsonPath("$.rows[0].productId").isNumber())
                 // …y el de prueba (7301/…) al final, con celdas por almacén
-                .andExpect(jsonPath("$.rows[6].referenceCode").value(REF_PRUEBA))
-                .andExpect(jsonPath("$.rows[6].color").value("Marino"))
-                .andExpect(jsonPath("$.rows[6].size").value("M"))
-                .andExpect(jsonPath("$.rows[6].cells.length()").value(2));
+                .andExpect(jsonPath("$.rows[10].referenceCode").value(REF_PRUEBA))
+                .andExpect(jsonPath("$.rows[10].color").value("Marino"))
+                .andExpect(jsonPath("$.rows[10].size").value("M"))
+                .andExpect(jsonPath("$.rows[10].cells.length()").value(2));
     }
 
     @Test
@@ -103,13 +103,13 @@ class AdminStockControllerTest {
     void skuSinStockApareceEnCeros() throws Exception {
         mockMvc.perform(get(BASE).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rows[6].skuId").value(skuPrueba))
-                .andExpect(jsonPath("$.rows[6].cells[0].warehouseCode").value("WH_ARTEIXO"))
-                .andExpect(jsonPath("$.rows[6].cells[0].quantityAvailable").value(0))
-                .andExpect(jsonPath("$.rows[6].cells[0].quantityReserved").value(0))
-                .andExpect(jsonPath("$.rows[6].cells[0].netAvailable").value(0))
-                .andExpect(jsonPath("$.rows[6].cells[1].warehouseCode").value("WH_ZARAGOZA"))
-                .andExpect(jsonPath("$.rows[6].cells[1].netAvailable").value(0));
+                .andExpect(jsonPath("$.rows[10].skuId").value(skuPrueba))
+                .andExpect(jsonPath("$.rows[10].cells[0].warehouseCode").value("WH_ARTEIXO"))
+                .andExpect(jsonPath("$.rows[10].cells[0].quantityAvailable").value(0))
+                .andExpect(jsonPath("$.rows[10].cells[0].quantityReserved").value(0))
+                .andExpect(jsonPath("$.rows[10].cells[0].netAvailable").value(0))
+                .andExpect(jsonPath("$.rows[10].cells[1].warehouseCode").value("WH_ZARAGOZA"))
+                .andExpect(jsonPath("$.rows[10].cells[1].netAvailable").value(0));
     }
 
     // ── R2: escritura con guarda ───────────────────────────────────────────
@@ -131,9 +131,9 @@ class AdminStockControllerTest {
         // THEN — la matriz lo ve, y el otro almacén sigue en 0
         mockMvc.perform(get(BASE).header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rows[6].cells[0].quantityAvailable").value(12))
-                .andExpect(jsonPath("$.rows[6].cells[0].quantityReserved").value(0))
-                .andExpect(jsonPath("$.rows[6].cells[1].quantityAvailable").value(0));
+                .andExpect(jsonPath("$.rows[10].cells[0].quantityAvailable").value(12))
+                .andExpect(jsonPath("$.rows[10].cells[0].quantityReserved").value(0))
+                .andExpect(jsonPath("$.rows[10].cells[1].quantityAvailable").value(0));
 
         // WHEN — segunda escritura: actualiza la misma fila
         mockMvc.perform(put(BASE + "/" + skuPrueba + "/WH_ARTEIXO")

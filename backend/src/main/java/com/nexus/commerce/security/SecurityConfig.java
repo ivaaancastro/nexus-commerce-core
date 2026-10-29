@@ -47,8 +47,8 @@ public class SecurityConfig {
                         "/error"
                 ).permitAll()
 
-                // 2) Health check público (Tarea 6.4, D7: sin Actuator).
-                .requestMatchers("/api/v1/health").permitAll()
+                // 2) Health check (Fase 8, R1): ahora protegido para admin.
+                .requestMatchers("/api/v1/health").hasRole("ADMIN")
 
                 // 3) Registro, login y recuperación sin token todavía; el
                 //    filtro JWT sigue activo para /auth/me si llega cabecera.
@@ -89,6 +89,9 @@ public class SecurityConfig {
                 //    admin ya lo cubre /api/v1/admin/** con hasRole("ADMIN").
                 //    También ANTES de anyRequest().denyAll().
                 .requestMatchers("/api/v1/coupons/**").authenticated()
+
+                //    Fase 8 (R2): métricas básicas, solo admin.
+                .requestMatchers("/api/v1/metrics").hasRole("ADMIN")
 
                 // 7) Zona admin (Tarea 7.1): exige ROLE_ADMIN en el
                 //    SecurityContext, que el filtro sólo concede con el claim
