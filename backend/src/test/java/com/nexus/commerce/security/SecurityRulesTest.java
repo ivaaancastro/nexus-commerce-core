@@ -275,6 +275,74 @@ class SecurityRulesTest {
                 .andExpect(status().isForbidden());
     }
 
+    // ── Fase 9: Endpoints de pago ────────────────────────────────────────
+
+    @Test
+    @DisplayName("Fase 9 - Sin token - POST /orders/checkout -> 401")
+    void checkoutSinToken401() throws Exception {
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Idempotency-Key", "test-key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Fase 9 - Con token USER - POST /orders/checkout -> pasa la puerta (400 validación)")
+    void checkoutConTokenPasaPuerta() throws Exception {
+        mockMvc.perform(post("/api/v1/orders/checkout")
+                        .header("Authorization", "Bearer " + token)
+                        .header("Idempotency-Key", "test-key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Fase 9 - Sin token - GET /users/me/payment-methods -> 401")
+    void paymentMethodsSinToken401() throws Exception {
+        mockMvc.perform(get("/api/v1/users/me/payment-methods"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Fase 9 - Con token USER - GET /users/me/payment-methods -> 200 (pasa la puerta)")
+    void paymentMethodsConToken200() throws Exception {
+        mockMvc.perform(get("/api/v1/users/me/payment-methods")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Fase 9 - Sin token - POST /orders/{orderNumber}/refund -> 401")
+    void refundSinToken401() throws Exception {
+        mockMvc.perform(post("/api/v1/orders/ORD-TEST/refund")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Fase 9 - Rol USER - POST /orders/{orderNumber}/refund -> 403")
+    void refundRolUser403() throws Exception {
+        mockMvc.perform(post("/api/v1/orders/ORD-TEST/refund")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Fase 9 - Rol ADMIN - POST /orders/{orderNumber}/refund -> 404 (pasa la puerta, orden no existe)")
+    void refundRolAdminPasaPuerta() throws Exception {
+        String adminToken = jwtService.generateToken(999L, "seguridad@nexus.test", Role.ADMIN);
+        mockMvc.perform(post("/api/v1/orders/ORD-TEST/refund")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
     @Test
     @DisplayName("Rol ADMIN - los 4 endpoints pasan la puerta (200/404, sin escribir en BD)")
     void stockYPreciosRolAdminPasanLaPuerta() throws Exception {

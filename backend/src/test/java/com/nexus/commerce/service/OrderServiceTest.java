@@ -34,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,6 +42,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceTest {
@@ -78,6 +80,10 @@ class OrderServiceTest {
     /** V5 cupones: el checkout lo canjea bajo transacción (spec §2.3). */
     @Mock
     private CouponService couponService;
+
+    /** Fase 9 pagos: mock del servicio de pagos Stripe. */
+    @Mock
+    private PaymentService paymentService;
 
     @InjectMocks
     private OrderService orderService;
@@ -155,6 +161,25 @@ class OrderServiceTest {
 
         when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
 
+        // Fase 9: mock del PaymentService para crear PaymentIntent
+        when(paymentService.createPaymentIntent(any(PaymentIntentRequest.class)))
+                .thenAnswer(invocation -> {
+                    PaymentIntentRequest req = invocation.getArgument(0);
+                    String simulatedClientSecret = "pi_test_" + UUID.randomUUID() + "_secret_test";
+                    String simulatedPaymentIntentId = "pi_test_" + UUID.randomUUID();
+                    return new PaymentIntentResponse(
+                            req.metadata() != null && req.metadata().containsKey("orderNumber")
+                                    ? req.metadata().get("orderNumber")
+                                    : "ORD-TEST",
+                            simulatedPaymentIntentId,
+                            simulatedClientSecret,
+                            "requires_payment_method",
+                            req.amount().multiply(BigDecimal.valueOf(100)).intValueExact(),
+                            req.currency().toLowerCase(),
+                            "/orders/ORD-TEST?payment_intent=" + simulatedPaymentIntentId
+                    );
+                });
+
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order o = invocation.getArgument(0);
             o.setId(100L);
@@ -162,34 +187,35 @@ class OrderServiceTest {
         });
 
         // WHEN
-        OrderResponse response = orderService.processCheckout(idempotencyKey, request, email);
+        CheckoutResponse response = orderService.processCheckout(idempotencyKey, request, email);
+        OrderResponse orderResponse = response.getOrder();
 
         // THEN
-        assertThat(response.idempotencyKey()).isEqualTo(idempotencyKey);
-        assertThat(response.status()).isEqualTo(OrderStatus.CONFIRMED);
-        assertThat(response.currency()).isEqualTo("EUR");
-        assertThat(response.totalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
-        assertThat(response.taxAmount()).isEqualByComparingTo(new BigDecimal("17.36"));
-        assertThat(response.items()).hasSize(1);
+        assertThat(orderResponse.idempotencyKey()).isEqualTo(idempotencyKey);
+        assertThat(orderResponse.status()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(orderResponse.currency()).isEqualTo("EUR");
+        assertThat(orderResponse.totalAmount()).isEqualByComparingTo(new BigDecimal("100.00"));
+        assertThat(orderResponse.taxAmount()).isEqualByComparingTo(new BigDecimal("17.36"));
+        assertThat(orderResponse.items()).hasSize(1);
 
         // R1: snapshot de envío copiado a la orden
-        assertThat(response.shippingAddress()).isNotNull();
-        assertThat(response.shippingAddress().city()).isEqualTo("Madrid");
-        assertThat(response.shippingAddress().postalCode()).isEqualTo("28013");
+        assertThat(orderResponse.shippingAddress()).isNotNull();
+        assertThat(orderResponse.shippingAddress().city()).isEqualTo("Madrid");
+        assertThat(orderResponse.shippingAddress().postalCode()).isEqualTo("28013");
 
         // R2: método de pago declarado, no procesado
-        assertThat(response.paymentMethod()).isEqualTo(PaymentMethod.CARD);
+        assertThat(orderResponse.paymentMethod()).isEqualTo(PaymentMethod.CARD);
 
         // R3: nombre y variantes resueltos vía Sku → Product
-        assertThat(response.items().get(0).productName()).isEqualTo("Camisa Oxford");
-        assertThat(response.items().get(0).productFamily()).isEqualTo("Camisas");
-        assertThat(response.items().get(0).size()).isEqualTo("M");
-        assertThat(response.items().get(0).color()).isEqualTo("Blanco");
+        assertThat(orderResponse.items().get(0).productName()).isEqualTo("Camisa Oxford");
+        assertThat(orderResponse.items().get(0).productFamily()).isEqualTo("Camisas");
+        assertThat(orderResponse.items().get(0).size()).isEqualTo("M");
+        assertThat(orderResponse.items().get(0).color()).isEqualTo("Blanco");
 
         verify(inventoryService).reserveStock(any(ReserveStockRequest.class));
 
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        verify(orderRepository).save(captor.capture());
+        verify(orderRepository, times(2)).save(captor.capture());
         assertThat(captor.getValue().getUser()).isSameAs(user);
         assertThat(captor.getValue().getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
     }
@@ -221,6 +247,26 @@ class OrderServiceTest {
                 new BigDecimal("41.32"), new BigDecimal("8.68"), new BigDecimal("21.00")
         )));
         when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
+
+        // Fase 9: mock del PaymentService para crear PaymentIntent
+        lenient().when(paymentService.createPaymentIntent(any(PaymentIntentRequest.class)))
+                .thenAnswer(invocation -> {
+                    PaymentIntentRequest req = invocation.getArgument(0);
+                    String simulatedClientSecret = "pi_test_" + UUID.randomUUID() + "_secret_test";
+                    String simulatedPaymentIntentId = "pi_test_" + UUID.randomUUID();
+                    return new PaymentIntentResponse(
+                            req.metadata() != null && req.metadata().containsKey("orderNumber")
+                                    ? req.metadata().get("orderNumber")
+                                    : "ORD-TEST",
+                            simulatedPaymentIntentId,
+                            simulatedClientSecret,
+                            "requires_payment_method",
+                            req.amount().multiply(BigDecimal.valueOf(100)).intValueExact(),
+                            req.currency().toLowerCase(),
+                            "/orders/ORD-TEST?payment_intent=" + simulatedPaymentIntentId
+                    );
+                });
+
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order o = invocation.getArgument(0);
             o.setId(100L);
@@ -264,6 +310,26 @@ class OrderServiceTest {
                 new BigDecimal("41.32"), new BigDecimal("8.68"), new BigDecimal("21.00")
         )));
         when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
+
+        // Fase 9: mock del PaymentService para crear PaymentIntent
+        when(paymentService.createPaymentIntent(any(PaymentIntentRequest.class)))
+                .thenAnswer(invocation -> {
+                    PaymentIntentRequest req = invocation.getArgument(0);
+                    String simulatedClientSecret = "pi_test_" + UUID.randomUUID() + "_secret_test";
+                    String simulatedPaymentIntentId = "pi_test_" + UUID.randomUUID();
+                    return new PaymentIntentResponse(
+                            req.metadata() != null && req.metadata().containsKey("orderNumber")
+                                    ? req.metadata().get("orderNumber")
+                                    : "ORD-TEST",
+                            simulatedPaymentIntentId,
+                            simulatedClientSecret,
+                            "requires_payment_method",
+                            req.amount().multiply(BigDecimal.valueOf(100)).intValueExact(),
+                            req.currency().toLowerCase(),
+                            "/orders/ORD-TEST?payment_intent=" + simulatedPaymentIntentId
+                    );
+                });
+
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order o = invocation.getArgument(0);
             o.setId(100L);
@@ -275,7 +341,7 @@ class OrderServiceTest {
 
         // THEN
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        verify(orderRepository).save(captor.capture());
+        verify(orderRepository, times(2)).save(captor.capture());
         assertThat(captor.getValue().getUser()).isSameAs(user);
         assertThat(captor.getValue().getShippingAddress()).isNotNull();
         assertThat(captor.getValue().getShippingAddress().getCountryCode()).isEqualTo("ES");
@@ -307,10 +373,11 @@ class OrderServiceTest {
         ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         // WHEN — la clave corta el flujo ANTES de resolver la dirección
-        OrderResponse response = orderService.processCheckout(idempotencyKey, request, null);
+        CheckoutResponse response = orderService.processCheckout(idempotencyKey, request, null);
+        OrderResponse orderResponse = response.getOrder();
 
         // THEN
-        assertThat(response.orderNumber()).isEqualTo("ORD-EXISTING");
+        assertThat(orderResponse.orderNumber()).isEqualTo("ORD-EXISTING");
         verifyNoInteractions(inventoryService);
         verify(orderRepository, never()).save(any());
     }
@@ -699,6 +766,26 @@ class OrderServiceTest {
                 new BigDecimal("41.32"), new BigDecimal("8.68"), new BigDecimal("21.00")
         )));
         when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
+
+        // Fase 9: mock del PaymentService para crear PaymentIntent
+        when(paymentService.createPaymentIntent(any(PaymentIntentRequest.class)))
+                .thenAnswer(invocation -> {
+                    PaymentIntentRequest req = invocation.getArgument(0);
+                    String simulatedClientSecret = "pi_test_" + UUID.randomUUID() + "_secret_test";
+                    String simulatedPaymentIntentId = "pi_test_" + UUID.randomUUID();
+                    return new PaymentIntentResponse(
+                            req.metadata() != null && req.metadata().containsKey("orderNumber")
+                                    ? req.metadata().get("orderNumber")
+                                    : "ORD-TEST",
+                            simulatedPaymentIntentId,
+                            simulatedClientSecret,
+                            "requires_payment_method",
+                            req.amount().multiply(BigDecimal.valueOf(100)).intValueExact(),
+                            req.currency().toLowerCase(),
+                            "/orders/ORD-TEST?payment_intent=" + simulatedPaymentIntentId
+                    );
+                });
+
         when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> {
             Order o = invocation.getArgument(0);
             o.setId(100L);
@@ -712,7 +799,7 @@ class OrderServiceTest {
 
         // THEN — la orden conserva la dirección que se usó el día de la compra
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        verify(orderRepository).save(captor.capture());
+        verify(orderRepository, times(2)).save(captor.capture());
         assertThat(captor.getValue().getShippingAddress().getCity()).isEqualTo("Madrid");
         assertThat(captor.getValue().getShippingAddress().getPostalCode()).isEqualTo("28013");
     }
@@ -778,6 +865,25 @@ class OrderServiceTest {
         );
         when(pricingService.calculatePrice(1L, "ES")).thenReturn(Optional.of(price));
         when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
+
+        // Fase 9: mock del PaymentService para crear PaymentIntent
+        lenient().when(paymentService.createPaymentIntent(any(PaymentIntentRequest.class)))
+                .thenAnswer(invocation -> {
+                    PaymentIntentRequest req = invocation.getArgument(0);
+                    String simulatedClientSecret = "pi_test_" + UUID.randomUUID() + "_secret_test";
+                    String simulatedPaymentIntentId = "pi_test_" + UUID.randomUUID();
+                    return new PaymentIntentResponse(
+                            req.metadata() != null && req.metadata().containsKey("orderNumber")
+                                    ? req.metadata().get("orderNumber")
+                                    : "ORD-TEST",
+                            simulatedPaymentIntentId,
+                            simulatedClientSecret,
+                            "requires_payment_method",
+                            req.amount().multiply(BigDecimal.valueOf(100)).intValueExact(),
+                            req.currency().toLowerCase(),
+                            "/orders/ORD-TEST?payment_intent=" + simulatedPaymentIntentId
+                    );
+                });
     }
 
     private CheckoutRequest checkoutConCupon(String couponCode) {
@@ -811,16 +917,17 @@ class OrderServiceTest {
                 .thenReturn(new CouponService.CouponDiscountResult(cupon, new BigDecimal("5.00")));
 
         // WHEN
-        OrderResponse response = orderService.processCheckout(
+        CheckoutResponse response = orderService.processCheckout(
                 idempotencyKey, checkoutConCupon("SAVE10"), email);
+        OrderResponse orderResponse = response.getOrder();
 
         // THEN — el descuento se aplica al bruto de 100,00
-        assertThat(response.discountAmount()).isEqualByComparingTo("5.00");
-        assertThat(response.totalAmount()).isEqualByComparingTo("95.00");
+        assertThat(orderResponse.discountAmount()).isEqualByComparingTo("5.00");
+        assertThat(orderResponse.totalAmount()).isEqualByComparingTo("95.00");
         // Identidad subtotal + impuesto = total sobre la base reducida:
         // 95,00 / 1,21 = 78,51 neto y 16,49 de impuesto (inversa de PricingService)
-        assertThat(response.subtotalAmount()).isEqualByComparingTo("78.51");
-        assertThat(response.taxAmount()).isEqualByComparingTo("16.49");
+        assertThat(orderResponse.subtotalAmount()).isEqualByComparingTo("78.51");
+        assertThat(orderResponse.taxAmount()).isEqualByComparingTo("16.49");
 
         // El canje recibió el BRUTO del carrito (§2.6), no el total ya descontado
         ArgumentCaptor<BigDecimal> bruto = ArgumentCaptor.forClass(BigDecimal.class);
@@ -829,7 +936,7 @@ class OrderServiceTest {
 
         // La orden persiste código, id e importe del descuento
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
-        verify(orderRepository).save(captor.capture());
+        verify(orderRepository, times(2)).save(captor.capture());
         assertThat(captor.getValue().getCouponCode()).isEqualTo("SAVE10");
         assertThat(captor.getValue().getCouponId()).isEqualTo(9L);
         assertThat(captor.getValue().getDiscountAmount()).isEqualByComparingTo("5.00");
@@ -854,12 +961,13 @@ class OrderServiceTest {
         });
 
         // WHEN
-        OrderResponse response = orderService.processCheckout(
+        CheckoutResponse response = orderService.processCheckout(
                 idempotencyKey, checkoutConCupon(null), email);
+        OrderResponse orderResponse = response.getOrder();
 
         // THEN — descuento 0 explícito («DEFAULT 0» de la spec §2.1) y total intacto
-        assertThat(response.discountAmount()).isEqualByComparingTo("0");
-        assertThat(response.totalAmount()).isEqualByComparingTo("100.00");
+        assertThat(orderResponse.discountAmount()).isEqualByComparingTo("0");
+        assertThat(orderResponse.totalAmount()).isEqualByComparingTo("100.00");
         verifyNoInteractions(couponService);
     }
 
@@ -910,14 +1018,15 @@ class OrderServiceTest {
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.of(existingOrder));
 
         // WHEN — misma clave, mismo cupón (reenvío del mismo checkout)
-        OrderResponse response = orderService.processCheckout(
+        CheckoutResponse response = orderService.processCheckout(
                 idempotencyKey, checkoutConCupon("SAVE10"), null);
+        OrderResponse orderResponse = response.getOrder();
 
         // THEN — devuelve la orden original con SU descuento y sin re-canjar:
         // usageCount no se incrementa dos veces por un reenvío
-        assertThat(response.orderNumber()).isEqualTo("ORD-EXISTING");
-        assertThat(response.discountAmount()).isEqualByComparingTo("5.00");
-        assertThat(response.totalAmount()).isEqualByComparingTo("95.00");
+        assertThat(orderResponse.orderNumber()).isEqualTo("ORD-EXISTING");
+        assertThat(orderResponse.discountAmount()).isEqualByComparingTo("5.00");
+        assertThat(orderResponse.totalAmount()).isEqualByComparingTo("95.00");
         verifyNoInteractions(couponService);
         verify(orderRepository, never()).save(any());
     }

@@ -28,6 +28,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -52,14 +53,27 @@ public class OrderService {
     private final OrderEmailNotifier orderEmailNotifier;
     /** V5: revalidación atómica del cupón y registro de su uso (spec §2.3). */
     private final CouponService couponService;
+    /** Nueva inyección (Fase 9): servicio de pagos Stripe. */
+    private final PaymentService paymentService;
 
     @Transactional
-    public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request, String userEmail) {
+    public CheckoutResponse processCheckout(String idempotencyKey, CheckoutRequest request, String userEmail) {
         // 1. Control de Idempotencia: si ya fue procesada, devolvemos la existente
         Optional<Order> existingOrder = orderRepository.findByIdempotencyKey(idempotencyKey);
         if (existingOrder.isPresent()) {
-            log.info("Idempotency key '{}' detectada. Devolviendo orden {}", idempotencyKey, existingOrder.get().getOrderNumber());
-            return mapToOrderResponse(existingOrder.get());
+            log.info("Idempotency key '{}' detectada. Devolviendo orden existente", idempotencyKey);
+            OrderResponse existingResponse = mapToOrderResponse(existingOrder.get());
+            int amountInCents = existingOrder.get().getTotalAmount().multiply(BigDecimal.valueOf(100)).intValueExact();
+            PaymentIntentResponse piResponse = new PaymentIntentResponse(
+                    existingOrder.get().getOrderNumber(),
+                    existingOrder.get().getPaymentIntentId(),
+                    existingOrder.get().getClientSecret(),
+                    existingOrder.get().getStatus().name(),
+                    amountInCents,
+                    existingOrder.get().getCurrency(),
+                    "/orders/" + existingOrder.get().getOrderNumber() + "?payment_intent=" + existingOrder.get().getPaymentIntentId()
+            );
+            return new CheckoutResponse(existingResponse, piResponse.getPaymentIntentId(), existingOrder.get().getClientSecret());
         }
 
         log.info("Iniciando checkout transaccional para mercado '{}' con {} líneas",
@@ -201,6 +215,31 @@ public class OrderService {
         Order savedOrder = orderRepository.save(order);
         log.info("Orden {} creada con éxito. Total: {} {}", savedOrder.getOrderNumber(), savedOrder.getTotalAmount(), currency);
 
+        // 🟢 NUEVA FASE 9: Crear PaymentIntent en Stripe test mode
+        // Este paso ocurre dentro de la misma transacción @Transactional.
+        // Si falla, el rollback de la transacción deja la orden sin PaymentIntent,
+        // y el cliente verá un error que podrá reintentar (idempotencia lo permite).
+        int amountInCents = savedOrder.getTotalAmount().multiply(BigDecimal.valueOf(100)).intValueExact();
+        PaymentIntentRequest piRequest = new PaymentIntentRequest(
+                savedOrder.getTotalAmount(),
+                savedOrder.getCurrency(),
+                idempotencyKey,
+                Map.of(
+                        "orderNumber", savedOrder.getOrderNumber(),
+                        "userEmail", user.getEmail()
+                )
+        );
+
+        PaymentIntentResponse piResponse = paymentService.createPaymentIntent(piRequest);
+
+        // Asociar el PaymentIntent a la orden guardada para referencia futura
+        savedOrder.setPaymentIntentId(piResponse.getPaymentIntentId());
+        savedOrder.setClientSecret(piResponse.getClientSecret());
+        orderRepository.save(savedOrder);
+
+        log.info("PaymentIntent creado en Stripe: pi={}, clientSecret={}, order={}",
+                piResponse.getPaymentIntentId(), piResponse.getClientSecret(), savedOrder.getOrderNumber());
+
         // V5: registro del uso vinculado a la orden (misma transacción —
         // usageCount y coupon_usages quedan consistentes por construcción).
         // La condición es «hubo canje» (couponId), NO «descuento > 0»:
@@ -215,7 +254,9 @@ public class OrderService {
         // El pedido nace CONFIRMED sin cobro, así que el copy jamás dice «pagado».
         orderEmailNotifier.notificar(savedOrder, OrderStatus.CONFIRMED);
 
-        return mapToOrderResponse(savedOrder);
+        // 🟢 Retornar respuesta completa con PaymentIntent y clientSecret
+        OrderResponse orderResponse = mapToOrderResponse(savedOrder);
+        return new CheckoutResponse(orderResponse, piResponse.getPaymentIntentId(), piResponse.getClientSecret());
     }
 
     @Transactional(readOnly = true)

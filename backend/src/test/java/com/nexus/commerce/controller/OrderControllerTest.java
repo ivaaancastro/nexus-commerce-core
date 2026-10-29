@@ -3,6 +3,7 @@ package com.nexus.commerce.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nexus.commerce.dto.CheckoutItemRequest;
 import com.nexus.commerce.dto.CheckoutRequest;
+import com.nexus.commerce.dto.CheckoutResponse;
 import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.entity.OrderStatus;
 import com.nexus.commerce.entity.PaymentMethod;
@@ -57,7 +58,7 @@ class OrderControllerTest {
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
         ), "ES", 40.4168, -3.7038, 5L, PaymentMethod.CARD, null);
 
-        OrderResponse response = new OrderResponse(
+        OrderResponse orderResponse = new OrderResponse(
                 1L, "ORD-9999", "idem-uuid-001", "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
@@ -65,19 +66,23 @@ class OrderControllerTest {
                 null
         );
 
+        CheckoutResponse checkoutResponse = new CheckoutResponse(orderResponse, "pi_test_123", "pi_test_123_secret");
+
         when(orderService.processCheckout(eq("idem-uuid-001"), any(CheckoutRequest.class), eq(null)))
-                .thenReturn(response);
+                .thenReturn(checkoutResponse);
 
         mockMvc.perform(post("/api/v1/orders/checkout")
                         .header("Idempotency-Key", "idem-uuid-001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.orderNumber").value("ORD-9999"))
-                .andExpect(jsonPath("$.status").value("CONFIRMED"))
-                .andExpect(jsonPath("$.paymentMethod").value("CARD"))
-                .andExpect(jsonPath("$.returnDeadline").exists())
-                .andExpect(jsonPath("$.totalAmount").value(50.00));
+                .andExpect(jsonPath("$.order.orderNumber").value("ORD-9999"))
+                .andExpect(jsonPath("$.order.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.order.paymentMethod").value("CARD"))
+                .andExpect(jsonPath("$.order.returnDeadline").exists())
+                .andExpect(jsonPath("$.order.totalAmount").value(50.00))
+                .andExpect(jsonPath("$.paymentIntentId").value("pi_test_123"))
+                .andExpect(jsonPath("$.clientSecret").value("pi_test_123_secret"));
     }
 
     @Test

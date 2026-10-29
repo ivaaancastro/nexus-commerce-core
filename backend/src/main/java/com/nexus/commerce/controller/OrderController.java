@@ -1,6 +1,7 @@
 package com.nexus.commerce.controller;
 
 import com.nexus.commerce.dto.CheckoutRequest;
+import com.nexus.commerce.dto.CheckoutResponse;
 import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,13 +22,13 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/checkout")
-    @Operation(summary = "Procesar el checkout y asociar el pedido al usuario autenticado")
-    public ResponseEntity<OrderResponse> checkout(
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
+    @Operation(summary = "Procesar el checkout y crear PaymentIntent en Stripe test mode")
+    public ResponseEntity<CheckoutResponse> checkout(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             Authentication authentication,
             @Valid @RequestBody CheckoutRequest request
     ) {
-        OrderResponse response = orderService.processCheckout(
+        CheckoutResponse response = orderService.processCheckout(
                 idempotencyKey,
                 request,
                 authentication != null ? authentication.getName() : null);
