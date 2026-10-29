@@ -24,5 +24,14 @@ public record CheckoutRequest(
         Long addressId,
 
         @NotNull(message = "Debes indicar un método de pago")
-        PaymentMethod paymentMethod
+        PaymentMethod paymentMethod,
+
+        /**
+         * V5 (spec §2.3): código de cupón aplicado — opcional. Si llega, el
+         * checkout lo revalida bajo {@code PESSIMISTIC_WRITE} y persiste el
+         * descuento; si es {@code null}/en blanco, el pedido se procesa sin
+         * cupón (patrón de los campos opcionales de fin de registro: los
+         * constructores posicionales añaden este argumento al final).
+         */
+        String couponCode
 ) {}

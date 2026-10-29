@@ -156,6 +156,20 @@ export default function ReceiptPage() {
                                 {order.totalAmount.toFixed(2)} {order.currency}
                             </span>
                         </div>
+                        {/*
+                            V5: informativa y DEBAJO del total — subtotal e
+                            impuestos de esta factura ya están re-extraídos
+                            sobre la base con el descuento aplicado, así que
+                            restar aquí de nuevo no cuadraría.
+                        */}
+                        {order.discountAmount != null && order.discountAmount > 0 && (
+                            <div className="flex justify-between text-xs uppercase tracking-wider">
+                                <span className="text-neutral-600">Descuento de cupón (ya aplicado)</span>
+                                <span className="text-neutral-900">
+                                    −{order.discountAmount.toFixed(2)} {order.currency}
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-8 text-center space-y-4">

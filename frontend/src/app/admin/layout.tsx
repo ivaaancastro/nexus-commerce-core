@@ -13,6 +13,7 @@ const SECCIONES = [
     { href: "/admin/orders", label: "Pedidos" },
     { href: "/admin/users", label: "Usuarios" },
     { href: "/admin/reviews", label: "Reseñas" },
+    { href: "/admin/coupons", label: "Cupones" },
 ];
 
 /**

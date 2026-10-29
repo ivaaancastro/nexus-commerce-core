@@ -18,7 +18,7 @@ export class ApiError extends Error {
 }
 
 interface CallOptions {
-    method?: "GET" | "POST" | "DELETE";
+    method?: "GET" | "POST" | "PUT" | "DELETE";
     json?: unknown;
     token?: string;
     /**

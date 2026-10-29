@@ -84,6 +84,12 @@ public class SecurityConfig {
                 //    aquí abajo la cerraría también a sesión iniciada.
                 .requestMatchers("/api/v1/wishlist/**").authenticated()
 
+                //    V5 cupones (spec specs/coupons/ §2.3): el validate de
+                //    cliente exige sesión (suma al límite por usuario); el CRUD
+                //    admin ya lo cubre /api/v1/admin/** con hasRole("ADMIN").
+                //    También ANTES de anyRequest().denyAll().
+                .requestMatchers("/api/v1/coupons/**").authenticated()
+
                 // 7) Zona admin (Tarea 7.1): exige ROLE_ADMIN en el
                 //    SecurityContext, que el filtro sólo concede con el claim
                 //    `role` del JWT (sin claim → USER, mínimo privilegio).
