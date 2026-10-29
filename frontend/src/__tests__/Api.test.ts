@@ -951,4 +951,54 @@ describe("api — puerta única a la API (R4)", () => {
             await expect(api.deleteAdminCoupon(10)).rejects.toThrow(/409/);
         });
     });
+
+    describe("fase 8 · operación interna y monitoring", () => {
+        beforeEach(() => {
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+        });
+
+        it("getHealth: GET /api/v1/health con Authorization y sin caché", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    status: "UP",
+                    details: { database: "UP", flyway: "V22 applied", uptime_seconds: 350 },
+                })
+            );
+
+            const health = await api.getHealth();
+
+            expect(health.status).toBe("UP");
+            expect(health.details.database).toBe("UP");
+            expect(health.details.flyway).toBe("V22 applied");
+            expect(health.details.uptime_seconds).toBe(350);
+            expect(lastUrl()).toContain("/api/v1/health");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("getMetrics: GET /api/v1/metrics con Authorization y sin caché", async () => {
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    uptime_seconds: 359,
+                    active_sessions: 0,
+                    total_requests_last_minute: 12,
+                    failed_requests_last_minute: 0,
+                    jvm_memory_used_mb: 238,
+                    jvm_memory_max_mb: 4096,
+                })
+            );
+
+            const metrics = await api.getMetrics();
+
+            expect(metrics.uptime_seconds).toBe(359);
+            expect(metrics.active_sessions).toBe(0);
+            expect(metrics.total_requests_last_minute).toBe(12);
+            expect(metrics.failed_requests_last_minute).toBe(0);
+            expect(metrics.jvm_memory_used_mb).toBe(238);
+            expect(metrics.jvm_memory_max_mb).toBe(4096);
+            expect(lastUrl()).toContain("/api/v1/metrics");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+    });
 });

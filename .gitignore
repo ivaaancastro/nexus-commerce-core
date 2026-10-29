@@ -27,4 +27,4 @@ build/
 .env.local
 
 # Docker
-.docker/
+.docker/.opencode/mcp.json
