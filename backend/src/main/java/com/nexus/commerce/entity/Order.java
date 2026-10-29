@@ -80,6 +80,33 @@ public class Order {
     private BigDecimal totalAmount;
 
     /**
+     * Stripe PaymentIntent ID (Fase 9). {@code null} para órdenes antes de la
+     * migración de pagos.
+     */
+    @Column(name = "payment_intent_id", length = 128)
+    private String paymentIntentId;
+
+    /**
+     * Stripe client secret para confirmar el pago en el frontend (Fase 9).
+     * {@code null} para órdenes antes de la migración de pagos.
+     */
+    @Column(name = "client_secret", length = 256)
+    private String clientSecret;
+
+    /**
+     * Estado del reembolso (Fase 9). Valores: {@code null} (sin reembolso),
+     * {@code REFUNDED} (reembolsado parcial o totalmente).
+     */
+    @Column(name = "refund_status", length = 32)
+    private String refundStatus;
+
+    /**
+     * Importe total reembolsado (Fase 9). {@code null} o 0 si no hay reembolso.
+     */
+    @Column(name = "amount_refunded", precision = 12, scale = 2)
+    private BigDecimal amountRefunded;
+
+    /**
      * Snapshot de la dirección usada al hacer checkout (Tarea 5.5, R1).
      * {@code null} en las órdenes anteriores a la migración {@code V10}.
      */

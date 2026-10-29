@@ -20,6 +20,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"items", "items.sku", "items.sku.product"})
     Optional<Order> findByIdempotencyKey(String idempotencyKey);
 
+    Optional<Order> findByUserEmail(String userEmail);
+
     @EntityGraph(attributePaths = {"items", "items.sku", "items.sku.product"})
     Optional<Order> findByOrderNumber(String orderNumber);
 

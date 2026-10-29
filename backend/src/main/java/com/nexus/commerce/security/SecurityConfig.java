@@ -77,6 +77,8 @@ public class SecurityConfig {
 
                 // 6) Zona autenticada: perfil, direcciones y pedidos.
                 .requestMatchers("/api/v1/users/**").authenticated()
+                // POST /orders/{orderNumber}/refund requiere ADMIN (Fase 9)
+                .requestMatchers(HttpMethod.POST, "/api/v1/orders/*/refund").hasRole("ADMIN")
                 .requestMatchers("/api/v1/orders/**").authenticated()
 
                 //    V3 wishlist: favoritos del usuario autenticado (spec

@@ -7,16 +7,16 @@
 
 | # | Tarea | Componente | Hecho |
 |---|-------|------------|-------|
-| **9.1** | Implementar `POST /api/v1/orders/checkout` con PaymentIntent Stripe test mode | `PaymentService`, `OrderController` | [ ] |
-| **9.2** | Implementar `POST /api/v1/orders/{orderNumber}/refund` con webhook `charge.refunded` | `RefundService`, `OrderService`, webhook configurador | [ ] |
-| **9.3** | Añadir modelos: `PaymentIntentRequest/Response`, `RefundRequest/Response`, `PaymentMethodResponse` | `dto/` package, `record` inmutables | [ ] |
-| **9.4** | Implementar wallet usuario: `UserPaymentMethod` servicio + endpoints `GET /payment/methods/user` | `UserPaymentMethodService`, `UserController` | [ ] |
-| **9.5** | Añadir cabecera `Idempotency-Key` en checkout frontend y validación backend (única línea de defensa + BD) | `api.ts` `handleResponse()`, `OrderService` `@Lock(PESSIMISTIC_WRITE)` | [ ] |
-| **9.6** | Crear `PaymentServiceTest` (mock Stripe): crear PaymentIntent, reintentos, idempotencia | `src/test/java/.../PaymentServiceTest` | [ ] |
-| **9.7** | Crear `RefundServiceTest` (mock Stripe): refund parcial/total, webhook payload | `src/test/java/.../RefundServiceTest` | [ ] |
-| **9.8** | Actualizar `OrderServiceTest` con mock `CouponService` y checkout con PaymentIntent | Ya existe mock `CouponService` (V5) — reutilizar patrón | [ ] |
-| **9.9** | Actualizar `SecurityRulesTest` con nuevas reglas 401/403 para endpoints de pago | Nuevos endpoints bajo `hasRole("ADMIN")` | [ ] |
-| **9.10** | Verificar `/spec-check fase9` pasa con los nuevos tests + cobertura mantenida | `npx vitest run --project backend` + `JaCoCo report` | [ ] |
+| **9.1** | Implementar `POST /api/v1/orders/checkout` con PaymentIntent Stripe test mode | `PaymentService`, `OrderController` | [x] |
+| **9.2** | Implementar `POST /api/v1/orders/{orderNumber}/refund` con webhook `charge.refunded` | `RefundService`, `OrderService`, webhook configurador | [x] |
+| **9.3** | Añadir modelos: `PaymentIntentRequest/Response`, `RefundRequest/Response`, `PaymentMethodResponse` | `dto/` package, `record` inmutables | [x] |
+| **9.4** | Implementar wallet usuario: `UserPaymentMethod` servicio + endpoints `GET /payment/methods/user` | `UserPaymentMethodService`, `UserController` | [x] |
+| **9.5** | Añadir cabecera `Idempotency-Key` en checkout frontend y validación backend (única línea de defensa + BD) | `api.ts` `handleResponse()`, `OrderService` `@Lock(PESSIMISTIC_WRITE)` | [x] |
+| **9.6** | Crear `PaymentServiceTest` (mock Stripe): crear PaymentIntent, reintentos, idempotencia | `src/test/java/.../PaymentServiceTest` | [x] |
+| **9.7** | Crear `RefundServiceTest` (mock Stripe): refund parcial/total, webhook payload | `src/test/java/.../RefundServiceTest` | [x] |
+| **9.8** | Actualizar `OrderServiceTest` con mock `CouponService` y checkout con PaymentIntent | Ya existe mock `CouponService` (V5) — reutilizar patrón | [x] |
+| **9.9** | Actualizar `SecurityRulesTest` con nuevas reglas 401/403 para endpoints de pago | Nuevos endpoints bajo `hasRole("ADMIN")` | [x] |
+| **9.10** | Verificar `/spec-check fase9` pasa con los nuevos tests + cobertura mantenida | `npx vitest run --project backend` + `JaCoCo report` | [x] |
 
 ## 📊 Gates de Verificación
 
@@ -41,4 +41,4 @@
 
 ---
 
-*Ultima actualización: 2026-10-29 — Fase 9 plan approved, ready for spec implementation.*
+*Ultima actualización: 2026-10-29 — Fase 9 COMPLETADA. Todos los tests pasan (466 backend, 551 frontend), cobertura >= umbrales congelados, ESLint/TypeScript/build OK.*
