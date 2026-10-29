@@ -135,11 +135,10 @@ class SecurityRulesTest {
     }
 
     @Test
-    @DisplayName("GET /health es publico y responde UP con la BD real")
-    void healthPublicoRespondeUp() throws Exception {
+    @DisplayName("GET /health requiere ADMIN (Fase 8 R1) y responde 401 sin auth")
+    void healthRequiereAdmin() throws Exception {
         mockMvc.perform(get("/api/v1/health"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
