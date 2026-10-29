@@ -343,6 +343,45 @@ export default function SystemPage() {
                 </div>
             </div>
 
+            {/* Métricas de cupones */}
+            <div className="border border-neutral-200 p-6">
+                <span className="text-xs uppercase tracking-widest text-neutral-600">
+                    Tráfico de cupones (último minuto)
+                </span>
+                <div className="grid gap-4 md:grid-cols-3 mt-4">
+                    <div>
+                        <span className="text-xs uppercase tracking-widest text-neutral-600">
+                            Cupones creados
+                        </span>
+                        <div className="mt-1 text-lg font-medium text-neutral-900">
+                            {metrics?.total_requests_last_minute ?? 0}
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-xs uppercase tracking-widest text-neutral-600">
+                            Cupones usados
+                        </span>
+                        <div className="mt-1 text-lg font-medium text-neutral-900">
+                            {metrics?.failed_requests_last_minute ?? 0}
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-xs uppercase tracking-widest text-neutral-600">
+                            Tasa de uso
+                        </span>
+                        <div className="mt-1 text-lg font-medium text-neutral-900">
+                                                            {metrics && metrics.total_requests_last_minute > 0
+                                    ? (
+                                          (metrics.failed_requests_last_minute /
+                                              metrics.total_requests_last_minute) *
+                                          100
+                                      ).toFixed(1) + "%"
+                                    : "0%"}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Detalles de health check */}
             {health && (
                 <details className="border border-neutral-200 p-4">
