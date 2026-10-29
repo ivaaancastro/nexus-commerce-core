@@ -11,11 +11,11 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` — **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** todas mergeadas; ramas `feat/coupons` y `feat/photos-per-color` integradas |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica), 7.1–7.6 completadas**; **Fase 7 panel COMPLETA**; **Bloque V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
-| **Tarea actual** | **Fase 8 — Operación interna y monitoring** — ✅ **COMPLETADA**: health check extendido, endpoint métricas, scripts mantenimiento, logging JSON, dashboard operativo. Sin features de usuario, foco en operatividad. |
-| **Estado** | **Backend `clean test` 453/0/0** (errores transaccionales por falta de Docker, no por código) · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** sobre umbrales congelados EXIT 0 · Tests: 549 frontend + 31 E2E + 17 axe · Migraciones V20/V21/V22 · Controladores y servicios implementados · Todas las features V1–V6 + Fase 8 mergeadas y verificadas |
-| **Pendiente** | **Fases 9–10** por definir · posibles features nuevas fuera del bloque V1–V6 · decisión sobre mejoras de performance o CX |
-| **Última actualización** | 2026-10-28 |
+| **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6 (deuda técnica), 7.1–7.6 completadas**; **Fase 7 panel COMPLETA**; **Bloque V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
+| **Tarea actual** | **Fase 9 — Pagos (PSP)** — siguiente: integración Stripe test mode, PaymentIntents, webhooks, reembolsos |
+| **Estado** | **Backend `clean test` 453/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** · Tests: 549 frontend + 31 E2E + 17 axe · Migraciones V20/V21/V22 · Todas las features V1–V6 + Fase 8 mergeadas y verificadas |
+| **Pendiente** | **Fases 9–15** definidas: Pagos (9), Envíos (10), Devoluciones (11), i18n (12), Notificaciones (13), Landing/Docs (14), Calidad final (15) |
+| **Última actualización** | 2026-10-29 |
 
 ---
 
@@ -354,20 +354,63 @@
 
 **Gates**: Frontend 549 tests ✅, `tsc` 0 ✅, `eslint` 0/0 ✅, `build` 0 ✅. Backend `HealthControllerTest` 2/2 ✅. Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** (umbrales congelados) EXIT 0.
 
-### Fase 9 — Documentación y landing (lo que vende)
-- [ ] 9.1 — README de producto (qué hace, cómo instalar, cómo extender)
-- [ ] 9.2 — Documentación de arquitectura (para el equipo del comprador)
-- [ ] 9.3 — Landing page estática (Next.js) con screenshots y features
-- [ ] 9.4 — Demo en vivo desplegado con datos de ejemplo
-- [ ] 9.5 — Licencia de uso + términos de venta
+### Fase 9 — Pagos (PSP) — Crítica para checkout real
+- [ ] 9.1 — Integración Stripe (test mode): PaymentIntent, SetupIntent, webhooks (`payment_intent.succeeded/failed`, `charge.refunded`)
+- [ ] 9.2 — Checkout real: crear PaymentIntent en `POST /orders/checkout`, confirmar en frontend con Stripe.js Elements
+- [ ] 9.3 — Reembolsos: admin puede hacer refund parcial/total desde panel pedido → webhook `charge.refunded` actualiza estado
+- [ ] 9.4 — Métodos de pago guardados: `Customer` + `PaymentMethod` attach/detach, wallet en perfil usuario
+- [ ] 9.5 — Idempotencia + concurrencia: `Idempotency-Key` en PaymentIntent, manejo race conditions
+- [ ] 9.6 — Tests E2E: compra completa con tarjeta test (4242 4242 4242 4242), refund, fallo 3D Secure
 
-### Fase 10 — Calidad y tests (lo que da confianza)
-- [ ] 10.1 — Tests de integración del panel admin
-- [ ] 10.2 — Tests E2E: admin crea producto → usuario compra
-- [ ] 10.3 — Cobertura > 80 % backend y frontend
-- [ ] 10.4 — CI/CD completo (lint, test, build, coverage gates)
+### Fase 10 — Envíos y Logística — Requerido para cumplir pedidos
+- [ ] 10.1 — Modelo de datos: `carriers`, `shipping_zones`, `shipping_rates`, `shipments`, `tracking_events`
+- [ ] 10.2 — Integración carrier (Correos Express API / DHL / SEUR): crear envío, generar etiqueta PDF, tracking webhook
+- [ ] 10.3 — Reglas de envío: por zona, peso, valor, mercado; envío gratis umbral configurable por mercado
+- [ ] 10.4 — Panel admin: botón "Crear envío" en pedido CONFIRMED → genera etiqueta, cambia estado a SHIPPED
+- [ ] 10.5 — Tracking público: usuario ve eventos en `/orders/[orderNumber]`, email automático al crear envío
+- [ ] 10.6 — Tests: mock carrier API, flujo CONFIRMED → SHIPPED → DELIVERED
 
-> **Deuda técnica identificada en el análisis (2026-10-09), no planificada como fase**: header desborda < 560 px · `/search` devuelve 500 sin `OPENAI_API_KEY` · `api.ts` al 20,77 % de cobertura · `GET /inventory/**` y `GET /pricing/**` públicos · sin wishlist, sin reviews, sin cupones, sin notificaciones transaccionales de pedido.
+### Fase 11 — Devoluciones (RMA) — Obligatorio legal EU (14 días)
+- [ ] 11.1 — Modelo: `returns` (user, order, items[], reason, status, refund_amount, carrier, tracking)
+- [ ] 11.2 — Flujo usuario: solicita devolución en `/orders/[orderNumber]` → items + motivo → estado PENDING
+- [ ] 11.3 — Flujo admin: ve solicitudes, aprueba/rechaza → genera etiqueta retorno (carrier API) → estado APPROVED
+- [ ] 11.4 — Recepción almacén: admin marca RECEIVED → trigger refund (Stripe webhook) → estado REFUNDED
+- [ ] 11.5 — Reglas: ventana 14 días, items elegibles (no final sale, no usados), stock se repone al recibir
+- [ ] 11.6 — Tests E2E: solicitud → aprobación → etiqueta → recepción → reembolso
+
+### Fase 12 — Internacionalización (i18n) — ES/EN/FR/DE/IT
+- [ ] 12.1 — Next.js i18n routing: `/es/...`, `/en/...`, middleware detección `Accept-Language`, cookie `nexus-locale`
+- [ ] 12.2 — Diccionarios JSON por locale: `messages/es.json`, `messages/en.json`, etc. (claves tipadas con `next-intl` o similar)
+- [ ] 12.3 — Formatos locales: fechas, números, monedas (`Intl.NumberFormat`, `Intl.DateTimeFormat` por locale)
+- [ ] 12.4 — Traducciones completas: UI (botones, labels, toasts), emails, validaciones, errores
+- [ ] 12.5 — SEO: `hreflang`, `alternate` links, sitemap multi-locale, robots.txt
+- [ ] 12.6 — Admin i18n: panel en inglés obligatorio, opcional otros locales
+
+### Fase 13 — Notificaciones — Email transaccional + Push + Marketing
+- [ ] 13.1 — Motor notificaciones: `NotificationService` con plantillas (Thymeleaf/React Email), cola (Redis/RabbitMQ), reintentos
+- [ ] 13.2 — Transaccionales: confirmación pedido, pago confirmado, envío creado (tracking), entrega, devolución aprobada, reembolso
+- [ ] 13.3 — Abandono carrito: job cada 30 min → carritos > 1h sin checkout → email con link recuperable (token firmado)
+- [ ] 13.4 — Push web (Web Push API): suscripción en perfil, envío server-side (VAPID), preferencias por tipo
+- [ ] 13.5 — Centro notificaciones en perfil: historial, marcar leídas, preferencias (email/push por evento)
+- [ ] 13.6 — Tests: mock email provider, verifica plantillas renderizan, cola procesa en orden
+
+### Fase 14 — Landing, Demo y Documentación — Lo que vende
+- [ ] 14.1 — Landing page pública (`/`): hero, value props, feature tour interactivo (V1–V6 + Admin + Ops), screenshots reales
+- [ ] 14.2 — Páginas: `/features` (detalle cada módulo), `/pricing` (planes si se vende), `/docs` (MDX técnico), `/demo` (sandbox)
+- [ ] 14.3 — Demo sandbox: datos seed persistentes, checkout con Stripe test mode visible, admin accesible demo@nexus.dev
+- [ ] 14.4 — Documentación técnica: arquitectura, API reference (OpenAPI), guías deployment, contribución
+- [ ] 14.5 — Deploy automático: Vercel preview en PR, producción en merge a main, variables entorno segregadas
+- [ ] 14.6 — Analytics: GA4 + eventos ecommerce (view_item, add_to_cart, begin_checkout, purchase)
+
+### Fase 15 — Calidad Final y CI/CD Completo — Lo que da confianza
+- [ ] 15.1 — Tests integración admin: CRUD productos, stock, pedidos, usuarios, cupones, RMA
+- [ ] 15.2 — Tests E2E críticos: admin crea producto → usuario compra → envío → devolución → reembolso
+- [ ] 15.3 — Cobertura objetivo: backend > 85%, frontend > 85% (statements/branches/functions/lines)
+- [ ] 15.4 — CI/CD completo: lint → test → build → coverage gates → deploy preview → E2E → deploy prod
+- [ ] 15.5 — Performance budgets: LCP ≤ 3.5s, CLS ≤ 0.05, TBT ≤ 200ms, perf ≥ 90, a11y ≥ 95 (Lighthouse CI)
+- [ ] 15.6 — Security: dependency scanning, SAST, secrets detection, pen-test checklist
+
+> **Deuda técnica conocida (no planificada como fase)**: header desborda < 560 px · `/search` devuelve 500 sin `OPENAI_API_KEY` · `api.ts` cobertura mejorable · `GET /inventory/**` y `/pricing/**` públicos por diseño
 
 ---
 
