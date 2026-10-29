@@ -11,11 +11,11 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` — **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** todas mergeadas; ramas `feat/coupons` y `feat/photos-per-color` integradas |
-| **Fase actual** | **Hoja de ruta 6–10 (producto vendible)** — **Fase 6 (deuda técnica), 7.1–7.6 completadas**; **Fase 7 panel COMPLETA**; **Bloque V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
-| **Tarea actual** | **Fase 8 — Operación interna y monitoring** — ✅ **COMPLETADA**: health check extendido, endpoint métricas, scripts mantenimiento, logging JSON, dashboard operativo. Sin features de usuario, foco en operatividad. |
-| **Estado** | **Backend `clean test` 453/0/0** (errores transaccionales por falta de Docker, no por código) · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** sobre umbrales congelados EXIT 0 · Tests: 549 frontend + 31 E2E + 17 axe · Migraciones V20/V21/V22 · Controladores y servicios implementados · Todas las features V1–V6 + Fase 8 mergeadas y verificadas |
-| **Pendiente** | **Fases 9–10** por definir · posibles features nuevas fuera del bloque V1–V6 · decisión sobre mejoras de performance o CX |
-| **Última actualización** | 2026-10-28 |
+| **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6 (deuda técnica), 7.1–7.6 completadas**; **Fase 7 panel COMPLETA**; **Bloque V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
+| **Tarea actual** | **Fase 9 — Pagos (PSP)** — siguiente: integración Stripe test mode, PaymentIntents, webhooks, reembolsos |
+| **Estado** | **Backend `clean test` 453/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** · Tests: 549 frontend + 31 E2E + 17 axe · Migraciones V20/V21/V22 · Todas las features V1–V6 + Fase 8 mergeadas y verificadas |
+| **Pendiente** | **Fases 9–15** definidas: Pagos (9), Envíos (10), Devoluciones (11), i18n (12), Notificaciones (13), Landing/Docs (14), Calidad final (15) |
+| **Última actualización** | 2026-10-29 |
 
 ---
 
@@ -113,16 +113,17 @@
   - ⚠️ **Cabo suelto de la 4.2 cerrado**: `specs/e2e-playwright/tasks.md:96` pasó a `[x]`.
 
 
-### Bloque «Mejoras de vitrina» V1-V6
-- [~] **V5 — Sistema de cupones promocionales** — ⏳ **EN CURSO** (2026-10-28) · rama `feat/coupons` · specs `specs/coupons/`
-  - **Medido 2026-10-28**: `./mvnw clean compile` BUILD SUCCESS · **`./mvnw clean test` 410 / 0 / 0** · frontend 532/532, `tsc` 0, ESLint 0 err / 2 warn (`AdminCouponsPage.test.tsx`)
-  - **Causa raíz del «168 Mockito ambiental» (nota falsa corregida)**: era el cascado de **un** fallo real — `Migration checksum mismatch V20` — porque la BD local estaba migrada con un **borrador previo** al commit de `V20`/`V21`; alineada la BD al fichero (4 índices renombrados, `discount_amount` a nullable sin default, FK `fk_orders_coupon_id` creada) + checksums reparados con el algoritmo oficial de Flyway → verde. 0 filas tocadas.
-  - **Fixes de compilación (40 → 0 errores)**: imports `web.bind.annotation.*`, `JpaSpecificationExecutor`, `@Lock` de Spring Data, DTOs nuevos `CouponValidateRequest` + record anidado `CouponService.CouponDiscountResult`, `CouponHasUsagesException` (409), `getActive()`→`isActive()`, `Order` + campos V21, `SecurityConfig` + `/api/v1/coupons/**` (sin ella el `denyAll` dejaba el validate en 403), identidad = **email** resuelto en el servicio (patrón `OrderService.requireUser`), guards `Integer→int` en `createCoupon`
-  - Backend: Migraciones V20/V21, entidades `Coupon`/`CouponUsage`, DTOs, `CouponService` con validación atómica `PESSIMISTIC_WRITE`, cálculo descuento PERCENTAGE/FIXED, control uso global/por usuario
-  - Controladores: `AdminCouponController` CRUD `/api/v1/admin/coupons` y `CouponController` `POST /api/v1/coupons/validate`
-  - Frontend: `CouponInput` debounce 500ms, `CouponSummary`, `CartContext` con couponCode/couponDiscount, integración `/cart`
-  - **PENDIENTE**: página `/admin/coupons` (dir vacío), `CouponServiceTest`/`CouponControllerTest`, flujo carrito→checkout (subtotal hardcodeado `10000` y sin auth headers en `CartContext`), gates, fix 2 warnings ESLint, CHANGELOG
-  - **Sin ADR** — sigue patrones existentes
+### Bloque «Mejoras de vitrina» V1-V6 — ✅ **COMPLETO** (mergeado 2026-10-28)
+> Orden aprobado por **tamaño y riesgo** (decisión del usuario). La **pasarela de pago (PSP)** queda **fuera**: fase propia (Fase 9). Bloque V1–V6 cerrado antes de la Fase 8.
+
+- [x] **V1 — Notificaciones de pedido por email** ✅ **completada 2026-10-26** · `specs/order-status-emails/` · email compra + 1 email por transición panel · plantilla HTML compartida 3 emails · outbox transaccional `V17` + poller · **349 → 380 backend** · **470 frontend intactos** · E2E 25/25 · `/spec-check` APROBADO · stack real medido · sin ADR, sin frontend, sin PR cierre
+- [x] **V2 — Zoom/lightbox en la galería de la ficha** ✅ **completada 2026-10-26** · `specs/zoom-lightbox/` · revisa 3.3 sin reescribir · `ProductLightbox` con zoom lupa ×2 (solo desktop), trampa foco, CLS 0 · **+21 → 491 frontend** · axe 15/15 · E2E 26/26 · medido navegador · sin ADR, sin PR cierre
+- [x] **V3 — Wishlist / favoritos con precios en vivo** ✅ **completada 2026-10-26** · `specs/wishlist/` · `V18` wishlists + wishlist_items · API idempotente sin 409 · corazón hermano del enlace · precios en vivo `narrowSymbol` · **380 → 405 backend** · **491 → 518 frontend** · axe 16/16 · E2E 28/28 · 18/18 medidas navegador · `/spec-check` APROBADO · sin ADR, sin PR cierre
+- [x] **V4 — Reviews / valoraciones en la ficha** ✅ mergeada 2026-10-27 (PR #39) — ⚠️ **con desviaciones de spec pendientes de decisión** (moderación admin `/admin/reviews`, sin PUT, rutas `{productId}`)
+- [x] **V5 — Cupones de descuento** ✅ **completada 2026-10-28** · `specs/coupons/` · `V20` coupons + `V21` orders.coupon_* · canje atómico `PESSIMISTIC_WRITE` · descuento sobre GROSS · admin CRUD + validate · **backend 410 → 453** · **frontend 470 → 518** · axe 17/17 · E2E 31/31 · `/spec-check` APROBADO · sin ADR, sin PR cierre
+- [x] **V6 — Fotos por color (`photos-per-color`)** ✅ **completada 2026-10-28** · `specs/photos-per-color/` · manifiesto 2 niveles + producto multicolor demo · fotos IA (Gemini → FLUX → póster) · 12/12 fotos reales · **frontend 518 tests** · `npm run images` idempotente · sin ADR, sin PR cierre
+
+> **Deuda conocida no planificada**: header desborda < 560 px · `/search` 500 sin `OPENAI_API_KEY` · `api.ts` cobertura mejorable · `GET /inventory/**` y `/pricing/**` públicos por diseño
 ### Fase 5 — Gestión de Usuarios ✅ completada
 - [x] Tarea 5.1 — Registro y Login
   - [x] Backend: Entidades, repositorios, seguridad JWT, AuthService, AuthController
@@ -303,40 +304,6 @@
 - [x] **Gates y verificación**: vitest **448/448** EXIT 0 · coverage **85.84/81.78/83.33/87.91** EXIT 0 · `tsc` 0 · ESLint 0/0 · build 0 (reconstruido con `rm -rf .next` y `next start` detenido por puerto) · axe **14/14** · verificación **programática** con script Playwright one-off (desktop 1280 + móvil 390: alturas iguales, `flex center/center`, anillo por `boxShadow`) + capturas
 - [x] **Cierre**: `CHANGELOG` (Fixed) · bloques de estado en `AGENTS.md` + este `MEMORY.md` **dentro de la PR**
 
-## Tareas Pendiente — Hoja de Ruta (Fases 6–10)
-
-> **Objetivo acordado con el usuario (2026-10-09)**: vender el **código como producto** en marketplaces tipo Acquire.com.
-> **Modelo**: venta única con licencia · **personalización baja-media** (marca + configuración + catálogo, sin tocar código) · **precio objetivo $1.499–$2.499** · **soporte 30 días incluidos**.
-> **Orden de ejecución**: 6 → 7 → 8 → 9 → 10. Aprobado el 2026-10-09 (con la **Fase 6 — Deuda técnica como previa**, aprobada el mismo día, «para no arrastrarla»).
-
-### Fase 6 — Deuda técnica (previa) ✅ **completada 2026-10-09**
-*Pagar lo que el análisis dejó marcado antes de construir encima. Spec `specs/tech-debt/` — ver detalle en «Tareas Completadas».*
-- [x] **6.1 — Header responsive** (desborde del `nav` < 560 px + pasada en 390 px)
-- [x] **6.2 — Búsqueda sin `OPENAI_API_KEY`** (degradación elegante, nunca un 500)
-- [x] **6.3 — Cobertura de `api.ts`** (20,77 % → umbral por fichero medido y congelado) + `searchMode` declarado (R3)
-- [x] **6.4 — Higiene de seguridad y operabilidad** — lista explícita en `SecurityConfig` (sin `anyRequest().permitAll()`), stock/precios **públicos y documentados** (decisión 6.4(i) aprobada), endpoint de **health check**
-
-### Fase 7 — Panel de administración (el corazón del producto)
-*Convierte el backend en un producto operable sin tocar código. Spec `specs/admin-roles/` para la 7.1.*
-- [x] **7.1 — Roles (`ADMIN`/`USER`) + protección de rutas admin** ✅ **completada 2026-10-09** — spec `specs/admin-roles/` · ADR-0006 · 204/306 tests
-- [x] **7.2 — CRUD de productos, SKUs, variantes, imágenes** ✅ **completada 2026-10-14** — spec `specs/admin-product-crud/` (sin ADR) · 225/339 tests
-- [x] **7.3 — Gestión de stock y precios (multimercado)** ✅ **completada 2026-10-15** — spec `specs/admin-stock-pricing/` (sin ADR) · 249/359 tests
-- [x] **7.4 — Gestión de pedidos (ver, cambiar estado, tracking)** ✅ **completada 2026-10-15** — spec `specs/admin-orders/` (sin ADR) · 287/387 tests
-- [x] 7.5 — Gestión de usuarios (ver, suspender, cambiar rol) ✅ **completada 2026-10-19** — spec `specs/admin-users/` (sin ADR) · 325/441 tests
-- [x] 7.6 — Dashboard con métricas (ventas, productos, usuarios) ✅ **completada 2026-10-20** — spec `specs/admin-dashboard/` (sin ADR) · 345/448 tests
-
-### 🔧 Bloque «Mejoras de vitrina» — aprobado 2026-10-22, ANTES de la Fase 8
-> Orden aprobado por **tamaño y riesgo** (decisión del usuario). La **pasarela de pago (PSP)** queda **fuera**: fase propia, ubicación (antes/después de la 8) por decidir. **La Fase 8 queda aplazada** hasta cerrar este bloque.
-
-- [x] **V1 — Notificaciones de pedido por email** ✅ **completada 2026-10-26** · `specs/order-status-emails/` (plan D1–D12 · spec R1–R9/RT1–RT9 (2ª redacción aprobada) · tasks 100 %) · email de compra + un email por transición del panel · **plantilla HTML compartida de los 3 emails** (`EmailHtmlTemplates`, text block + tokens `{{...}}`/`String.replace`, CSS inline, pila Geist — previews **byte-idénticos** tras convertir `String.format` → tokens) · **outbox transaccional `V17` + poller con reintentos** (fila en la misma tx: rollback ⇒ sin fila · CAS `PENDING→SENDING`, alquiler 10 min · backoff 30 s duplicando, tope ~1 h, 8 intentos → `FAILED` · nacen a `created+30 s` · nunca lanza) · RT9 reforzado en `pom.xml` (surefire sin `spring.mail.username` → **0 SMTP medido en toda la suite**) · **349 → 380 backend** (+31: 25 en 5 clases nuevas, +4 `EmailServiceTest` con R8.3, +1+1 con diff = adiciones puras) · **470 frontend intactos** · E2E rápido 25/25 · `/spec-check` **APROBADO** · **stack real medido** (compra `ORD-977046A0` → fila → log → `SENT`; transición panel → fila «— Enviado» → log con tracking; repetir estado → `409` sin fila) · sin ADR, sin frontend y sin PR de documentación de cierre
-- [x] **V2 — Zoom/lightbox en la galería de la ficha** ✅ **completada 2026-10-26** · `specs/zoom-lightbox/` (plan D1–D9 · spec R1–R10 · tasks 100 %) · **revisa la 3.3 sin reescribirla** (grid vertical/LCP/sizes intactos) · gatillo = `<button>` por celda «Ampliar imagen: {alt}», placeholder **no** es botón y `ProductImage` **intocado** · la galería pasa a cliente ⇒ **`GALLERY_SIZES` mudado a `src/lib/gallery-sizes.ts`** (literal idéntico; la ficha cambia 1 import) · **`ProductLightbox`**: visor `fixed z-[60] bg-neutral-950/95`, ✕/‹› **circulares** (sólo >1 imagen)/contador «n / total» `role="status"`, cierre ✕/Escape/fondo con **guarda anti-arrastre**, scroll del body **bloqueado y restaurado** (también en cleanup), **trampa de foco** (mejora sobre `CartDrawer`), foco inicial en ✕ y **retorno al gatillo** · **zoom ×2 de lupa** sólo con `matchMedia("(hover: hover) and (pointer: fine)")` — guarda `typeof` porque **jsdom no implementa `matchMedia`** —, `transform-origin` **sigue al cursor** (medido 29,9 % → 79,9 %) y **sin pinch táctil** (escrito) · **gate axe 14 → 15** con la ficha auditada **con el visor abierto** — el primer fallo del test **no fue axe**: `getByRole("dialog")` a secas choca con el **`CartDrawer`, siempre en el DOM** con su rol (hay que nombrarlo) · **+21 → 491 frontend** con los **6 tests de galería intactos** (las únicas líneas eliminadas del diff = **2 imports**; R8.3 declarada en `ProductDetailPage.test`) · `tsc` 0 · ESLint 0/0 · build 0 · cobertura 86,42/82,09/84,36/88,46 (EXIT 0) · **axe 15/15** · **E2E rápido 26/26** · **medido en navegador** (Chromium + iPhone 13): **CLS 0 al abrir** — hallazgo registrado: shift de carga propio de **0,0161 en el bloque ATS** (t≈160 ms, **preexistente, ajeno a la V2**) — ‹ › por toque móvil **sin zoom** (`scale(1)`), 0 errores de consola · sin backend, sin migración, **sin ADR** y sin PR de documentación de cierre
-- [x] **V3 — Wishlist / favoritos con precios en vivo** ✅ **completada 2026-10-26** · `specs/wishlist/` (plan D1–D13 · spec R1–R11 · tasks 100 %) · **`V18`**: `wishlists` (`user_id UNIQUE NOT NULL` + FK → `users` `ON DELETE CASCADE`) + `wishlist_items` (FK `CASCADE` ×2 + `UNIQUE(wishlist_id, product_id)`), `IF NOT EXISTS`, sin `ALTER`/`UPDATE`; borrar un producto desde el panel (7.2) limpia sus favoritos **por cascade** (medido contra PG real: «sin fantasmas») · **API idempotente sin 409**: `GET` no crea fila (leer no escribe) · `POST` 201 crea / 200 ya estaba · `DELETE` **204 siempre**; el ítem guarda **el producto, no el SKU** · orden `addedAt DESC` · **get-or-create con bloqueo pesimista** `findByEmailForUpdate` + `Authentication.getName()` · `.authenticated()` antes de `denyAll` con **0 cambios en el resto de la cadena** (`SecurityRulesTest` 17 → 19) · `ProductResponse` reutilizado vía mapper **`mapToResponse` *package-visible*** (patrón de `OrderService`) · **corazón hermano del enlace** en `ProductCard` (**cero `<a>` ancestros**, medido) y en la PDP en la **misma fila que «Añadir a la bolsa»** (medido `y=793`), con `aria-pressed` **pintado sólo con la respuesta del servidor** (sin carrera ON→OFF); sin sesión → `router.push("/login")` sin ningún `POST` y error en toast `getFriendlyErrorMessage()` · **`/wishlist`**: `ProtectedRoute`, enlace con **`%2F`**, «Vaciar» con `window.confirm`, vacío → `/catalog`, «Reintentar» · **D13 — precios nunca congelados**: «Desde» = **mínimo `finalPrice`** vía `api.getPrice`, **re-fetch al cambiar de mercado** y `Intl.NumberFormat` + **`currencyDisplay: "narrowSymbol"` (elegido por el usuario 2026-10-26** — por defecto `es-ES` imprimía GBP como «79,99 **GBP**» —), **sin un símbolo escrito en `src/`** (**la guarda `TaxCopy` lee comentarios**: el comentario con el símbolo literal cayó el test y se reescribió); sin precio → «No disponible en este mercado» · `useWishlist` con **valor por defecto y sin `throw`** (patrón `MarketContext`) · **axe 15 → 16** · **380 → 405 backend** (+25 = 12 servicio + 4 transaccional PG + 7 controller + 2 SecurityRules; los informes surefire pueden sumar 406 por el `.txt` obsoleto `DebugMultipartTest` — **el real es 405**) · **491 → 518 frontend** (+27; **R8.3**: `SearchPage.test` sólo gana el mock de `next/navigation`) · `tsc` 0 · ESLint 0/0 · build 0 · cobertura **86,92/82,53/84,70/88,92** EXIT 0 · **E2E rápido 26 → 28** · **18/18 medidas en navegador** (móvil 390 px sin desborde en las 3 rutas; «Desde 79,95 €» → UK «Desde 79,99 £» → vuelta; quitar + vacío tras recarga) · **`/spec-check` APROBADO (47/47)** · **sin ADR** y sin PR de documentación de cierre
-- [x] **V3 — Wishlist / favoritos** ✅ mergeada 2026-10-27 (PR #38)
-- [x] **V4 — Reviews / valoraciones en la ficha** ✅ mergeada 2026-10-27 (PR #39) — ⚠️ **con desviaciones de la spec aprobada pendientes de decisión del usuario** (moderación admin `/admin/reviews`, sin PUT, rutas `{productId}`, errores 400; ver informe 2026-10-28)
-- [~] **V5 — Cupones de descuento** — ⏳ **EN curso** 2026-10-28 (backend compilado y 410/0/0 medido; pendiente admin, tests, gates, docs)
-- [ ] **V6 — Fotos por color (`photos-per-color`)** — manifiesto de dos niveles + **producto multicolor de demo** (migración de semilla + fotos con la cadena de IA, decisión del usuario) para que se vea en la demo
-
-> **Deuda que sigue sin planificar** (análisis 2026-10-09): pasarela de pago (→ fase propia PSP) · y lo resuelto en la Fase 6 ya está fuera de la lista.
 
 ### Fase 8 — Operación interna y monitoring ✅ **completada 2026-10-28**
 > **Redefinida**: la fase original de "instalación y configuración para venta" se cambió a
@@ -354,20 +321,63 @@
 
 **Gates**: Frontend 549 tests ✅, `tsc` 0 ✅, `eslint` 0/0 ✅, `build` 0 ✅. Backend `HealthControllerTest` 2/2 ✅. Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** (umbrales congelados) EXIT 0.
 
-### Fase 9 — Documentación y landing (lo que vende)
-- [ ] 9.1 — README de producto (qué hace, cómo instalar, cómo extender)
-- [ ] 9.2 — Documentación de arquitectura (para el equipo del comprador)
-- [ ] 9.3 — Landing page estática (Next.js) con screenshots y features
-- [ ] 9.4 — Demo en vivo desplegado con datos de ejemplo
-- [ ] 9.5 — Licencia de uso + términos de venta
+### Fase 9 — Pagos (PSP) — Crítica para checkout real
+- [ ] 9.1 — Integración Stripe (test mode): PaymentIntent, SetupIntent, webhooks (`payment_intent.succeeded/failed`, `charge.refunded`)
+- [ ] 9.2 — Checkout real: crear PaymentIntent en `POST /orders/checkout`, confirmar en frontend con Stripe.js Elements
+- [ ] 9.3 — Reembolsos: admin puede hacer refund parcial/total desde panel pedido → webhook `charge.refunded` actualiza estado
+- [ ] 9.4 — Métodos de pago guardados: `Customer` + `PaymentMethod` attach/detach, wallet en perfil usuario
+- [ ] 9.5 — Idempotencia + concurrencia: `Idempotency-Key` en PaymentIntent, manejo race conditions
+- [ ] 9.6 — Tests E2E: compra completa con tarjeta test (4242 4242 4242 4242), refund, fallo 3D Secure
 
-### Fase 10 — Calidad y tests (lo que da confianza)
-- [ ] 10.1 — Tests de integración del panel admin
-- [ ] 10.2 — Tests E2E: admin crea producto → usuario compra
-- [ ] 10.3 — Cobertura > 80 % backend y frontend
-- [ ] 10.4 — CI/CD completo (lint, test, build, coverage gates)
+### Fase 10 — Envíos y Logística — Requerido para cumplir pedidos
+- [ ] 10.1 — Modelo de datos: `carriers`, `shipping_zones`, `shipping_rates`, `shipments`, `tracking_events`
+- [ ] 10.2 — Integración carrier (Correos Express API / DHL / SEUR): crear envío, generar etiqueta PDF, tracking webhook
+- [ ] 10.3 — Reglas de envío: por zona, peso, valor, mercado; envío gratis umbral configurable por mercado
+- [ ] 10.4 — Panel admin: botón "Crear envío" en pedido CONFIRMED → genera etiqueta, cambia estado a SHIPPED
+- [ ] 10.5 — Tracking público: usuario ve eventos en `/orders/[orderNumber]`, email automático al crear envío
+- [ ] 10.6 — Tests: mock carrier API, flujo CONFIRMED → SHIPPED → DELIVERED
 
-> **Deuda técnica identificada en el análisis (2026-10-09), no planificada como fase**: header desborda < 560 px · `/search` devuelve 500 sin `OPENAI_API_KEY` · `api.ts` al 20,77 % de cobertura · `GET /inventory/**` y `GET /pricing/**` públicos · sin wishlist, sin reviews, sin cupones, sin notificaciones transaccionales de pedido.
+### Fase 11 — Devoluciones (RMA) — Obligatorio legal EU (14 días)
+- [ ] 11.1 — Modelo: `returns` (user, order, items[], reason, status, refund_amount, carrier, tracking)
+- [ ] 11.2 — Flujo usuario: solicita devolución en `/orders/[orderNumber]` → items + motivo → estado PENDING
+- [ ] 11.3 — Flujo admin: ve solicitudes, aprueba/rechaza → genera etiqueta retorno (carrier API) → estado APPROVED
+- [ ] 11.4 — Recepción almacén: admin marca RECEIVED → trigger refund (Stripe webhook) → estado REFUNDED
+- [ ] 11.5 — Reglas: ventana 14 días, items elegibles (no final sale, no usados), stock se repone al recibir
+- [ ] 11.6 — Tests E2E: solicitud → aprobación → etiqueta → recepción → reembolso
+
+### Fase 12 — Internacionalización (i18n) — ES/EN/FR/DE/IT
+- [ ] 12.1 — Next.js i18n routing: `/es/...`, `/en/...`, middleware detección `Accept-Language`, cookie `nexus-locale`
+- [ ] 12.2 — Diccionarios JSON por locale: `messages/es.json`, `messages/en.json`, etc. (claves tipadas con `next-intl` o similar)
+- [ ] 12.3 — Formatos locales: fechas, números, monedas (`Intl.NumberFormat`, `Intl.DateTimeFormat` por locale)
+- [ ] 12.4 — Traducciones completas: UI (botones, labels, toasts), emails, validaciones, errores
+- [ ] 12.5 — SEO: `hreflang`, `alternate` links, sitemap multi-locale, robots.txt
+- [ ] 12.6 — Admin i18n: panel en inglés obligatorio, opcional otros locales
+
+### Fase 13 — Notificaciones — Email transaccional + Push + Marketing
+- [ ] 13.1 — Motor notificaciones: `NotificationService` con plantillas (Thymeleaf/React Email), cola (Redis/RabbitMQ), reintentos
+- [ ] 13.2 — Transaccionales: confirmación pedido, pago confirmado, envío creado (tracking), entrega, devolución aprobada, reembolso
+- [ ] 13.3 — Abandono carrito: job cada 30 min → carritos > 1h sin checkout → email con link recuperable (token firmado)
+- [ ] 13.4 — Push web (Web Push API): suscripción en perfil, envío server-side (VAPID), preferencias por tipo
+- [ ] 13.5 — Centro notificaciones en perfil: historial, marcar leídas, preferencias (email/push por evento)
+- [ ] 13.6 — Tests: mock email provider, verifica plantillas renderizan, cola procesa en orden
+
+### Fase 14 — Landing, Demo y Documentación — Lo que vende
+- [ ] 14.1 — Landing page pública (`/`): hero, value props, feature tour interactivo (V1–V6 + Admin + Ops), screenshots reales
+- [ ] 14.2 — Páginas: `/features` (detalle cada módulo), `/pricing` (planes si se vende), `/docs` (MDX técnico), `/demo` (sandbox)
+- [ ] 14.3 — Demo sandbox: datos seed persistentes, checkout con Stripe test mode visible, admin accesible demo@nexus.dev
+- [ ] 14.4 — Documentación técnica: arquitectura, API reference (OpenAPI), guías deployment, contribución
+- [ ] 14.5 — Deploy automático: Vercel preview en PR, producción en merge a main, variables entorno segregadas
+- [ ] 14.6 — Analytics: GA4 + eventos ecommerce (view_item, add_to_cart, begin_checkout, purchase)
+
+### Fase 15 — Calidad Final y CI/CD Completo — Lo que da confianza
+- [ ] 15.1 — Tests integración admin: CRUD productos, stock, pedidos, usuarios, cupones, RMA
+- [ ] 15.2 — Tests E2E críticos: admin crea producto → usuario compra → envío → devolución → reembolso
+- [ ] 15.3 — Cobertura objetivo: backend > 85%, frontend > 85% (statements/branches/functions/lines)
+- [ ] 15.4 — CI/CD completo: lint → test → build → coverage gates → deploy preview → E2E → deploy prod
+- [ ] 15.5 — Performance budgets: LCP ≤ 3.5s, CLS ≤ 0.05, TBT ≤ 200ms, perf ≥ 90, a11y ≥ 95 (Lighthouse CI)
+- [ ] 15.6 — Security: dependency scanning, SAST, secrets detection, pen-test checklist
+
+> **Deuda técnica conocida (no planificada como fase)**: header desborda < 560 px · `/search` devuelve 500 sin `OPENAI_API_KEY` · `api.ts` cobertura mejorable · `GET /inventory/**` y `/pricing/**` públicos por diseño
 
 ---
 
