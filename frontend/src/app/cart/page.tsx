@@ -13,6 +13,8 @@ import { api } from "@/lib/api";
 import { JUST_CHECKED_OUT_KEY } from "@/lib/checkout";
 import { getFriendlyErrorMessage } from "@/lib/errors";
 import { taxesIncludedLabel } from "@/lib/taxes";
+import { CouponInput } from "@/components/CouponInput";
+import { CouponSummary } from "@/components/CouponSummary";
 import { Address } from "@/types/auth";
 import {
     PAYMENT_METHODS,
@@ -38,6 +40,9 @@ export default function CartPage() {
         clearCart,
         isRepricing,
         hasUnavailableItems,
+        couponCode,
+        couponDiscount,
+        removeCoupon,
     } = useCart();
     const { isAuthenticated } = useAuth();
     const { market } = useMarket();
@@ -121,6 +126,9 @@ export default function CartPage() {
                     destinationLongitude: -3.7038,
                     addressId: selectedAddress.id,
                     paymentMethod,
+                    // V5: el código validado viaja al checkout, que lo
+                    // revalida bajo transacción (fuente de verdad, spec §2.5).
+                    couponCode: couponCode ?? undefined,
                 },
                 idempotencyKey
             );
@@ -188,6 +196,9 @@ export default function CartPage() {
                             </div>
                         </div>
 
+                        {/* Cupón promocional */}
+                        <CouponInput />
+
                         {/* Resumen */}
                         <div className="lg:col-span-1">
                             <div className="bg-white border border-neutral-200 p-6 sticky top-24">
@@ -211,6 +222,19 @@ export default function CartPage() {
                                             {subtotal.toFixed(2)} {currency}
                                         </span>
                                     </div>
+                                    {/*
+                                        V5: el descuento es una línea **negativa**
+                                        que resta del total (§2.6B: el cupón opera
+                                        sobre el bruto del carrito).
+                                    */}
+                                    {couponDiscount > 0 && (
+                                        <div className="flex justify-between">
+                                            <span className="text-neutral-600">Descuento</span>
+                                            <span className="text-neutral-900">
+                                                −{couponDiscount.toFixed(2)} {currency}
+                                            </span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-neutral-600">
                                             {taxesIncludedLabel(market.taxRate)}
@@ -222,12 +246,19 @@ export default function CartPage() {
                                     <div className="flex justify-between pt-3 border-t border-neutral-100">
                                         <span className="font-medium text-neutral-900">Total</span>
                                         <span className="font-medium text-neutral-900">
-                                            {subtotal.toFixed(2)} {currency}
+                                            {(subtotal - couponDiscount).toFixed(2)} {currency}
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* ── Dirección de envío (Tarea 5.5, R1) ─────────────── */}
+                                {/* Resumen de cupón (V5) */}
+                                <CouponSummary
+                                    couponCode={couponCode}
+                                    discountAmount={couponDiscount}
+                                    onRemove={removeCoupon}
+                                />
+
+                {/* ── Dirección de envío (Tarea 5.5, R1) ─────────────── */}
                                 <div className="mt-6 pt-4 border-t border-neutral-100">
                                     <label
                                         htmlFor="checkout-address"

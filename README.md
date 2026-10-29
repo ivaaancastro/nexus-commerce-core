@@ -94,7 +94,7 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 * **6.4(i) — decisión documentada**: `GET /api/v1/inventory/skus/{id}` y `GET /api/v1/pricing/skus/{id}` son **públicos a propósito** — son la información que la propia vitrina publica sin sesión (stock y precio de la ficha y del carrito). Queda escrito aquí para que el comprador lo tenga documentado, no descubierto.
 * **Health check**: `GET /api/v1/health` $\rightarrow$ `200 {"status":"UP"}` con BD sana, `503 {"status":"DOWN"}` si el `SELECT 1` falla. Público y **sin Actuator** (D7): es una dependencia y una superficie de ataque de más para dos datos.
 * **Zona admin (🔒 `ADMIN`)**: `/api/v1/admin/**` exige el rol `ADMIN` sobre la regla `hasRole` — `401` sin sesión, `403` con rol `USER`. El rol viaja en el claim `role` del JWT (access y refresh) y un token **sin** el claim se clasifica como `USER` (mínimo privilegio). Semilla de la zona: `GET /api/v1/admin/ping` $\rightarrow$ `200 {"email","role"}` del llamante.
-* **Usuario administrador inicial** (migración `V13`, idempotente): **`admin@nexus.dev` / `Admin1234!`** — nace ya verificado con la contraseña hasheada con BCrypt coste 12. **Cámbiala en el primer arranque**; ningún test ni E2E la usa.
+* **Usuario administrador inicial** (migración `V13`, idempotente): **`admin@nexus.dev` / `Admin1234!`** — nace ya verificado con la contraseña hasheada con BCrypt coste 12. **Cámbiala en el primer arranque**; los E2E y axe (panel admin) la usan (cuenta `ADMIN` de la semilla V13).
 
 ### Autenticación y Sesión
 * `POST /api/v1/auth/register` $\rightarrow$ Crea la cuenta y envía un código de verificación de 6 dígitos al email (`200` sin cuerpo). La contraseña se almacena con BCrypt.
