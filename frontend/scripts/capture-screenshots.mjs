@@ -52,14 +52,8 @@ function readShots() {
     return shots;
 }
 
-/**
- * Ruido fuera de la captura: los avisos de la demo y la sombra del
- * `CartDrawer` cerrado, que asoma por el borde derecho (lleva `shadow-2xl`
- * también fuera de pantalla).
- */
-const HIDE_DEMO_CSS =
-    'aside[aria-label="Demo pública"], [role="status"] { display: none !important; } ' +
-    '[role="dialog"][aria-label="Carrito de compra"] { box-shadow: none !important; }';
+/** Ruido fuera de la captura: los avisos de la demo pública. */
+const HIDE_DEMO_CSS = 'aside[aria-label="Demo pública"], [role="status"] { display: none !important; }';
 
 async function settle(page) {
     await page.waitForLoadState("networkidle");
