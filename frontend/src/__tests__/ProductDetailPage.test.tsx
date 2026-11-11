@@ -391,7 +391,9 @@ describe("ProductDetailPage — color y cuidados (spec color-and-care)", () => {
 
         // El color inicial es el del primer SKU, y su talla la pide a la API
         expect(screen.getByText("Color: Marino")).toBeInTheDocument();
-        expect(api.getPrice).toHaveBeenCalledWith(11, "ES");
+        // El precio se pide en un efecto posterior al render: se espera a la
+        // llamada (síncrona era intermitente bajo carga — Fase 10).
+        await waitFor(() => expect(api.getPrice).toHaveBeenCalledWith(11, "ES"));
 
         // Sólo las tallas de Marino (S/M/L/XL): las de Camel empiezan en S
         // pero no se mezclan en la misma rejilla (D2)

@@ -18,7 +18,7 @@
 - [x] B.4 Landing `/proyecto` (R9, R10, R14) con capturas con respaldo neutro + tests
 - [x] B.5 `npm run shots` (R11) — no pisa sin `--force`; primeras capturas generadas en local
 - [x] B.6 axe 17 → 18 rutas (RNF3) + humo E2E de `/proyecto` (RNF6) — **E2E rápido 33/33** (+4 de pago saltados sin `E2E_STRIPE`) · Lighthouse 4 → 5 rutas
-- [x] B.7 `tsc` 0 · ESLint 0/0 · build 0 · **590 → 605** tests · cobertura **83,88/78,87/81,48/85,9** EXIT 0 (una corrida tuvo 1 fallo intermitente no reproducido en 2 corridas más)
+- [x] B.7 `tsc` 0 · ESLint 0/0 · build 0 · **590 → 605** tests · cobertura **83,88/78,87/81,48/85,9** EXIT 0
 
 ## C. Raíz y docs
 - [x] C.1 `scripts/reset-demo.sh` (R8) con confirmación
@@ -33,3 +33,7 @@
 - [x] D.3 Modo demo medido contra la imagen: 403 `DEMO_MODE` en las 5 acciones (2 DELETE de producto/SKU, cupón, rol, suspensión) y en `forgot-password`; 200 en dashboard, pedidos, usuarios, tracking y cambio de estado; sin token sigue 401; login de `demo@nexus.dev` OK con sus 7 pedidos; banner visible en la tienda y oculto en `/proyecto`
 - [x] D.4 `/proyecto` en navegador: 0 errores de consola, **CLS 0**, 6 capturas cargadas, `og:image` absoluta, sin desborde en 375 px
 - [ ] D.5 Despliegue real (acciones del usuario) — fuera de este PR, guiado con `docs/deployment.md`
+
+## E. Cierre del PR A
+- [x] E.1 `/spec-check fase10` — **APROBADO**: R1–R15 y RNF1–RNF6 con evidencia en código y tests (A1–A3 y los cambios de R8/R13 registrados en la spec); `db/migration/` sin cambios; única tarea abierta D.5 (despliegue real, fuera del PR); backend **553/553** y frontend **605/605**
+- [x] E.2 **Test intermitente del frontend, reproducido y corregido**: con 3 suites en paralelo (CPU contendida) fallaban ~1 de cada 3 corridas, siempre tests **anteriores** a la Fase 10. Dos causas: (a) el plazo por defecto de Testing Library (1 000 ms) → `asyncUtilTimeout: 5000` en `src/test/setup.ts` y `testTimeout: 10_000` en `vitest.config.ts` (por encima, para que un `findBy*` real falle con su mensaje); (b) **carreras dentro del test**: esperaban un elemento estático (título) o la llamada a la API y comprobaban de forma síncrona datos que llegan en un render posterior → 7 aserciones pasan a `findBy*`/`waitFor` sin cambiar lo que comprueban (R8.3 declarada: `AdminUsersPage`, `ProductDetailPage`, `AdminStockPage`, `MarketContext`, `AdminPage`, `CartPage`, `AdminSkuPrices`). Medido: antes 7 fallos en 6 suites contendidas; después **24/24 suites limpias** bajo la misma contención

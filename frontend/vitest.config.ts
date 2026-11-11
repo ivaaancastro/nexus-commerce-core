@@ -8,6 +8,10 @@ export default defineConfig({
         environment: "jsdom",
         globals: true,
         setupFiles: "./src/test/setup.ts",
+        // Fase 10: por encima del `asyncUtilTimeout` de 5 s de `src/test/setup.ts`,
+        // para que un `findBy*` que de verdad no encuentra nada falle con su mensaje
+        // de Testing Library y no con un «test timed out» genérico.
+        testTimeout: 10_000,
         // Tarea 4.2 (R1): **`include` explícito**. Sin él Vitest usa su patrón
         // por defecto (`**/*.spec.ts`) y se comería `e2e/smoke.spec.ts` de
         // Playwright — los unitarios empezarían a lanzar navegadores. Sólo hay

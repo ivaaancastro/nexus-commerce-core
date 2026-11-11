@@ -157,6 +157,8 @@ describe("MarketContext", () => {
         await waitFor(() =>
             expect(api.getMarkets).toHaveBeenCalledTimes(1)
         );
-        expect(screen.getByTestId("count")).toHaveTextContent("4");
+        // La llamada sale antes de que el estado se pinte: se espera al render
+        // (síncrono era intermitente bajo carga — Fase 10).
+        await waitFor(() => expect(screen.getByTestId("count")).toHaveTextContent("4"));
     });
 });

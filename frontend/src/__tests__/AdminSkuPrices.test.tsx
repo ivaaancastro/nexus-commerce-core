@@ -59,10 +59,14 @@ describe("AdminSkuPrices", () => {
         expect(await screen.findByText("Variante M · Marino")).toBeInTheDocument();
         expect(api.getAdminSkuPrices).toHaveBeenCalledWith(10);
 
-        // Valores iniciales (en number inputs jest-dom compara el valor numérico)
-        expect(screen.getByLabelText("Precio base en Switzerland")).toHaveValue(99.9);
-        expect(screen.getByLabelText("Precio base en España")).toHaveValue(89.99);
-        expect(screen.getByLabelText("Descuento en España")).toHaveValue(79.99);
+        // Valores iniciales (en number inputs jest-dom compara el valor numérico).
+        // Las filas se pintan con la respuesta, después del encabezado: se espera
+        // a todas (síncrono era intermitente bajo carga — Fase 10).
+        await waitFor(() => {
+            expect(screen.getByLabelText("Precio base en Switzerland")).toHaveValue(99.9);
+            expect(screen.getByLabelText("Precio base en España")).toHaveValue(89.99);
+            expect(screen.getByLabelText("Descuento en España")).toHaveValue(79.99);
+        });
 
         // Sin fila aún (UK/US): inputs vacíos, señal de «crear en el primer guardado»
         expect(screen.getByLabelText("Precio base en United Kingdom")).toHaveValue(null);
