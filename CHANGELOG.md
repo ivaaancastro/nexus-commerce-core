@@ -6,6 +6,18 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Fase 10: despliegue, modo demo y landing** (spec `specs/fase10/`, [ADR-0008](docs/adr/0008-deployment-vercel-render-neon-demo-mode.md)):
+  - `backend/Dockerfile` multi-etapa (JRE 21, usuario sin privilegios, JVM acotada a 512 MB, *health check* en `/api/v1/markets`) y `render.yaml` (blueprint de Render).
+  - Perfil **`prod`**: datasource y `JWT_SECRET` por entorno sin valores por defecto, SQL silenciado. **`JwtSecretGuard` aborta el arranque** con el secreto de ejemplo del repo o con menos de 32 bytes.
+  - **Modo demo** (perfil `demo`): `DemoModeFilter` responde `403 DEMO_MODE` a borrar productos, SKUs o cupones, a cambiar el rol de un usuario o suspenderlo, y a la recuperación de contraseña. El resto del panel funciona. `GET /payments/config` gana `demoMode`. Datos de demo en una migración **repetible** `db/demo/R__demo_data.sql`: usuario `demo@nexus.dev` verificado y 7 pedidos de ejemplo. `scripts/reset-demo.sh` devuelve la demo a su estado de fábrica.
+  - Landing **`/proyecto`** (estática, con Open Graph): «qué lo hace difícil», tour de capturas con respaldo neutro sin 404, cuentas y tarjetas de prueba. `npm run shots` genera las capturas con Playwright sin pisar las existentes.
+  - Banner «Demo pública» y aviso «Despertando la demo…» (`NEXT_PUBLIC_DEMO=1`, más de 4 s), los dos fijos (sin CLS) e inertes fuera de la demo.
+  - `docs/deployment.md`: guía Neon → Render → Vercel → Stripe (webhook y Apple Pay) con la tabla de variables. `/proyecto` entra en el gate de axe (18 rutas) y en el humo E2E.
+
+### Changed
+- `next.config.ts`: el destino del rewrite `/api/v1/*` sale de **`BACKEND_URL`** (por defecto `http://localhost:8080`, así que dev y CI no cambian).
+
+### Added
 - **Fase 9: pagos con Stripe en test mode** (spec `specs/fase9/`, [ADR-0007](docs/adr/0007-stripe-payments-gateway-and-webhook.md)):
   - Checkout con tarjeta/Apple Pay: el pedido nace `PENDING` con el stock reservado y el PaymentIntent se crea **después del commit** (nunca con bloqueos de inventario abiertos), con compensación si Stripe falla. `Idempotency-Key` obligatoria y reutilizada como idempotency key de Stripe.
   - Webhook `POST /api/v1/webhooks/stripe` con **firma verificada** sobre el cuerpo crudo e idempotencia por PK (`stripe_events`, `INSERT … ON CONFLICT DO NOTHING`): `payment_intent.succeeded` confirma el pedido; un pago tardío sobre un pedido caducado **no lo resucita** y queda para reembolso manual.
