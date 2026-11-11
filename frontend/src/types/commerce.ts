@@ -170,9 +170,13 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
     REFUNDED: "Reembolsado",
 };
 
-/** `GET /api/v1/payments/config`: `DISABLED` = modo sin pasarela. */
+/**
+ * `GET /api/v1/payments/config`: `DISABLED` = modo sin pasarela.
+ * `demoMode` (Fase 10, R6 · A3): `true` en la demo pública.
+ */
 export interface PaymentConfig {
     paymentMode: "STRIPE" | "DISABLED";
+    demoMode?: boolean;
 }
 
 /** `GET /api/v1/orders/{n}/payment`: lo que necesita el Payment Element. */
