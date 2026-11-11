@@ -12,3 +12,4 @@ Este directorio documenta formalmente las decisiones arquitectónicas del núcle
 | [ADR-0004](0004-frontend-architecture-and-proxy.md) | 2026-09-29 | Arquitectura Frontend Monorepo, Rewrite Proxy e Idempotencia en Cliente | **Aprobado** |
 | [ADR-0005](0005-frontend-testing-strategy.md) | 2026-09-29 | Estrategia de Testing en Frontend con Vitest y React Testing Library | **Aprobado** |
 | [ADR-0006](0006-role-based-access-control.md) | 2026-10-09 | Control de Acceso Basado en Roles (RBAC) con `ADMIN`/`USER` | **Aprobado** |
+| [ADR-0007](0007-stripe-payments-gateway-and-webhook.md) | 2026-11-10 | Pagos con Stripe: Gateway Aislado y Webhook como Fuente de Verdad | **Aprobado** |
