@@ -16,19 +16,15 @@ import { taxesIncludedLabel } from "@/lib/taxes";
 import { CouponInput } from "@/components/CouponInput";
 import { CouponSummary } from "@/components/CouponSummary";
 import { Address } from "@/types/auth";
-import {
-    PAYMENT_METHODS,
-    PAYMENT_METHOD_LABELS,
-    PaymentMethod,
-} from "@/types/commerce";
+import type { PaymentConfig } from "@/types/commerce";
 
 /**
  * Página completa del carrito con checkout multilínea.
  * Accesible desde el drawer lateral con botón "Ver carrito completo".
  *
- * Desde la Tarea 5.5 el checkout exige elegir **dirección de envío** (R1) y
- * **método de pago** (R2): la primera se copia a la orden como snapshot, el
- * segundo se guarda como dato declarado — no procesa ningún pago.
+ * Desde la Tarea 5.5 el checkout exige elegir **dirección de envío** (R1); el
+ * método de pago (R2) lo elige el cliente en la pantalla de pago de Stripe
+ * (Fase 9: tarjeta o Apple Pay). La dirección se copia a la orden como snapshot.
  */
 export default function CartPage() {
     const {
@@ -53,9 +49,17 @@ export default function CartPage() {
 
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [addressId, setAddressId] = useState<number | null>(null);
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CARD");
+    // Fase 9: `STRIPE` → tras tramitar hay un paso de pago; `DISABLED` → modo
+    // demostración sin cobro. `null` = aún sin saber (no se pinta nada).
+    const [paymentMode, setPaymentMode] = useState<PaymentConfig["paymentMode"] | null>(null);
 
     const selectedAddress = addresses.find((a) => a.id === addressId) ?? null;
+
+    useEffect(() => {
+        api.getPaymentConfig()
+            .then((config) => setPaymentMode(config.paymentMode))
+            .catch(() => setPaymentMode(null));
+    }, []);
 
     // Las direcciones solo se pueden pedir con sesión; sin ella ya se corta en
     // handleCheckout, así que no tiene sentido emitir una petición que daría 401.
@@ -125,7 +129,8 @@ export default function CartPage() {
                     destinationLatitude: 40.4168,
                     destinationLongitude: -3.7038,
                     addressId: selectedAddress.id,
-                    paymentMethod,
+                    // Fase 9: sólo tarjeta/Apple Pay (ambos = CARD en el Payment Element)
+                    paymentMethod: "CARD",
                     // V5: el código validado viaja al checkout, que lo
                     // revalida bajo transacción (fuente de verdad, spec §2.5).
                     couponCode: couponCode ?? undefined,
@@ -138,11 +143,24 @@ export default function CartPage() {
             sessionStorage.setItem(JUST_CHECKED_OUT_KEY, order.orderNumber);
 
             clearCart();
-            router.push(`/orders/${encodeURIComponent(order.orderNumber)}`);
+            // Fase 9: con pasarela el pedido nace pendiente de pago → paso de pago
+            // (el stock queda reservado hasta que caduque, 30 min). Sin pasarela,
+            // la ficha del pedido como siempre.
+            const destino =
+                order.paymentStatus === "REQUIRES_PAYMENT"
+                    ? `/orders/${encodeURIComponent(order.orderNumber)}/pay`
+                    : `/orders/${encodeURIComponent(order.orderNumber)}`;
+            router.push(destino);
         } catch (err: unknown) {
+            // Fase 9: un 502 en el checkout significa que Stripe no pudo iniciar el cobro y el
+            // pedido se canceló solo (stock y cupón liberados): aquí sí es cierto que no se cobró.
+            const sinCobro =
+                err instanceof Error && err.message.includes("API Error [502]")
+                    ? " No se ha cobrado nada."
+                    : "";
             setError(
                 err instanceof Error
-                    ? getFriendlyErrorMessage(err)
+                    ? getFriendlyErrorMessage(err) + sinCobro
                     : "Error al procesar el checkout"
             );
             setIsProcessing(false);
@@ -300,40 +318,19 @@ export default function CartPage() {
                                     </p>
                                 </div>
 
-                                {/* ── Método de pago (Tarea 5.5, R2) ─────────────────── */}
-                                <fieldset className="mt-6 pt-4 border-t border-neutral-100">
-                                    <legend className="text-xs uppercase tracking-widest text-neutral-900 mb-2">
-                                        Método de pago
-                                    </legend>
-
-                                    <div className="grid grid-cols-2 auto-rows-fr gap-2">
-                                        {PAYMENT_METHODS.map((method) => (
-                                            <label
-                                                key={method}
-                                                className={`flex h-full items-center justify-center border px-3 py-2 text-center text-xs uppercase tracking-wider cursor-pointer transition-colors has-[:focus-visible]:ring-1 has-[:focus-visible]:ring-neutral-900 has-[:focus-visible]:ring-offset-2 ${
-                                                    paymentMethod === method
-                                                        ? "border-neutral-900 text-neutral-900"
-                                                        : "border-neutral-200 text-neutral-600 hover:border-neutral-400"
-                                                }`}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name="paymentMethod"
-                                                    value={method}
-                                                    checked={paymentMethod === method}
-                                                    onChange={() => setPaymentMethod(method)}
-                                                    className="sr-only"
-                                                />
-                                                {PAYMENT_METHOD_LABELS[method]}
-                                            </label>
-                                        ))}
+                                {/* ── Pago (Fase 9): se elige en el siguiente paso ───── */}
+                                {paymentMode && (
+                                    <div className="mt-6 pt-4 border-t border-neutral-100">
+                                        <p className="text-xs uppercase tracking-widest text-neutral-900 mb-2">
+                                            Pago
+                                        </p>
+                                        <p className="text-[10px] text-neutral-600 leading-relaxed">
+                                            {paymentMode === "STRIPE"
+                                                ? "Pagarás con tarjeta o Apple Pay en el siguiente paso, con Stripe."
+                                                : "Modo demostración: no se realiza ningún cobro."}
+                                        </p>
                                     </div>
-
-                                    <p className="text-[10px] text-neutral-600 mt-2 leading-relaxed">
-                                        Solo se guarda tu preferencia: no se pide ningún número
-                                        de tarjeta ni se cobra nada.
-                                    </p>
-                                </fieldset>
+                                )}
 
                                 {needsAuth && (
                                     <div className="mt-4 p-3 bg-neutral-100 border border-neutral-300 text-neutral-700 text-xs">

@@ -1001,4 +1001,59 @@ describe("api — puerta única a la API (R4)", () => {
             expect(lastInit()?.cache).toBe("no-store");
         });
     });
+
+    describe("pagos con Stripe (Fase 9)", () => {
+        it("getPaymentConfig: GET público (sin Authorization) y sin caché", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({ paymentMode: "STRIPE" }));
+
+            const config = await api.getPaymentConfig();
+
+            expect(config.paymentMode).toBe("STRIPE");
+            expect(lastUrl()).toContain("/api/v1/payments/config");
+            expect(lastInit()?.cache).toBe("no-store");
+            expect(lastHeaders().Authorization).toBeUndefined();
+        });
+
+        it("getOrderPayment: codifica el número de pedido, manda Authorization y no cachea", async () => {
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+            fetchMock.mockResolvedValue(
+                jsonResponse({
+                    clientSecret: "pi_secret",
+                    publishableKey: "pk_test_x",
+                    paymentStatus: "REQUIRES_PAYMENT",
+                })
+            );
+
+            const session = await api.getOrderPayment("ORD-A/1");
+
+            expect(session.clientSecret).toBe("pi_secret");
+            expect(lastUrl()).toContain("/api/v1/orders/ORD-A%2F1/payment");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastInit()?.cache).toBe("no-store");
+        });
+
+        it("refundAdminOrder: POST con JSON, Authorization y la ruta admin", async () => {
+            localStorage.setItem("nexus-auth-token", "jwt-de-prueba");
+            fetchMock.mockResolvedValue(jsonResponse({ order: { orderNumber: "ORD-1" } }));
+
+            await api.refundAdminOrder("ORD-1", { amount: 12.5, reason: "Defectuoso" });
+
+            expect(lastUrl()).toContain("/api/v1/admin/orders/ORD-1/refund");
+            expect(lastInit()?.method).toBe("POST");
+            expect(lastHeaders().Authorization).toBe("Bearer jwt-de-prueba");
+            expect(lastHeaders()["Content-Type"]).toBe("application/json");
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({
+                amount: 12.5,
+                reason: "Defectuoso",
+            });
+        });
+
+        it("refundAdminOrder con importe null viaja como null (reembolso del resto)", async () => {
+            fetchMock.mockResolvedValue(jsonResponse({}));
+
+            await api.refundAdminOrder("ORD-1", { amount: null });
+
+            expect(JSON.parse(lastInit()?.body as string)).toEqual({ amount: null });
+        });
+    });
 });

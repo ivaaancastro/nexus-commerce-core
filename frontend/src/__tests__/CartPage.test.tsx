@@ -26,6 +26,8 @@ vi.mock("@/lib/api", async (importOriginal) => {
         api: {
             ...actual.api,
             checkout: vi.fn(),
+            // Fase 9: modo de pago. Por defecto sin pasarela → comportamiento histórico.
+            getPaymentConfig: vi.fn().mockResolvedValue({ paymentMode: "DISABLED" }),
             getCurrentUser: vi.fn(),
             // R1: sin esta respuesta el carrito no tiene dirección y corta el
             // checkout antes de llegar a `api.checkout`.
@@ -293,8 +295,16 @@ describe("CartPage — dirección de envío y método de pago (spec order-detail
         );
     });
 
-    it("R2 — ofrece los cuatro métodos de pago y permite cambiar de uno", async () => {
+    /**
+     * R8.3 (Fase 9, D3): el test «ofrece los cuatro métodos de pago» deja de
+     * tener sentido — Bizum, PayPal y transferencia se retiran y el método se
+     * elige en el Payment Element de Stripe. Se sustituye por estos tres, que
+     * conservan lo que importaba de R2: nunca se pide un número de tarjeta aquí
+     * y el método siempre viaja en el checkout.
+     */
+    it("F9 — ya no hay selector de método de pago: el checkout siempre envía CARD", async () => {
         vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        vi.mocked(api.getPaymentConfig).mockResolvedValue({ paymentMode: "STRIPE" });
         vi.mocked(api.checkout).mockResolvedValue({
             orderNumber: "ORD-2026-003",
         } as never);
@@ -303,23 +313,74 @@ describe("CartPage — dirección de envío y método de pago (spec order-detail
 
         await waitForAddressSelected();
 
-        expect(screen.getByRole("radio", { name: "Tarjeta" })).toBeChecked();
-        expect(screen.getByRole("radio", { name: "Bizum" })).toBeInTheDocument();
-        expect(screen.getByRole("radio", { name: "PayPal" })).toBeInTheDocument();
+        expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+        expect(screen.queryByText("Bizum")).not.toBeInTheDocument();
         expect(
-            screen.getByRole("radio", { name: "Transferencia bancaria" })
+            await screen.findByText(/Pagarás con tarjeta o Apple Pay en el siguiente paso/i)
         ).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole("radio", { name: "Bizum" }));
         fireEvent.click(screen.getByRole("button", { name: /tramitar pedido/i }));
 
         await waitFor(() => expect(api.checkout).toHaveBeenCalledTimes(1));
         expect(api.checkout).toHaveBeenCalledWith(
-            expect.objectContaining({ paymentMethod: "BIZUM" }),
+            expect.objectContaining({ paymentMethod: "CARD" }),
             expect.any(String)
         );
-        // R2: nunca se pide un número de tarjeta
+        // R2: nunca se pide un número de tarjeta en el carrito
         expect(screen.queryByLabelText(/número de tarjeta/i)).not.toBeInTheDocument();
+    });
+
+    it("F9 — con pasarela, un pedido pendiente de pago lleva a /orders/{n}/pay", async () => {
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        vi.mocked(api.getPaymentConfig).mockResolvedValue({ paymentMode: "STRIPE" });
+        vi.mocked(api.checkout).mockResolvedValue({
+            orderNumber: "ORD-2026-004",
+            paymentStatus: "REQUIRES_PAYMENT",
+        } as never);
+
+        renderCartPage();
+
+        await waitForAddressSelected();
+        fireEvent.click(screen.getByRole("button", { name: /tramitar pedido/i }));
+
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/orders/ORD-2026-004/pay"));
+    });
+
+    it("F9 — si Stripe falla al iniciar el cobro (502), el pedido se cancela solo y el carrito dice que no se cobró nada", async () => {
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        vi.mocked(api.getPaymentConfig).mockResolvedValue({ paymentMode: "STRIPE" });
+        vi.mocked(api.checkout).mockRejectedValue(
+            new Error('API Error [502]: {"code":"PAYMENT_GATEWAY_ERROR","message":"detalle técnico"}')
+        );
+
+        renderCartPage();
+
+        await waitForAddressSelected();
+        fireEvent.click(screen.getByRole("button", { name: /tramitar pedido/i }));
+
+        expect(await screen.findByText(/pasarela de pago.*No se ha cobrado nada/i)).toBeInTheDocument();
+        expect(screen.queryByText(/detalle técnico/)).not.toBeInTheDocument();
+        expect(pushMock).not.toHaveBeenCalled();
+    });
+
+    it("F9 — sin pasarela se avisa del modo demostración y se va a la ficha del pedido", async () => {
+        vi.mocked(api.getAddresses).mockResolvedValue([mockAddress]);
+        vi.mocked(api.getPaymentConfig).mockResolvedValue({ paymentMode: "DISABLED" });
+        vi.mocked(api.checkout).mockResolvedValue({
+            orderNumber: "ORD-2026-005",
+            paymentStatus: "NONE",
+        } as never);
+
+        renderCartPage();
+
+        await waitForAddressSelected();
+        expect(
+            await screen.findByText(/Modo demostración: no se realiza ningún cobro/i)
+        ).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: /tramitar pedido/i }));
+
+        await waitFor(() => expect(pushMock).toHaveBeenCalledWith("/orders/ORD-2026-005"));
     });
 });
 

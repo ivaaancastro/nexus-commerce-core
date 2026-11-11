@@ -32,6 +32,7 @@ vi.mock("@/lib/api", () => ({
         getAdminOrder: vi.fn(),
         updateAdminOrderStatus: vi.fn(),
         updateAdminOrderTracking: vi.fn(),
+        refundAdminOrder: vi.fn(),
     },
 }));
 
@@ -430,5 +431,218 @@ describe("AdminOrderDetailPage", () => {
             await screen.findByRole("heading", { name: "ORD-7401A" })
         ).toBeInTheDocument();
         expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    });
+});
+
+// ── Fase 9 — Cobro y reembolso ───────────────────────────────────────────────
+
+describe("AdminOrderDetailPage — cobro y reembolso (Fase 9)", () => {
+    const pagado = (extras: Partial<Order> = {}): AdminOrderDetail =>
+        detalle({
+            order: { ...orden, status: "CONFIRMED", paymentStatus: "PAID", amountRefunded: 0, ...extras },
+        });
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.mocked(api.getAdminOrder).mockResolvedValue(pagado());
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it("pedido sin cobro online (pedido histórico): no hay bloque de cobro", async () => {
+        vi.mocked(api.getAdminOrder).mockResolvedValue(detalle());
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: "ORD-7401A" });
+
+        expect(screen.queryByRole("heading", { name: /^Cobro/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Reembolsar" })).not.toBeInTheDocument();
+    });
+
+    it("pendiente de pago: muestra el estado pero no ofrece reembolsar", async () => {
+        vi.mocked(api.getAdminOrder).mockResolvedValue(
+            pagado({ status: "PENDING", paymentStatus: "REQUIRES_PAYMENT" })
+        );
+
+        render(<AdminOrderDetailPage />);
+
+        expect(await screen.findByRole("heading", { name: /Cobro · Pendiente de pago/ })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Reembolsar" })).not.toBeInTheDocument();
+    });
+
+    it("pedido cancelado sin haber pagado: «Sin pagar (pedido cancelado)», no «Pendiente de pago»", async () => {
+        vi.mocked(api.getAdminOrder).mockResolvedValue(
+            pagado({ status: "CANCELLED", paymentStatus: "REQUIRES_PAYMENT" })
+        );
+
+        render(<AdminOrderDetailPage />);
+
+        expect(
+            await screen.findByRole("heading", { name: /Cobro · Sin pagar \(pedido cancelado\)/ })
+        ).toBeInTheDocument();
+        expect(screen.queryByText(/Pendiente de pago/)).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Reembolsar" })).not.toBeInTheDocument();
+    });
+
+    it("pedido CANCELADO pero cobrado (pago tardío): avisa de que hay que reembolsarlo y ofrece reembolsar", async () => {
+        vi.mocked(api.getAdminOrder).mockResolvedValue(
+            pagado({ status: "CANCELLED", paymentStatus: "PAID" })
+        );
+
+        render(<AdminOrderDetailPage />);
+
+        expect(await screen.findByText(/cancelado con dinero cobrado/i)).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Reembolsar" })).toBeInTheDocument();
+    });
+
+    it("un pedido CONFIRMADO y cobrado no muestra ese aviso", async () => {
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Pagado/ });
+
+        expect(screen.queryByText(/cancelado con dinero cobrado/i)).not.toBeInTheDocument();
+    });
+
+    it("totalmente reembolsado: muestra el importe y ya no ofrece reembolsar", async () => {
+        vi.mocked(api.getAdminOrder).mockResolvedValue(
+            pagado({ paymentStatus: "REFUNDED", amountRefunded: 96.8 })
+        );
+
+        render(<AdminOrderDetailPage />);
+
+        expect(await screen.findByRole("heading", { name: /Cobro · Reembolsado$/ })).toBeInTheDocument();
+        expect(screen.getByText(/Reembolsado 96\.80 EUR/)).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Reembolsar" })).not.toBeInTheDocument();
+    });
+
+    it("importe vacío: confirma y reembolsa lo que queda; toast + panel con la respuesta, sin re-fetch", async () => {
+        const usuario = userEvent.setup();
+        const confirmacion = vi.spyOn(window, "confirm").mockReturnValue(true);
+        vi.mocked(api.refundAdminOrder).mockResolvedValue(
+            pagado({ paymentStatus: "REFUNDED", amountRefunded: 96.8 })
+        );
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Pagado/ });
+
+        await usuario.click(screen.getByRole("button", { name: "Reembolsar" }));
+
+        expect(confirmacion).toHaveBeenCalledWith(expect.stringContaining("96.80 EUR"));
+        expect(api.refundAdminOrder).toHaveBeenCalledWith("ORD-7401A", {
+            amount: null,
+            reason: undefined,
+        });
+        expect(await screen.findByRole("heading", { name: /Cobro · Reembolsado$/ })).toBeInTheDocument();
+        expect(screen.getByText("Reembolso realizado")).toBeInTheDocument();
+        expect(api.getAdminOrder).toHaveBeenCalledTimes(1);
+    });
+
+    it("importe parcial con coma decimal y motivo: viaja como número y el estado pasa a parcial", async () => {
+        const usuario = userEvent.setup();
+        vi.spyOn(window, "confirm").mockReturnValue(true);
+        vi.mocked(api.refundAdminOrder).mockResolvedValue(
+            pagado({ paymentStatus: "PARTIALLY_REFUNDED", amountRefunded: 30.5 })
+        );
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Pagado/ });
+
+        await usuario.type(screen.getByLabelText(/Importe/), "30,5");
+        await usuario.type(screen.getByLabelText(/Motivo/), "  Talla equivocada ");
+        await usuario.click(screen.getByRole("button", { name: "Reembolsar" }));
+
+        expect(api.refundAdminOrder).toHaveBeenCalledWith("ORD-7401A", {
+            amount: 30.5,
+            reason: "Talla equivocada",
+        });
+        expect(
+            await screen.findByRole("heading", { name: /Cobro · Reembolsado parcialmente/ })
+        ).toBeInTheDocument();
+        // tras un parcial se puede seguir reembolsando lo que queda
+        expect(screen.getByRole("button", { name: "Reembolsar" })).toBeInTheDocument();
+        // y los campos se limpian
+        expect(screen.getByLabelText(/Importe/)).toHaveValue("");
+    });
+
+    it("importes inválidos (cero, negativo, texto, 3 decimales) no llegan al servidor ni piden confirmación", async () => {
+        const usuario = userEvent.setup();
+        const confirmacion = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Pagado/ });
+
+        for (const invalido of ["0", "-5", "abc", "1.234"]) {
+            await usuario.clear(screen.getByLabelText(/Importe/));
+            await usuario.type(screen.getByLabelText(/Importe/), invalido);
+            await usuario.click(screen.getByRole("button", { name: "Reembolsar" }));
+            expect(await screen.findByRole("alert")).toHaveTextContent(/mayor que 0/);
+        }
+
+        expect(confirmacion).not.toHaveBeenCalled();
+        expect(api.refundAdminOrder).not.toHaveBeenCalled();
+    });
+
+    it("más de lo que queda por reembolsar: lo impide en cliente, diciendo cuánto queda", async () => {
+        const usuario = userEvent.setup();
+        vi.mocked(api.getAdminOrder).mockResolvedValue(
+            pagado({ paymentStatus: "PARTIALLY_REFUNDED", amountRefunded: 40 })
+        );
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Reembolsado parcialmente/ });
+
+        await usuario.type(screen.getByLabelText(/Importe/), "60");
+        await usuario.click(screen.getByRole("button", { name: "Reembolsar" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent("56.80 EUR");
+        expect(api.refundAdminOrder).not.toHaveBeenCalled();
+    });
+
+    it("si se rechaza la confirmación, no se reembolsa nada", async () => {
+        const usuario = userEvent.setup();
+        vi.spyOn(window, "confirm").mockReturnValue(false);
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Pagado/ });
+
+        await usuario.click(screen.getByRole("button", { name: "Reembolsar" }));
+
+        expect(api.refundAdminOrder).not.toHaveBeenCalled();
+    });
+
+    it("409 PAYMENT_CONFLICT: mensaje bajo el bloque, sin toast y con el pedido intacto", async () => {
+        const usuario = userEvent.setup();
+        vi.spyOn(window, "confirm").mockReturnValue(true);
+        vi.mocked(api.refundAdminOrder).mockRejectedValue(
+            error409("PAYMENT_CONFLICT", "El pedido ORD-7401A no tiene un pago reembolsable")
+        );
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Pagado/ });
+
+        await usuario.click(screen.getByRole("button", { name: "Reembolsar" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "El pedido ORD-7401A no tiene un pago reembolsable"
+        );
+        expect(screen.queryByText("Reembolso realizado")).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /Cobro · Pagado/ })).toBeInTheDocument();
+    });
+
+    it("502 (Stripe caído): mensaje claro y el botón vuelve a estar disponible", async () => {
+        const usuario = userEvent.setup();
+        vi.spyOn(window, "confirm").mockReturnValue(true);
+        vi.mocked(api.refundAdminOrder).mockRejectedValue(
+            new Error('API Error [502]: {"code":"PAYMENT_GATEWAY_ERROR"}')
+        );
+
+        render(<AdminOrderDetailPage />);
+        await screen.findByRole("heading", { name: /Cobro · Pagado/ });
+
+        await usuario.click(screen.getByRole("button", { name: "Reembolsar" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(/pasarela de pago/);
+        expect(screen.getByRole("button", { name: "Reembolsar" })).toBeEnabled();
     });
 });
