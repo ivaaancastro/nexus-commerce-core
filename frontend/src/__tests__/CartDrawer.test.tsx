@@ -1,7 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { CartProvider } from "@/context/CartContext";
-import { CartDrawerProvider } from "@/context/CartDrawerContext";
+import { CartDrawerProvider, useCartDrawer } from "@/context/CartDrawerContext";
+import userEvent from "@testing-library/user-event";
 import CartDrawer from "@/components/CartDrawer";
 import { CartItem } from "@/types/commerce";
 
@@ -34,6 +35,11 @@ function TestComponent() {
     );
 }
 
+function OpenButton() {
+    const { openDrawer } = useCartDrawer();
+    return <button onClick={openDrawer}>Abrir bolsa</button>;
+}
+
 describe("CartDrawer", () => {
     beforeEach(() => {
         localStorage.clear();
@@ -43,6 +49,30 @@ describe("CartDrawer", () => {
         render(<TestComponent />);
         const dialog = screen.getByRole("dialog");
         expect(dialog).toHaveClass("translate-x-full");
+    });
+
+    it("regresión cart-drawer-shadow — sin sombra cerrado, con sombra abierto", async () => {
+        // GIVEN — drawer cerrado (aparcado fuera de pantalla)
+        const user = userEvent.setup();
+        render(
+            <CartProvider>
+                <CartDrawerProvider>
+                    <OpenButton />
+                    <CartDrawer />
+                </CartDrawerProvider>
+            </CartProvider>
+        );
+        const dialog = screen.getByRole("dialog", { name: "Carrito de compra" });
+        // THEN — cerrado no proyecta sombra (asomaba como franja en el borde derecho)
+        expect(dialog).toHaveClass("translate-x-full");
+        expect(dialog).not.toHaveClass("shadow-2xl");
+
+        // WHEN — se abre
+        await user.click(screen.getByRole("button", { name: "Abrir bolsa" }));
+
+        // THEN — abierto conserva la sombra de siempre
+        expect(dialog).toHaveClass("translate-x-0");
+        expect(dialog).toHaveClass("shadow-2xl");
     });
 
     it("debe mostrar mensaje de carrito vacío cuando no hay items", () => {
