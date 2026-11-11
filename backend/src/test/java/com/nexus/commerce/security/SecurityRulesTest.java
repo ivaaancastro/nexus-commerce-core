@@ -275,74 +275,6 @@ class SecurityRulesTest {
                 .andExpect(status().isForbidden());
     }
 
-    // ── Fase 9: Endpoints de pago ────────────────────────────────────────
-
-    @Test
-    @DisplayName("Fase 9 - Sin token - POST /orders/checkout -> 401")
-    void checkoutSinToken401() throws Exception {
-        mockMvc.perform(post("/api/v1/orders/checkout")
-                        .header("Idempotency-Key", "test-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("Fase 9 - Con token USER - POST /orders/checkout -> pasa la puerta (400 validación)")
-    void checkoutConTokenPasaPuerta() throws Exception {
-        mockMvc.perform(post("/api/v1/orders/checkout")
-                        .header("Authorization", "Bearer " + token)
-                        .header("Idempotency-Key", "test-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    @DisplayName("Fase 9 - Sin token - GET /users/me/payment-methods -> 401")
-    void paymentMethodsSinToken401() throws Exception {
-        mockMvc.perform(get("/api/v1/users/me/payment-methods"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("Fase 9 - Con token USER - GET /users/me/payment-methods -> 200 (pasa la puerta)")
-    void paymentMethodsConToken200() throws Exception {
-        mockMvc.perform(get("/api/v1/users/me/payment-methods")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("Fase 9 - Sin token - POST /orders/{orderNumber}/refund -> 401")
-    void refundSinToken401() throws Exception {
-        mockMvc.perform(post("/api/v1/orders/ORD-TEST/refund")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    @DisplayName("Fase 9 - Rol USER - POST /orders/{orderNumber}/refund -> 403")
-    void refundRolUser403() throws Exception {
-        mockMvc.perform(post("/api/v1/orders/ORD-TEST/refund")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    @DisplayName("Fase 9 - Rol ADMIN - POST /orders/{orderNumber}/refund -> 404 (pasa la puerta, orden no existe)")
-    void refundRolAdminPasaPuerta() throws Exception {
-        String adminToken = jwtService.generateToken(999L, "seguridad@nexus.test", Role.ADMIN);
-        mockMvc.perform(post("/api/v1/orders/ORD-TEST/refund")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isNotFound());
-    }
-
     @Test
     @DisplayName("Rol ADMIN - los 4 endpoints pasan la puerta (200/404, sin escribir en BD)")
     void stockYPreciosRolAdminPasanLaPuerta() throws Exception {
@@ -371,5 +303,59 @@ class SecurityRulesTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"basePrice\":10.00,\"discountPrice\":null,\"isActive\":true}"))
                 .andExpect(status().isNotFound());
+    }
+
+    // ── Fase 9 · pagos con Stripe ──────────────────────────────────────────
+    // El contexto de test corre SIN claves de Stripe (surefire las fija vacías):
+    // modo sin pasarela. Lo que se prueba aquí es la PUERTA, no el negocio.
+
+    @Test
+    @DisplayName("F9 - El webhook de Stripe es público (se autentica por firma): sin JWT NO es 401")
+    void webhookEsPublicoSinJwt() throws Exception {
+        // Modo sin pasarela → 404 de negocio. Si la ruta no estuviera abierta sería 401.
+        mockMvc.perform(post("/api/v1/webhooks/stripe")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("F9 - Sólo POST /webhooks/stripe es público: GET sigue cerrado (denyAll)")
+    void webhookSoloPorPost() throws Exception {
+        mockMvc.perform(get("/api/v1/webhooks/stripe")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("F9 - GET /payments/config es público y declara el modo (DISABLED sin claves)")
+    void configDePagosEsPublica() throws Exception {
+        mockMvc.perform(get("/api/v1/payments/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentMode").value("DISABLED"));
+    }
+
+    @Test
+    @DisplayName("F9 - GET /orders/{n}/payment exige sesión (401 sin token)")
+    void sesionDePagoSinToken401() throws Exception {
+        mockMvc.perform(get("/api/v1/orders/ORD-X/payment")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("F9 - POST /admin/orders/{n}/refund: sin token 401, USER 403, ADMIN pasa la puerta (409 sin pasarela)")
+    void reembolsoSoloAdmin() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/orders/ORD-X/refund")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/admin/orders/ORD-X/refund")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+
+        String admin = jwtService.generateToken(1L, "admin@nexus.test", Role.ADMIN);
+        mockMvc.perform(post("/api/v1/admin/orders/ORD-X/refund")
+                        .header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_CONFLICT"));
     }
 }

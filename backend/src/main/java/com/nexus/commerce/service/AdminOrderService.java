@@ -9,6 +9,7 @@ import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.PaymentStatus;
 import com.nexus.commerce.exception.OrderStateConflictException;
 import com.nexus.commerce.exception.ResourceNotFoundException;
 import com.nexus.commerce.repository.OrderRepository;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -63,6 +65,10 @@ public class AdminOrderService {
     private final OrderService orderService;
     /** V1: un email de outbox por cada transición exitosa (misma transacción). */
     private final OrderEmailNotifier orderEmailNotifier;
+    /** Fase 9 (D17): al cancelar se devuelve el uso del cupón. */
+    private final CouponService couponService;
+    /** Fase 9 (D10c): cancelar un pendiente de tarjeta cancela también el PaymentIntent. */
+    private final StripeGateway stripeGateway;
 
     // ── Lectura ────────────────────────────────────────────────────────────
 
@@ -164,8 +170,23 @@ public class AdminOrderService {
                             " no puede pasar a " + destino.etiqueta() + " (" + sugerencia + ").");
         }
 
+        // Fase 9 (D10): coherencia entre el estado del pedido y el del cobro.
+        PaymentStatus pago = order.getPaymentStatus();
+        if (destino == OrderStatus.CONFIRMED && pago == PaymentStatus.REQUIRES_PAYMENT) {
+            throw new OrderStateConflictException(
+                    "El pedido " + orderNumber + " está pendiente de pago: se confirma solo cuando Stripe cobra.");
+        }
+        if (destino == OrderStatus.CANCELLED && pago.cobrado()) {
+            throw new OrderStateConflictException(
+                    "El pedido " + orderNumber + " está pagado: reembolsa el pedido antes de cancelarlo.");
+        }
+
         switch (destino) {
-            case CANCELLED -> liberarReservas(order);
+            case CANCELLED -> {
+                liberarReservas(order);
+                couponService.releaseUsage(order);
+                cancelarPaymentIntentSiProcede(order);
+            }
             case SHIPPED -> descontarEnvio(order);
             // CONFIRMED y DELIVERED no mueven stock (R4.5)
             default -> { }
@@ -183,6 +204,35 @@ public class AdminOrderService {
 
         return toDetail(order);
     }
+
+    /**
+     * Cancela un pedido de tarjeta que no llegó a pagarse (Fase 9, R6 y
+     * compensación de R1.3): lo usan el job de expiración y el checkout cuando
+     * Stripe falla. Libera stock y cupón en una transacción, <strong>sin email</strong>
+     * (el cliente nunca recibió la confirmación) y es <strong>idempotente</strong>:
+     * si entre tanto el pedido se pagó o ya no está pendiente, no hace nada.
+     *
+     * @return el PaymentIntent a cancelar en Stripe (puede ser {@code null}) o
+     *         vacío si no se canceló nada
+     */
+    @Transactional
+    public Optional<ImpagoCancelado> cancelarPorImpago(String orderNumber) {
+        Order order = orderRepository.findByOrderNumberForUpdate(orderNumber).orElse(null);
+        if (order == null
+                || order.getStatus() != OrderStatus.PENDING
+                || order.getPaymentStatus() != PaymentStatus.REQUIRES_PAYMENT) {
+            return Optional.empty();
+        }
+        liberarReservas(order);
+        couponService.releaseUsage(order);
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
+        log.info("Pedido {} cancelado por falta de pago", orderNumber);
+        return Optional.of(new ImpagoCancelado(order.getPaymentIntentId()));
+    }
+
+    /** Resultado de {@link #cancelarPorImpago}: el PaymentIntent a anular en Stripe, si lo había. */
+    public record ImpagoCancelado(String paymentIntentId) {}
 
     /**
      * Tracking (R5): full-replace — vacío o ausente → {@code null} (limpia).
@@ -216,6 +266,23 @@ public class AdminOrderService {
         for (OrderItem item : order.getItems()) {
             inventoryService.releaseReservedStock(
                     item.getSku().getId(), item.getWarehouseCode(), item.getQuantity());
+        }
+    }
+
+    /**
+     * D10c: un pendiente de tarjeta que el admin cancela anula su PaymentIntent
+     * para que el cliente no pueda pagarlo después. Best-effort: si Stripe falla,
+     * la cancelación del pedido sigue adelante (y un pago tardío lo recoge el
+     * webhook como «pagado pero cancelado»).
+     */
+    private void cancelarPaymentIntentSiProcede(Order order) {
+        if (order.getPaymentStatus() != PaymentStatus.REQUIRES_PAYMENT || order.getPaymentIntentId() == null) {
+            return;
+        }
+        try {
+            stripeGateway.cancelPaymentIntent(order.getPaymentIntentId());
+        } catch (RuntimeException e) {
+            log.warn("No se pudo cancelar el PaymentIntent del pedido {}: {}", order.getOrderNumber(), e.getMessage());
         }
     }
 

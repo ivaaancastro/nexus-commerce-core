@@ -49,6 +49,13 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
+		<!-- Pagos (Fase 9): Stripe en test mode, detrás de la interfaz StripeGateway -->
+		<dependency>
+			<groupId>com.stripe</groupId>
+			<artifactId>stripe-java</artifactId>
+			<version>34.1.0</version>
+		</dependency>
+
 		<!-- Validation -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -148,20 +155,6 @@
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.13.0</version>
-				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-							<version>1.18.30</version>
-						</path>
-					</annotationProcessorPaths>
-				</configuration>
-			</plugin>
-			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
@@ -186,6 +179,10 @@
 				<configuration>
 					<systemPropertyVariables>
 						<spring.mail.username></spring.mail.username>
+						<!-- Fase 9 (R10): ningún test puede llamar a Stripe — modo sin pasarela -->
+						<stripe.secret-key></stripe.secret-key>
+						<stripe.publishable-key></stripe.publishable-key>
+						<stripe.webhook-secret></stripe.webhook-secret>
 					</systemPropertyVariables>
 				</configuration>
 			</plugin>

@@ -56,6 +56,23 @@ public class Order {
     private BigDecimal discountAmount;
 
     /**
+     * Fase 9 (Stripe): estado del cobro, id del PaymentIntent e importe ya
+     * reembolsado (columnas de {@code V23}). El {@code clientSecret} no se
+     * persiste jamás: se pide a Stripe cuando el cliente va a pagar.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 24)
+    @Builder.Default
+    private PaymentStatus paymentStatus = PaymentStatus.NONE;
+
+    @Column(name = "payment_intent_id", length = 128)
+    private String paymentIntentId;
+
+    @Column(name = "amount_refunded", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal amountRefunded = BigDecimal.ZERO;
+
+    /**
      * Transportista del envío (Tarea 7.4, R5). {@code null} salvo que el admin
      * lo registre — en las órdenes anteriores a la migración {@code V14} y en
      * las que se envían sin tracking.
@@ -78,33 +95,6 @@ public class Order {
 
     @Column(name = "total_amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
-
-    /**
-     * Stripe PaymentIntent ID (Fase 9). {@code null} para órdenes antes de la
-     * migración de pagos.
-     */
-    @Column(name = "payment_intent_id", length = 128)
-    private String paymentIntentId;
-
-    /**
-     * Stripe client secret para confirmar el pago en el frontend (Fase 9).
-     * {@code null} para órdenes antes de la migración de pagos.
-     */
-    @Column(name = "client_secret", length = 256)
-    private String clientSecret;
-
-    /**
-     * Estado del reembolso (Fase 9). Valores: {@code null} (sin reembolso),
-     * {@code REFUNDED} (reembolsado parcial o totalmente).
-     */
-    @Column(name = "refund_status", length = 32)
-    private String refundStatus;
-
-    /**
-     * Importe total reembolsado (Fase 9). {@code null} o 0 si no hay reembolso.
-     */
-    @Column(name = "amount_refunded", precision = 12, scale = 2)
-    private BigDecimal amountRefunded;
 
     /**
      * Snapshot de la dirección usada al hacer checkout (Tarea 5.5, R1).

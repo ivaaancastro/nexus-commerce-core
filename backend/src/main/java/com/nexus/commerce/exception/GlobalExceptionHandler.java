@@ -177,6 +177,41 @@ public class GlobalExceptionHandler {
         ));
     }
 
+    /** Fase 9: Stripe falló o no responde → 502. El mensaje es genérico: el detalle va al log. */
+    @ExceptionHandler(PaymentGatewayException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentGateway(PaymentGatewayException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.BAD_GATEWAY.value(),
+                "error", "Bad Gateway",
+                "code", "PAYMENT_GATEWAY_ERROR",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /** Fase 9: operación de pago incompatible con el estado del pedido → 409. */
+    @ExceptionHandler(PaymentConflictException.class)
+    public ResponseEntity<Map<String, Object>> handlePaymentConflict(PaymentConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.CONFLICT.value(),
+                "error", "Conflict",
+                "code", "PAYMENT_CONFLICT",
+                "message", ex.getMessage()
+        ));
+    }
+
+    /** Fase 9 (R3.1): firma de webhook inválida → 400 SIN detalle sobre el motivo. */
+    @ExceptionHandler(InvalidWebhookSignatureException.class)
+    public ResponseEntity<Map<String, Object>> handleInvalidSignature(InvalidWebhookSignatureException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "timestamp", OffsetDateTime.now().toString(),
+                "status", HttpStatus.BAD_REQUEST.value(),
+                "error", "Bad Request",
+                "message", "Solicitud no válida"
+        ));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(

@@ -3,8 +3,6 @@ package com.nexus.commerce.controller;
 import com.nexus.commerce.dto.*;
 import com.nexus.commerce.service.AddressService;
 import com.nexus.commerce.service.SizeRecommendationService;
-import com.nexus.commerce.dto.PaymentMethodResponse;
-import com.nexus.commerce.service.UserPaymentMethodService;
 import com.nexus.commerce.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,7 +25,6 @@ public class UserController {
     private final UserService userService;
     private final AddressService addressService;
     private final SizeRecommendationService sizeRecommendationService;
-    private final UserPaymentMethodService userPaymentMethodService;
 
     // ── Perfil ──────────────────────────────────────────────────────────────
 
@@ -53,13 +50,6 @@ public class UserController {
         return ResponseEntity.ok(addressService.list(authentication.getName()));
     }
 
-
-    @GetMapping("/me/payment-methods")
-    @Operation(summary = "Listar métodos de pago del usuario (wallet)")
-    public ResponseEntity<List<PaymentMethodResponse>> listPaymentMethods(Authentication authentication) {
-        List<PaymentMethodResponse> methods = userPaymentMethodService.getUserPaymentMethods(authentication.getName());
-        return ResponseEntity.ok(methods);
-    }
     @PostMapping("/me/addresses")
     @Operation(summary = "Añadir una dirección de entrega")
     public ResponseEntity<AddressResponse> createAddress(

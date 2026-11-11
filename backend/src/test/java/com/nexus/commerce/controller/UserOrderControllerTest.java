@@ -9,6 +9,7 @@ import com.nexus.commerce.dto.OrderSummaryResponse;
 import com.nexus.commerce.dto.ReturnRequest;
 import com.nexus.commerce.dto.ReturnResponse;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.PaymentStatus;
 import com.nexus.commerce.entity.ReturnStatus;
 import com.nexus.commerce.exception.GlobalExceptionHandler;
 import com.nexus.commerce.exception.ResourceNotFoundException;
@@ -136,7 +137,7 @@ class UserOrderControllerTest {
                 1L, "ORD-001", "idem-1", "ES", "EUR",
                 OrderStatus.DELIVERED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, null, null, null, List.of(), null);
+                null, null, null, null, List.of(), null, PaymentStatus.NONE, BigDecimal.ZERO);
 
         when(orderService.getOrderForUser(EMAIL, "ORD-001")).thenReturn(Optional.of(order));
 

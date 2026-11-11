@@ -20,8 +20,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"items", "items.sku", "items.sku.product"})
     Optional<Order> findByIdempotencyKey(String idempotencyKey);
 
-    Optional<Order> findByUserEmail(String userEmail);
-
     @EntityGraph(attributePaths = {"items", "items.sku", "items.sku.product"})
     Optional<Order> findByOrderNumber(String orderNumber);
 
@@ -96,6 +94,24 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     @Query("SELECT o FROM Order o WHERE o.orderNumber = :orderNumber")
     Optional<Order> findByOrderNumberForUpdate(@Param("orderNumber") String orderNumber);
 
+    /** Fase 9 (R3.3): fila del pedido por PaymentIntent, bloqueada para el webhook. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM Order o WHERE o.paymentIntentId = :paymentIntentId")
+    Optional<Order> findByPaymentIntentIdForUpdate(@Param("paymentIntentId") String paymentIntentId);
+
+    /**
+     * Fase 9 (R6): números de pedido con tarjeta sin pagar creados antes de
+     * {@code cutoff}. Sólo escalares: el job caduca cada uno en su transacción.
+     */
+    @Query("""
+           SELECT o.orderNumber FROM Order o
+           WHERE o.status = :status AND o.paymentStatus = :paymentStatus AND o.createdAt < :cutoff
+           ORDER BY o.createdAt
+           """)
+    List<String> findExpiredUnpaid(@Param("status") OrderStatus status,
+                                   @Param("paymentStatus") com.nexus.commerce.entity.PaymentStatus paymentStatus,
+                                   @Param("cutoff") Instant cutoff);
+
     /**
      * Dashboard 7.6 (R2): recuento de pedidos <strong>por estado</strong>
      * creados desde {@code from}. Sólo escalares — el service rellena las 5
@@ -119,13 +135,23 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * por grupo nunca devuelve {@code null}; por eso no hace falta
      * {@code COALESCE} (y el tipo de la suma queda {@code BigDecimal} limpio).</p>
      *
+     * <p><strong>Fase 9 — ingresos = dinero que se queda</strong>: no suman los
+     * pedidos con tarjeta <em>sin pagar</em> ({@code REQUIRES_PAYMENT}) ni los
+     * <em>totalmente reembolsados</em> ({@code REFUNDED}), y a los reembolsados
+     * parcialmente se les resta lo devuelto ({@code total − amountRefunded}).
+     * Los pedidos sin cobro online ({@code NONE}, anteriores a la fase o en modo
+     * sin pasarela) cuentan como siempre.</p>
+     *
      * @param excluded estado que no suma — {@link OrderStatus#CANCELLED}
-     * @return pares {@code [moneda, suma total, nº de pedidos]}
+     * @return pares {@code [moneda, ingresos netos, nº de pedidos con ingreso]}
      */
     @Query("""
-           SELECT o.currency, SUM(o.totalAmount), COUNT(o)
+           SELECT o.currency, SUM(o.totalAmount - o.amountRefunded), COUNT(o)
            FROM Order o
            WHERE o.createdAt >= :from AND o.status <> :excluded
+             AND o.paymentStatus NOT IN (
+                 com.nexus.commerce.entity.PaymentStatus.REQUIRES_PAYMENT,
+                 com.nexus.commerce.entity.PaymentStatus.REFUNDED)
            GROUP BY o.currency
            ORDER BY o.currency
            """)

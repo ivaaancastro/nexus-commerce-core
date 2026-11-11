@@ -1,39 +1,21 @@
 package com.nexus.commerce.dto;
 
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+
 import java.math.BigDecimal;
 
 /**
- * DTO de request para iniciar un reembolso.
- * 
- * amount: Si es null → reembolso total. Si tiene valor → reembolso parcial.
- * reason: Motivo del reembolso (opcional, ej: customer_request, duplicate_charge).
+ * Reembolso del panel (Fase 9, R4). {@code amount = null} → reembolsa todo lo
+ * que queda por devolver; con valor, {@code 0 < amount ≤ resto} (el tope lo
+ * comprueba el servicio, que conoce el resto).
  */
-public class RefundRequest {
+public record RefundRequest(
+        @Positive(message = "El importe debe ser mayor que 0")
+        @Digits(integer = 8, fraction = 2, message = "El importe admite como máximo 2 decimales")
+        BigDecimal amount,
 
-    private BigDecimal amount; // null = reembolso total
-    private String reason; // opcional
-
-    public RefundRequest() {
-    }
-
-    public RefundRequest(BigDecimal amount, String reason) {
-        this.amount = amount;
-        this.reason = reason;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public void setReason(String reason) {
-        this.reason = reason;
-    }
-}
+        @Size(max = 200, message = "El motivo admite como máximo 200 caracteres")
+        String reason
+) {}

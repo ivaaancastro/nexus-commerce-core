@@ -37,7 +37,9 @@ public record AdminDashboardResponse(
     /**
      * Ventas del periodo.
      *
-     * @param orderCount pedidos <strong>no cancelados</strong> creados en el periodo
+     * @param orderCount pedidos <strong>no cancelados</strong> creados en el periodo —
+     *                   incluye los <em>pendientes de pago</em> (Fase 9): es actividad, no dinero.
+     *                   Los ingresos de {@code revenue} sólo cuentan pedidos con dinero cobrado
      * @param byStatus   recuento de los 5 estados (cancelados incluidos), con
      *                   sus claves siempre presentes — aunque valgan 0 (R4)
      * @param revenue    ingresos <strong>por moneda</strong>, nunca agregados (R2)
@@ -53,7 +55,8 @@ public record AdminDashboardResponse(
      *
      * @param currency   moneda ISO 4217 del pedido ({@code orders.currency})
      * @param total      suma de {@code total_amount} de los no cancelados
-     * @param orderCount pedidos que componen {@code total}
+     * @param orderCount pedidos que componen {@code total} (sólo con dinero cobrado: sin
+     *                   pendientes de pago ni totalmente reembolsados)
      * @param avgTicket  {@code total / orderCount}, {@code HALF_UP} escala 2 (regla 4.1)
      */
     public record Revenue(String currency, BigDecimal total, long orderCount, BigDecimal avgTicket) {}

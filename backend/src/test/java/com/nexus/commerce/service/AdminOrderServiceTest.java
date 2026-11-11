@@ -8,10 +8,12 @@ import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.PaymentStatus;
 import com.nexus.commerce.entity.ProductReturn;
 import com.nexus.commerce.entity.Sku;
 import com.nexus.commerce.entity.User;
 import com.nexus.commerce.exception.OrderStateConflictException;
+import com.nexus.commerce.exception.PaymentGatewayException;
 import com.nexus.commerce.exception.ResourceNotFoundException;
 import com.nexus.commerce.exception.StockConflictException;
 import com.nexus.commerce.repository.OrderRepository;
@@ -83,6 +85,9 @@ class AdminOrderServiceTest {
     @Mock private InventoryService inventoryService;
     @Mock private OrderService orderService;
     @Mock private OrderEmailNotifier orderEmailNotifier;
+    /** Fase 9 (R8.3 aditiva): devolución del cupón y anulación del PaymentIntent al cancelar. */
+    @Mock private CouponService couponService;
+    @Mock private StripeGateway stripeGateway;
 
     @InjectMocks private AdminOrderService service;
 
@@ -339,6 +344,122 @@ class AdminOrderServiceTest {
 
     // ── Helpers ────────────────────────────────────────────────────────────
 
+    // ── Fase 9 · pagos, cupón y guardas ────────────────────────────────────
+
+    @Test
+    @DisplayName("F9 · D10a - un pedido de tarjeta sin pagar NO se puede confirmar a mano (409, nada cambia)")
+    void noSeConfirmaUnPedidoSinPagar() {
+        Order pedido = pedido(OrderStatus.PENDING);
+        pedido.setPaymentStatus(PaymentStatus.REQUIRES_PAYMENT);
+        when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pedido));
+
+        assertThatThrownBy(() -> service.cambiarEstado(NUM, new AdminOrderStatusRequest(OrderStatus.CONFIRMED)))
+                .isInstanceOf(OrderStateConflictException.class)
+                .hasMessageContaining("pendiente de pago");
+
+        assertThat(pedido.getStatus()).isEqualTo(OrderStatus.PENDING);
+        verifyNoInteractions(orderEmailNotifier);
+    }
+
+    @Test
+    @DisplayName("F9 · D10b - un pedido pagado o parcialmente reembolsado NO se cancela sin reembolsar (409, stock intacto)")
+    void noSeCancelaUnPedidoPagado() {
+        for (PaymentStatus pago : new PaymentStatus[]{PaymentStatus.PAID, PaymentStatus.PARTIALLY_REFUNDED}) {
+            Order pedido = pedido(OrderStatus.CONFIRMED);
+            pedido.setPaymentStatus(pago);
+            when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pedido));
+
+            assertThatThrownBy(() -> service.cambiarEstado(NUM, new AdminOrderStatusRequest(OrderStatus.CANCELLED)))
+                    .as("%s", pago)
+                    .isInstanceOf(OrderStateConflictException.class)
+                    .hasMessageContaining("reembolsa");
+            assertThat(pedido.getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+        }
+        verifyNoInteractions(inventoryService, couponService);
+    }
+
+    @Test
+    @DisplayName("F9 · un pedido totalmente REEMBOLSADO sí puede cancelarse (el dinero ya volvió)")
+    void unPedidoReembolsadoSiSePuedeCancelar() {
+        Order pedido = pedido(OrderStatus.CONFIRMED);
+        pedido.setPaymentStatus(PaymentStatus.REFUNDED);
+        when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pedido));
+        when(orderService.mapToOrderResponse(any(Order.class))).thenReturn(respuesta());
+
+        service.cambiarEstado(NUM, new AdminOrderStatusRequest(OrderStatus.CANCELLED));
+
+        assertThat(pedido.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verify(inventoryService).releaseReservedStock(1L, "WH_ARTEIXO", 2);
+    }
+
+    @Test
+    @DisplayName("F9 · D17 - cancelar (admin) devuelve el uso del cupón junto con el stock")
+    void cancelarDevuelveElCupon() {
+        Order pedido = pedido(OrderStatus.CONFIRMED);
+        when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pedido));
+        when(orderService.mapToOrderResponse(any(Order.class))).thenReturn(respuesta());
+
+        service.cambiarEstado(NUM, new AdminOrderStatusRequest(OrderStatus.CANCELLED));
+
+        verify(couponService).releaseUsage(pedido);
+        verify(inventoryService).releaseReservedStock(1L, "WH_ARTEIXO", 2);
+    }
+
+    @Test
+    @DisplayName("F9 · D10c - cancelar un pendiente de tarjeta anula su PaymentIntent; si Stripe falla, se cancela igual")
+    void cancelarUnPendienteDeTarjetaAnulaElPaymentIntent() {
+        Order pedido = pedido(OrderStatus.PENDING);
+        pedido.setPaymentStatus(PaymentStatus.REQUIRES_PAYMENT);
+        pedido.setPaymentIntentId("pi_123");
+        when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pedido));
+        when(orderService.mapToOrderResponse(any(Order.class))).thenReturn(respuesta());
+        doThrow(new PaymentGatewayException("Stripe caído")).when(stripeGateway).cancelPaymentIntent("pi_123");
+
+        assertThatCode(() -> service.cambiarEstado(NUM, new AdminOrderStatusRequest(OrderStatus.CANCELLED)))
+                .doesNotThrowAnyException();
+
+        verify(stripeGateway).cancelPaymentIntent("pi_123");
+        assertThat(pedido.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verify(inventoryService).releaseReservedStock(1L, "WH_ARTEIXO", 2);
+    }
+
+    @Test
+    @DisplayName("F9 · cancelarPorImpago libera stock y cupón, sin email, y devuelve el PaymentIntent a anular")
+    void cancelarPorImpagoLiberaTodo() {
+        Order pedido = pedido(OrderStatus.PENDING);
+        pedido.setPaymentStatus(PaymentStatus.REQUIRES_PAYMENT);
+        pedido.setPaymentIntentId("pi_9");
+        when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pedido));
+
+        Optional<AdminOrderService.ImpagoCancelado> res = service.cancelarPorImpago(NUM);
+
+        assertThat(res).isPresent();
+        assertThat(res.get().paymentIntentId()).isEqualTo("pi_9");
+        assertThat(pedido.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        verify(inventoryService).releaseReservedStock(1L, "WH_ARTEIXO", 2);
+        verify(couponService).releaseUsage(pedido);
+        verifyNoInteractions(orderEmailNotifier);
+    }
+
+    @Test
+    @DisplayName("F9 · cancelarPorImpago es idempotente: pagado, ya cancelado o inexistente → no hace nada")
+    void cancelarPorImpagoNoTocaLoQueNoToca() {
+        Order pagado = pedido(OrderStatus.CONFIRMED);
+        pagado.setPaymentStatus(PaymentStatus.PAID);
+        when(orderRepository.findByOrderNumberForUpdate(NUM)).thenReturn(Optional.of(pagado));
+        assertThat(service.cancelarPorImpago(NUM)).isEmpty();
+
+        Order cancelado = pedido(OrderStatus.CANCELLED);
+        cancelado.setPaymentStatus(PaymentStatus.REQUIRES_PAYMENT);
+        when(orderRepository.findByOrderNumberForUpdate("ORD-2")).thenReturn(Optional.of(cancelado));
+        assertThat(service.cancelarPorImpago("ORD-2")).isEmpty();
+
+        when(orderRepository.findByOrderNumberForUpdate("ORD-3")).thenReturn(Optional.empty());
+        assertThat(service.cancelarPorImpago("ORD-3")).isEmpty();
+
+        verifyNoInteractions(inventoryService, couponService);
+    }
+
     private Order pedido(OrderStatus estado) {
         return pedidoConId(10L, NUM, estado, 101L, null);
     }
@@ -375,6 +496,6 @@ class AdminOrderServiceTest {
                 10L, NUM, "idem-" + NUM, "ES", "EUR",
                 OrderStatus.CONFIRMED, new BigDecimal("80.00"), new BigDecimal("16.80"),
                 new BigDecimal("96.80"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
-                null, null, null, null, List.of(), null);
+                null, null, null, null, List.of(), null, PaymentStatus.NONE, BigDecimal.ZERO);
     }
 }
