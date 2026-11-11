@@ -330,7 +330,9 @@ class SecurityRulesTest {
     void configDePagosEsPublica() throws Exception {
         mockMvc.perform(get("/api/v1/payments/config"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.paymentMode").value("DISABLED"));
+                .andExpect(jsonPath("$.paymentMode").value("DISABLED"))
+                // Fase 10 (R6, A3): aditivo — sin el flag la demo está apagada.
+                .andExpect(jsonPath("$.demoMode").value(false));
     }
 
     @Test

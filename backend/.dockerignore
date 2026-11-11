@@ -1,0 +1,9 @@
+# Fase 10 (R4): nada local ni secreto entra en la imagen.
+target/
+.env
+.env.*
+*.log
+.DS_Store
+.idea/
+src/test/
+HELP.md
