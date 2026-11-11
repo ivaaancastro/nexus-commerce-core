@@ -5,6 +5,22 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 
 ## [Unreleased]
 
+### Added
+- **Fase 9: pagos con Stripe en test mode** (spec `specs/fase9/`, [ADR-0007](docs/adr/0007-stripe-payments-gateway-and-webhook.md)):
+  - Checkout con tarjeta/Apple Pay: el pedido nace `PENDING` con el stock reservado y el PaymentIntent se crea **después del commit** (nunca con bloqueos de inventario abiertos), con compensación si Stripe falla. `Idempotency-Key` obligatoria y reutilizada como idempotency key de Stripe.
+  - Webhook `POST /api/v1/webhooks/stripe` con **firma verificada** sobre el cuerpo crudo e idempotencia por PK (`stripe_events`, `INSERT … ON CONFLICT DO NOTHING`): `payment_intent.succeeded` confirma el pedido; un pago tardío sobre un pedido caducado **no lo resucita** y queda para reembolso manual.
+  - Reembolso total/parcial desde el panel (`POST /admin/orders/{n}/refund`), con el valor absoluto del cargo como fuente y bloqueo de la fila (dos reembolsos simultáneos: pasa uno). Caducidad de pedidos sin pagar a los 30 min.
+  - Guardas sobre la 7.4: no se confirma a mano un pedido sin pagar ni se cancela uno pagado sin reembolsar. **Cancelar (admin, caducidad o fallo de Stripe) devuelve el uso del cupón.**
+  - Frontend: pantalla de pago con Stripe Payment Element, sondeo de confirmación en la ficha, bloque «Cobro» y «Reembolsar» en el admin.
+  - `GET /payments/config` y **modo sin pasarela** sin claves; claves `sk_live_` rechazadas al arrancar.
+  - **Ingresos del dashboard netos de pagos** (7.6): no suman pedidos sin pagar ni totalmente reembolsados y restan los reembolsos parciales. Soporta las 4 monedas de los mercados (**CHF** incluida).
+  - `e2e/payments.spec.ts` (con `E2E_STRIPE=1`; se salta sin él): compra, rechazo + reintento, cancelación de un pendiente y reembolso desde el panel, con axe sobre la pantalla de pago.
+  - `V23__stripe_payments.sql`: solo añade (`payment_status`, `payment_intent_id`, `amount_refunded`, `stripe_events`).
+
+### Changed
+- **El checkout solo admite tarjeta y Apple Pay** (`CARD`): Bizum, PayPal y transferencia se retiran y el selector de método desaparece del carrito (la spec `checkout-payment-grid` queda superada). Los valores antiguos del enum se conservan solo para leer pedidos históricos.
+- **Cancelar un pedido devuelve el uso del cupón** también en pedidos sin Stripe (antes quedaba consumido).
+
 
 ### Added
 - **V5: Sistema de cupones promocionales** (feature `feat/coupons`):

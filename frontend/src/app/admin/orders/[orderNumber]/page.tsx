@@ -8,7 +8,12 @@ import OrderStatusBadge from "@/components/OrderStatusBadge";
 import Toast from "@/components/Toast";
 import { api } from "@/lib/api";
 import { getFriendlyErrorMessage, isNotFoundError } from "@/lib/errors";
-import { AdminOrderDetail, OrderStatus, PAYMENT_METHOD_LABELS } from "@/types/commerce";
+import {
+    AdminOrderDetail,
+    OrderStatus,
+    PAYMENT_METHOD_LABELS,
+    PAYMENT_STATUS_LABELS,
+} from "@/types/commerce";
 
 const ETIQUETAS: Record<OrderStatus, string> = {
     PENDING: "Pendiente",
@@ -80,6 +85,12 @@ export default function AdminOrderDetailPage() {
     // Estado del panel
     const [cambiando, setCambiando] = useState(false);
     const [estadoError, setEstadoError] = useState<string | null>(null);
+
+    // ── Cobro y reembolso (Fase 9) ──────────────────────────────────────────
+    const [importeReembolso, setImporteReembolso] = useState("");
+    const [motivoReembolso, setMotivoReembolso] = useState("");
+    const [reembolsando, setReembolsando] = useState(false);
+    const [reembolsoError, setReembolsoError] = useState<string | null>(null);
 
     // ── Tracking ────────────────────────────────────────────────────────────
     // Estado derivado **durante el render** (react.dev, «Adjusting state when a
@@ -184,6 +195,61 @@ export default function AdminOrderDetailPage() {
             setEstadoError(getFriendlyErrorMessage(err));
         } finally {
             setCambiando(false);
+        }
+    }
+
+    /**
+     * Reembolso total (importe vacío = lo que queda) o parcial. El servidor es
+     * la autoridad: aquí sólo se evita enviar un importe absurdo. Éxito con
+     * toast + la respuesta del POST (sin re-fetch); un 409/502 va bajo el
+     * bloque, **sin toast** (patrón 7.4/7.5).
+     */
+    async function reembolsar() {
+        if (!detalle) return;
+        const { order: pedido } = detalle;
+        const restante = Math.round((pedido.totalAmount - (pedido.amountRefunded ?? 0)) * 100) / 100;
+
+        const texto = importeReembolso.trim().replace(",", ".");
+        let importe: number | null = null;
+        if (texto !== "") {
+            if (!/^\d+(\.\d{1,2})?$/.test(texto) || Number(texto) <= 0) {
+                setReembolsoError("Introduce un importe mayor que 0, con 2 decimales como máximo.");
+                return;
+            }
+            importe = Number(texto);
+            if (importe > restante) {
+                setReembolsoError(
+                    `No puedes reembolsar más de lo que queda: ${restante.toFixed(2)} ${pedido.currency}.`
+                );
+                return;
+            }
+        }
+
+        const aReembolsar = importe ?? restante;
+        if (
+            !window.confirm(
+                `¿Reembolsar ${aReembolsar.toFixed(2)} ${pedido.currency} al cliente? Esta acción no se puede deshacer.`
+            )
+        ) {
+            return;
+        }
+
+        setReembolsando(true);
+        setReembolsoError(null);
+        try {
+            const actualizada = await api.refundAdminOrder(orderNumber, {
+                amount: importe,
+                reason: motivoReembolso.trim() || undefined,
+            });
+            setDetalle(actualizada);
+            setImporteReembolso("");
+            setMotivoReembolso("");
+            setToastMessage("Reembolso realizado");
+            setToastVisible(true);
+        } catch (err: unknown) {
+            setReembolsoError(getFriendlyErrorMessage(err));
+        } finally {
+            setReembolsando(false);
         }
     }
 
@@ -382,6 +448,94 @@ export default function AdminOrderDetailPage() {
                     </p>
                 )}
             </section>
+
+            {/* ── Cobro (Fase 9): estado del pago y reembolso ─────────────── */}
+            {order.paymentStatus && order.paymentStatus !== "NONE" && (
+                <section
+                    aria-labelledby="titulo-cobro"
+                    className="border border-neutral-200 bg-white p-6 flex flex-col gap-4"
+                >
+                    <h2
+                        id="titulo-cobro"
+                        className="text-[11px] uppercase tracking-widest text-neutral-600"
+                    >
+                        Cobro ·{" "}
+                        {order.status === "CANCELLED" && order.paymentStatus === "REQUIRES_PAYMENT"
+                            ? "Sin pagar (pedido cancelado)"
+                            : PAYMENT_STATUS_LABELS[order.paymentStatus]}
+                    </h2>
+
+                    <p className="text-xs font-light text-neutral-700">
+                        Total {order.totalAmount.toFixed(2)} {order.currency} · Reembolsado{" "}
+                        {(order.amountRefunded ?? 0).toFixed(2)} {order.currency}
+                    </p>
+
+                    {order.status === "CANCELLED" &&
+                        (order.paymentStatus === "PAID" ||
+                            order.paymentStatus === "PARTIALLY_REFUNDED") && (
+                            <p
+                                role="status"
+                                className="border border-neutral-900 p-3 text-xs text-neutral-900"
+                            >
+                                Pedido cancelado con dinero cobrado (un pago llegó después de
+                                caducar el pedido): hay que reembolsarlo.
+                            </p>
+                        )}
+
+                    {(order.paymentStatus === "PAID" ||
+                        order.paymentStatus === "PARTIALLY_REFUNDED") && (
+                        <div className="flex flex-wrap items-end gap-4">
+                            <div className="flex flex-col gap-1.5">
+                                <label
+                                    htmlFor="importe-reembolso"
+                                    className="text-[10px] uppercase tracking-widest text-neutral-600"
+                                >
+                                    Importe (vacío = todo lo que queda)
+                                </label>
+                                <input
+                                    id="importe-reembolso"
+                                    type="text"
+                                    inputMode="decimal"
+                                    value={importeReembolso}
+                                    onChange={(e) => setImporteReembolso(e.target.value)}
+                                    placeholder="0.00"
+                                    className="w-40 border border-neutral-200 px-3 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <label
+                                    htmlFor="motivo-reembolso"
+                                    className="text-[10px] uppercase tracking-widest text-neutral-600"
+                                >
+                                    Motivo (opcional)
+                                </label>
+                                <input
+                                    id="motivo-reembolso"
+                                    type="text"
+                                    maxLength={200}
+                                    value={motivoReembolso}
+                                    onChange={(e) => setMotivoReembolso(e.target.value)}
+                                    className="w-64 border border-neutral-200 px-3 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-neutral-400"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                onClick={reembolsar}
+                                disabled={reembolsando}
+                                className="border border-neutral-900 bg-neutral-900 text-white text-[10px] uppercase tracking-widest px-4 py-2 transition-colors hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {reembolsando ? "Reembolsando..." : "Reembolsar"}
+                            </button>
+                        </div>
+                    )}
+
+                    {reembolsoError && (
+                        <p role="alert" className="text-xs text-red-700">
+                            {reembolsoError}
+                        </p>
+                    )}
+                </section>
+            )}
 
             {/* ── Seguimiento (E.5): full-replace en cualquier estado ──────── */}
             <section

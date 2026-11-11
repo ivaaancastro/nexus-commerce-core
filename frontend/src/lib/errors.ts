@@ -117,6 +117,13 @@ export function getFriendlyErrorMessage(error: unknown): string {
     if (isHttpStatus(message, 403)) {
         return "No tienes permiso para realizar esta acción.";
     }
+    // Fase 9: Stripe no responde o falló al iniciar/reembolsar. El detalle
+    // técnico va al log del servidor; aquí sólo un mensaje claro y NEUTRO: el 502
+    // sirve tanto al checkout como al reembolso del panel, así que no afirma qué
+    // dinero se movió (el carrito añade «No se ha cobrado nada», que sí es cierto ahí).
+    if (isHttpStatus(message, 502)) {
+        return "No hemos podido contactar con la pasarela de pago. Inténtalo de nuevo en un momento.";
+    }
     if (isHttpStatus(message, 404)) {
         return "No encontramos lo que buscas.";
     }
@@ -130,6 +137,14 @@ export function getFriendlyErrorMessage(error: unknown): string {
         // «No se puede fijar 2 unidades: hay 3 reservadas…»,
         // «Transición no permitida: un pedido Enviado no puede pasar a…»,
         // «No puedes suspenderte a ti mismo»).
+        // Fase 9: conflictos de pago (reembolsar algo no cobrado, pagar un
+        // pedido que no tiene pago pendiente). El mensaje ya viene redactado.
+        if (message.includes('"PAYMENT_CONFLICT"')) {
+            return (
+                extractServerMessage(message) ??
+                "Esa operación de pago ya no está disponible para este pedido."
+            );
+        }
         // ORDER_CONFLICT va aparte: su fallback no es el de stock (R3.1).
         if (message.includes('"ORDER_CONFLICT"')) {
             return (

@@ -56,6 +56,23 @@ public class Order {
     private BigDecimal discountAmount;
 
     /**
+     * Fase 9 (Stripe): estado del cobro, id del PaymentIntent e importe ya
+     * reembolsado (columnas de {@code V23}). El {@code clientSecret} no se
+     * persiste jamás: se pide a Stripe cuando el cliente va a pagar.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_status", nullable = false, length = 24)
+    @Builder.Default
+    private PaymentStatus paymentStatus = PaymentStatus.NONE;
+
+    @Column(name = "payment_intent_id", length = 128)
+    private String paymentIntentId;
+
+    @Column(name = "amount_refunded", nullable = false, precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal amountRefunded = BigDecimal.ZERO;
+
+    /**
      * Transportista del envío (Tarea 7.4, R5). {@code null} salvo que el admin
      * lo registre — en las órdenes anteriores a la migración {@code V14} y en
      * las que se envían sin tracking.

@@ -23,9 +23,18 @@ import {
     Order,
     OrderItem,
     PAYMENT_METHOD_LABELS,
+    PAYMENT_STATUS_LABELS,
     ProductReturn,
     ReturnIneligibleReason,
 } from "@/types/commerce";
+
+/**
+ * Fase 9 (D14): tras pagar, la confirmación es asíncrona (la hace el webhook de
+ * Stripe). La ficha sondea cada 2 s, como máximo 30 s, hasta que el pedido deje
+ * de estar `PENDING`.
+ */
+const CONFIRM_POLL_MS = 2000;
+const CONFIRM_MAX_POLLS = 15;
 
 /** Límite de caracteres del motivo, idéntico al `@Size` del backend (R4). */
 const MAX_REASON_LENGTH = 500;
@@ -74,6 +83,16 @@ export default function OrderDetailPage() {
     const [justCheckedOut, setJustCheckedOut] = useState(false);
     const [copied, setCopied] = useState(false);
     const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // ── Pago con Stripe (Fase 9) ────────────────────────────────────────────
+    // `redirect_status` lo añade Stripe (o la página de pago) al volver. Se lee
+    // una sola vez, en el cliente: sólo se usa después de cargar el pedido.
+    const [redirectStatus] = useState<string | null>(() =>
+        typeof window === "undefined"
+            ? null
+            : new URLSearchParams(window.location.search).get("redirect_status")
+    );
+    const [pollExpired, setPollExpired] = useState(false);
 
     // ── Devoluciones ────────────────────────────────────────────────────────
     const [returns, setReturns] = useState<ProductReturn[]>([]);
@@ -139,6 +158,33 @@ export default function OrderDetailPage() {
     }, [isAuthenticated, orderNumber]);
 
     const closeToast = useCallback(() => setToastVisible(false), []);
+
+    // Estado derivado (no se escribe estado dentro del efecto): ¿acabamos de
+    // pagar y el webhook aún no ha confirmado el pedido?
+    const awaitingConfirmation =
+        !!order &&
+        order.status === "PENDING" &&
+        order.paymentStatus === "REQUIRES_PAYMENT" &&
+        (redirectStatus === "succeeded" || redirectStatus === "processing");
+
+    useEffect(() => {
+        if (!awaitingConfirmation || pollExpired) return;
+
+        let attempts = 0;
+        const timer = setInterval(async () => {
+            attempts += 1;
+            try {
+                setOrder(await api.getOrder(orderNumber));
+            } catch {
+                // un fallo puntual de red no cancela el sondeo: se reintenta en el siguiente tick
+            }
+            if (attempts >= CONFIRM_MAX_POLLS) {
+                setPollExpired(true);
+            }
+        }, CONFIRM_POLL_MS);
+
+        return () => clearInterval(timer);
+    }, [awaitingConfirmation, pollExpired, orderNumber]);
 
     /** R6: copia el número y confirma durante 2 s. Sin clipboard, no revienta. */
     async function handleCopyOrderNumber() {
@@ -476,12 +522,53 @@ export default function OrderDetailPage() {
                                     <p className="text-xs text-neutral-900">
                                         {PAYMENT_METHOD_LABELS[order.paymentMethod]}
                                     </p>
-                                    <p className="text-[10px] leading-relaxed text-neutral-600 mt-2">
-                                        Preferencia declarada al comprar: no se procesó ningún pago.
-                                    </p>
+                                    {(!order.paymentStatus || order.paymentStatus === "NONE") && (
+                                        <p className="text-[10px] leading-relaxed text-neutral-600 mt-2">
+                                            Preferencia declarada al comprar: no se procesó ningún pago.
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* ── Pago (Fase 9) ─────────────────────────────────────── */}
+                    {order.paymentStatus && order.paymentStatus !== "NONE" && (
+                        <section data-testid="payment-status" className="border-t border-neutral-100 pt-6 mb-6">
+                            <h2 className="text-xs font-medium uppercase tracking-widest text-neutral-900 mb-3">
+                                Pago
+                            </h2>
+                            <p className="text-xs text-neutral-900">
+                                {order.status === "CANCELLED" && order.paymentStatus === "REQUIRES_PAYMENT"
+                                    ? "Caducado: no se completó el pago"
+                                    : PAYMENT_STATUS_LABELS[order.paymentStatus]}
+                                {(order.paymentStatus === "PARTIALLY_REFUNDED" ||
+                                    order.paymentStatus === "REFUNDED") &&
+                                    ` · ${(order.amountRefunded ?? 0).toFixed(2)} ${order.currency}`}
+                            </p>
+
+                            {awaitingConfirmation && !pollExpired && (
+                                <p role="status" className="text-[10px] uppercase tracking-widest text-neutral-600 mt-2">
+                                    Confirmando pago...
+                                </p>
+                            )}
+                            {awaitingConfirmation && pollExpired && (
+                                <p className="text-[10px] leading-relaxed text-neutral-600 mt-2">
+                                    Tu pago se está procesando. Recarga la página en unos minutos para
+                                    ver el estado.
+                                </p>
+                            )}
+                            {order.status === "PENDING" &&
+                                order.paymentStatus === "REQUIRES_PAYMENT" &&
+                                !awaitingConfirmation && (
+                                    <Link
+                                        href={`/orders/${encodeURIComponent(order.orderNumber)}/pay`}
+                                        className="inline-block mt-3 bg-neutral-900 hover:bg-black text-white text-[10px] uppercase tracking-widest py-3 px-6 transition-colors"
+                                    >
+                                        Completar pago
+                                    </Link>
+                                )}
+                        </section>
                     )}
 
                     {/* ── 6. Resumen de productos (R3, R8) ──────────────────── */}
@@ -599,8 +686,8 @@ export default function OrderDetailPage() {
                             </ul>
 
                             <p className="mt-4 text-[10px] leading-relaxed text-neutral-600">
-                                El reembolso queda registrado como crédito pendiente: este
-                                establecimiento no procesa devoluciones de pago.
+                                El importe queda registrado como crédito pendiente: la
+                                devolución del pago la tramita la tienda.
                             </p>
                         </section>
                     )}

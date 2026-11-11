@@ -141,25 +141,56 @@ export interface CheckoutRequest {
 }
 
 /**
- * Preferencia de pago declarada al hacer checkout (Tarea 5.5, R2).
- * Refleja el enum `PaymentMethod` del backend.
+ * Método de pago de un pedido. Refleja el enum `PaymentMethod` del backend.
  *
- * **No procesa pagos**: no se pide número de tarjeta ni se tokeniza — el proyecto
- * no tiene pasarela de pago, igual que `refundAmount` es solo un registro contable.
+ * Desde la Fase 9 el checkout **sólo admite `CARD`** (el Payment Element de
+ * Stripe cubre tarjeta y Apple Pay). `BIZUM`, `PAYPAL` y `BANK_TRANSFER` se
+ * conservan únicamente para **pintar pedidos antiguos**; ya no se ofrecen.
  */
 export type PaymentMethod = "CARD" | "BIZUM" | "PAYPAL" | "BANK_TRANSFER";
 
 /**
- * Etiquetas visibles de cada método de pago. El orden es el del selector del
- * carrito.
+ * Estado del cobro de un pedido (Fase 9). Independiente de `OrderStatus`:
+ * dice qué ha pasado con el dinero. `NONE` = sin cobro online (pedidos
+ * anteriores a la fase y modo sin pasarela).
  */
-export const PAYMENT_METHODS: PaymentMethod[] = [
-    "CARD",
-    "BIZUM",
-    "PAYPAL",
-    "BANK_TRANSFER",
-];
+export type PaymentStatus =
+    | "NONE"
+    | "REQUIRES_PAYMENT"
+    | "PAID"
+    | "PARTIALLY_REFUNDED"
+    | "REFUNDED";
 
+/** Etiquetas visibles del estado de pago (fuente única del copy). */
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+    NONE: "Sin cobro online",
+    REQUIRES_PAYMENT: "Pendiente de pago",
+    PAID: "Pagado",
+    PARTIALLY_REFUNDED: "Reembolsado parcialmente",
+    REFUNDED: "Reembolsado",
+};
+
+/** `GET /api/v1/payments/config`: `DISABLED` = modo sin pasarela. */
+export interface PaymentConfig {
+    paymentMode: "STRIPE" | "DISABLED";
+}
+
+/** `GET /api/v1/orders/{n}/payment`: lo que necesita el Payment Element. */
+export interface PaymentSession {
+    clientSecret: string;
+    publishableKey: string;
+    paymentStatus: PaymentStatus;
+}
+
+/** Cuerpo de `POST /api/v1/admin/orders/{n}/refund`. `amount` vacío = lo que queda. */
+export interface RefundData {
+    amount?: number | null;
+    reason?: string;
+}
+
+/**
+ * Etiquetas visibles de cada método de pago (sólo para mostrar pedidos).
+ */
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
     CARD: "Tarjeta",
     BIZUM: "Bizum",
@@ -281,6 +312,13 @@ export interface Order {
      * cupón → el pedido no pinta nada.
      */
     discountAmount?: number | null;
+    /**
+     * Fase 9: estado del cobro. Opcional como `discountAmount`: los pedidos y
+     * respuestas anteriores a la fase no lo traen → se trata como `NONE`.
+     */
+    paymentStatus?: PaymentStatus;
+    /** Fase 9: importe ya reembolsado (0 si ninguno). */
+    amountRefunded?: number;
 }
 
 /**

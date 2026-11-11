@@ -5,8 +5,11 @@ import com.nexus.commerce.dto.CheckoutItemRequest;
 import com.nexus.commerce.dto.CheckoutRequest;
 import com.nexus.commerce.dto.OrderResponse;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.PaymentStatus;
 import com.nexus.commerce.entity.PaymentMethod;
+import com.nexus.commerce.service.CheckoutService;
 import com.nexus.commerce.service.OrderService;
+import com.nexus.commerce.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,6 +45,13 @@ class OrderControllerTest {
     @Mock
     private OrderService orderService;
 
+    /** Fase 9: el checkout lo orquesta CheckoutService (R8.3: sólo cambia el mock objetivo). */
+    @Mock
+    private CheckoutService checkoutService;
+
+    @Mock
+    private PaymentService paymentService;
+
     @InjectMocks
     private OrderController orderController;
 
@@ -62,10 +72,10 @@ class OrderControllerTest {
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
                 null, PaymentMethod.CARD, null, null, List.of(),
-                null
+                null, PaymentStatus.NONE, BigDecimal.ZERO
         );
 
-        when(orderService.processCheckout(eq("idem-uuid-001"), any(CheckoutRequest.class), eq(null)))
+        when(checkoutService.checkout(eq("idem-uuid-001"), any(CheckoutRequest.class), eq(null)))
                 .thenReturn(response);
 
         mockMvc.perform(post("/api/v1/orders/checkout")
@@ -108,7 +118,7 @@ class OrderControllerTest {
                 OrderStatus.CONFIRMED, new BigDecimal("41.32"), new BigDecimal("8.68"),
                 new BigDecimal("50.00"), Instant.now(), Instant.now().plus(Duration.ofDays(30)),
                 null, PaymentMethod.CARD, null, null, List.of(),
-                null
+                null, PaymentStatus.NONE, BigDecimal.ZERO
         );
 
         when(orderService.getOrderByNumber("ORD-9999")).thenReturn(Optional.of(response));

@@ -315,3 +315,32 @@ describe("getFriendlyErrorMessage", () => {
         });
     });
 });
+
+describe("getFriendlyErrorMessage — pagos (Fase 9)", () => {
+    it("502 — la pasarela falla: mensaje claro y neutro (vale para checkout y reembolso), sin detalle técnico", () => {
+        const mensaje = getFriendlyErrorMessage(
+            apiError(502, '{"status":502,"code":"PAYMENT_GATEWAY_ERROR","message":"stripe 500 req_abc"}')
+        );
+
+        expect(mensaje).toContain("pasarela de pago");
+        expect(mensaje).not.toContain("cobrado"); // el 502 también lo devuelve el reembolso: no afirma qué dinero se movió
+        expect(mensaje).not.toContain("req_abc");
+    });
+
+    it("409 PAYMENT_CONFLICT — muestra el mensaje redactado por el servidor", () => {
+        const mensaje = getFriendlyErrorMessage(
+            apiError(
+                409,
+                '{"code":"PAYMENT_CONFLICT","message":"El pedido ORD-1 no tiene un pago reembolsable"}'
+            )
+        );
+
+        expect(mensaje).toBe("El pedido ORD-1 no tiene un pago reembolsable");
+    });
+
+    it("409 PAYMENT_CONFLICT sin mensaje — usa el texto de respaldo", () => {
+        expect(getFriendlyErrorMessage(apiError(409, '{"code":"PAYMENT_CONFLICT"}'))).toContain(
+            "operación de pago"
+        );
+    });
+});

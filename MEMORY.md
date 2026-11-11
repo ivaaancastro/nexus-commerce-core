@@ -12,10 +12,10 @@
 |:---|:---|
 | **Rama actual** | `main` — **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** todas mergeadas; ramas `feat/coupons` y `feat/photos-per-color` integradas |
 | **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6 (deuda técnica), 7.1–7.6 completadas**; **Fase 7 panel COMPLETA**; **Bloque V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
-| **Tarea actual** | **Fase 9 — Pagos (PSP)** — siguiente: integración Stripe test mode, PaymentIntents, webhooks, reembolsos |
+| **Tarea actual** | **Fase 9 — Pagos con Stripe (test mode)** — implementada y verificada contra Stripe sandbox en `feat/stripe-payments`; pendiente `/spec-check`, commits y PR |
 | **Estado** | **Backend `clean test` 453/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** · Tests: 549 frontend + 31 E2E + 17 axe · Migraciones V20/V21/V22 · Todas las features V1–V6 + Fase 8 mergeadas y verificadas |
-| **Pendiente** | **Fases 9–15** definidas: Pagos (9), Envíos (10), Devoluciones (11), i18n (12), Notificaciones (13), Landing/Docs (14), Calidad final (15) |
-| **Última actualización** | 2026-10-29 |
+| **Pendiente** | **Roadmap de portfolio**: Pagos Stripe (9) → Landing/despliegue/docs (10) → Calidad y CI/CD (11) → i18n ES/EN opcional (12) → Lanzamiento LinkedIn (13). Descartado: carriers, RMA ampliado, push/abandono de carrito |
+| **Última actualización** | 2026-11-10 |
 
 ---
 
@@ -321,61 +321,51 @@
 
 **Gates**: Frontend 549 tests ✅, `tsc` 0 ✅, `eslint` 0/0 ✅, `build` 0 ✅. Backend `HealthControllerTest` 2/2 ✅. Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** (umbrales congelados) EXIT 0.
 
-### Fase 9 — Pagos (PSP) — Crítica para checkout real
-- [ ] 9.1 — Integración Stripe (test mode): PaymentIntent, SetupIntent, webhooks (`payment_intent.succeeded/failed`, `charge.refunded`)
-- [ ] 9.2 — Checkout real: crear PaymentIntent en `POST /orders/checkout`, confirmar en frontend con Stripe.js Elements
-- [ ] 9.3 — Reembolsos: admin puede hacer refund parcial/total desde panel pedido → webhook `charge.refunded` actualiza estado
-- [ ] 9.4 — Métodos de pago guardados: `Customer` + `PaymentMethod` attach/detach, wallet en perfil usuario
-- [ ] 9.5 — Idempotencia + concurrencia: `Idempotency-Key` en PaymentIntent, manejo race conditions
-- [ ] 9.6 — Tests E2E: compra completa con tarjeta test (4242 4242 4242 4242), refund, fallo 3D Secure
+### Roadmap final (portfolio) — redefinido 2026-11-10
+> **Contexto**: el proyecto **ya no se venderá**; es un **portfolio para LinkedIn**. Prioriza lo que un
+> reclutador ve en 5 minutos: demo online, README con capturas/GIFs y una historia técnica clara.
+> Se recorta todo lo que sólo tendría sentido en un producto comercial. Orden: **9 → 10 → 11 → 12 (opcional) → 13**.
 
-### Fase 10 — Envíos y Logística — Requerido para cumplir pedidos
-- [ ] 10.1 — Modelo de datos: `carriers`, `shipping_zones`, `shipping_rates`, `shipments`, `tracking_events`
-- [ ] 10.2 — Integración carrier (Correos Express API / DHL / SEUR): crear envío, generar etiqueta PDF, tracking webhook
-- [ ] 10.3 — Reglas de envío: por zona, peso, valor, mercado; envío gratis umbral configurable por mercado
-- [ ] 10.4 — Panel admin: botón "Crear envío" en pedido CONFIRMED → genera etiqueta, cambia estado a SHIPPED
-- [ ] 10.5 — Tracking público: usuario ve eventos en `/orders/[orderNumber]`, email automático al crear envío
-- [ ] 10.6 — Tests: mock carrier API, flujo CONFIRMED → SHIPPED → DELIVERED
+### Fase 9 — Pagos con Stripe real (test mode) — 🟢 implementada y verificada contra Stripe sandbox
+> La v1 estaba simulada y se descartó. Spec v2 en `specs/fase9/`, ADR-0007. Rama `feat/stripe-payments`.
+- [x] 9.1 — SDK `stripe-java` 34.1.0 tras `StripeGateway`; PaymentIntent real tras el commit de T1; `Idempotency-Key` obligatoria; sin secretos en logs
+- [x] 9.2 — Webhook `POST /api/v1/webhooks/stripe`: firma sobre cuerpo crudo, idempotente (`stripe_events`), `succeeded` / `payment_failed` / `charge.refunded`
+- [x] 9.3 — Frontend: Payment Element (`/orders/[n]/pay`), `api.ts` adaptado (contrato `OrderResponse` intacto), estados de pago y fallo, sondeo de confirmación
+- [x] 9.4 — Reembolso total/parcial desde el panel admin; guardas 7.4; caducidad a los 30 min; cupón devuelto al cancelar
+- [x] 9.5 — Tests: backend 527 (0 fallos, con transaccionales sobre PostgreSQL real) · frontend 590 · E2E 31/31 sin tocar `e2e/` · Lighthouse en verde
+- [x] 9.5b — **Verificación manual con Stripe real (sandbox, 2026-11-11)**: `4242…`, 3DS (fallo y éxito), rechazo, caducidad (PI cancelado + cupón devuelto), reembolso parcial y total, reentrega duplicada y firmas falsas — todo OK (resultados en `specs/fase9/tasks.md`)
+- [x] 9.5c — `e2e/payments.spec.ts` (con `E2E_STRIPE=1`; el PaymentIntent se confirma por API por el hCaptcha de Stripe) y axe de la pantalla de pago · segunda ronda de verificación: CHF, guardas de estado, ingresos del dashboard netos, pago tardío, 4 monedas, móvil
+- [x] 9.5d — revisión de código independiente (8 hallazgos): 6 corregidos, 1 aclarado en el DTO, 1 preexistente fuera de alcance (`GET /orders/{n}` sin comprobación de propietario)
+- [ ] 9.5e — `/spec-check`, commits y PR
+- [ ] 9.6 — Guardar tarjetas (wallet): **fuera de alcance**, opcional futuro
+- ⚠️ Apple Pay: exige HTTPS + dominio verificado → se prueba en la Fase 10
 
-### Fase 11 — Devoluciones (RMA) — Obligatorio legal EU (14 días)
-- [ ] 11.1 — Modelo: `returns` (user, order, items[], reason, status, refund_amount, carrier, tracking)
-- [ ] 11.2 — Flujo usuario: solicita devolución en `/orders/[orderNumber]` → items + motivo → estado PENDING
-- [ ] 11.3 — Flujo admin: ve solicitudes, aprueba/rechaza → genera etiqueta retorno (carrier API) → estado APPROVED
-- [ ] 11.4 — Recepción almacén: admin marca RECEIVED → trigger refund (Stripe webhook) → estado REFUNDED
-- [ ] 11.5 — Reglas: ventana 14 días, items elegibles (no final sale, no usados), stock se repone al recibir
-- [ ] 11.6 — Tests E2E: solicitud → aprobación → etiqueta → recepción → reembolso
+### Fase 10 — Landing, despliegue y documentación — 🟠 lo que vende (antes Fase 14)
+- [ ] 10.1 — **Despliegue**: frontend en Vercel + backend y PostgreSQL en un hosting gratuito (Render/Fly/Neon), con datos semilla
+- [ ] 10.2 — **Demo pública**: usuario demo y admin demo documentados, checkout con Stripe test mode visible
+- [ ] 10.3 — **Landing** (`/`) con hero, tour de funcionalidades (catálogo, checkout, panel admin, monitoring) y capturas reales
+- [ ] 10.4 — **README de portfolio**: GIFs/capturas, diagrama de arquitectura, decisiones técnicas (idempotencia, outbox, bloqueo pesimista, SDD) y enlace a la demo
+- [ ] 10.5 — Documentación técnica: arquitectura, OpenAPI, guía de despliegue (sin `/pricing` ni analytics GA4)
 
-### Fase 12 — Internacionalización (i18n) — ES/EN/FR/DE/IT
-- [ ] 12.1 — Next.js i18n routing: `/es/...`, `/en/...`, middleware detección `Accept-Language`, cookie `nexus-locale`
-- [ ] 12.2 — Diccionarios JSON por locale: `messages/es.json`, `messages/en.json`, etc. (claves tipadas con `next-intl` o similar)
-- [ ] 12.3 — Formatos locales: fechas, números, monedas (`Intl.NumberFormat`, `Intl.DateTimeFormat` por locale)
-- [ ] 12.4 — Traducciones completas: UI (botones, labels, toasts), emails, validaciones, errores
-- [ ] 12.5 — SEO: `hreflang`, `alternate` links, sitemap multi-locale, robots.txt
-- [ ] 12.6 — Admin i18n: panel en inglés obligatorio, opcional otros locales
+### Fase 11 — Calidad final y CI/CD — 🟡 barata y luce (antes Fase 15)
+- [ ] 11.1 — E2E crítico: compra con Stripe test → admin cambia estado → reembolso
+- [ ] 11.2 — Cobertura objetivo backend y frontend ≥ 85 % (medida, no impuesta)
+- [ ] 11.3 — CI/CD: lint → test → build → coverage → deploy preview → E2E; budgets Lighthouse ya existentes
+- [ ] 11.4 — Seguridad: escaneo de dependencias, detección de secretos y checklist de seguridad
 
-### Fase 13 — Notificaciones — Email transaccional + Push + Marketing
-- [ ] 13.1 — Motor notificaciones: `NotificationService` con plantillas (Thymeleaf/React Email), cola (Redis/RabbitMQ), reintentos
-- [ ] 13.2 — Transaccionales: confirmación pedido, pago confirmado, envío creado (tracking), entrega, devolución aprobada, reembolso
-- [ ] 13.3 — Abandono carrito: job cada 30 min → carritos > 1h sin checkout → email con link recuperable (token firmado)
-- [ ] 13.4 — Push web (Web Push API): suscripción en perfil, envío server-side (VAPID), preferencias por tipo
-- [ ] 13.5 — Centro notificaciones en perfil: historial, marcar leídas, preferencias (email/push por evento)
-- [ ] 13.6 — Tests: mock email provider, verifica plantillas renderizan, cola procesa en orden
+### Fase 12 — i18n ES/EN — ⚪ opcional (antes ES/EN/FR/DE/IT)
+- [ ] 12.1 — Routing `/es` · `/en` + diccionarios tipados (`next-intl`), formatos locales con `Intl`
+- [ ] 12.2 — Traducción de UI y errores; `hreflang`. Sólo ES y EN; el panel admin puede quedar en un idioma
 
-### Fase 14 — Landing, Demo y Documentación — Lo que vende
-- [ ] 14.1 — Landing page pública (`/`): hero, value props, feature tour interactivo (V1–V6 + Admin + Ops), screenshots reales
-- [ ] 14.2 — Páginas: `/features` (detalle cada módulo), `/pricing` (planes si se vende), `/docs` (MDX técnico), `/demo` (sandbox)
-- [ ] 14.3 — Demo sandbox: datos seed persistentes, checkout con Stripe test mode visible, admin accesible demo@nexus.dev
-- [ ] 14.4 — Documentación técnica: arquitectura, API reference (OpenAPI), guías deployment, contribución
-- [ ] 14.5 — Deploy automático: Vercel preview en PR, producción en merge a main, variables entorno segregadas
-- [ ] 14.6 — Analytics: GA4 + eventos ecommerce (view_item, add_to_cart, begin_checkout, purchase)
+### Fase 13 — Lanzamiento en LinkedIn — 📣 (no es código)
+- [ ] 13.1 — Post con arquitectura y decisiones (idempotencia, outbox, bloqueo pesimista, SDD), GIF de la demo y enlace
+- [ ] 13.2 — Repo presentable: README, topics, capturas, release `v1.0.0`
 
-### Fase 15 — Calidad Final y CI/CD Completo — Lo que da confianza
-- [ ] 15.1 — Tests integración admin: CRUD productos, stock, pedidos, usuarios, cupones, RMA
-- [ ] 15.2 — Tests E2E críticos: admin crea producto → usuario compra → envío → devolución → reembolso
-- [ ] 15.3 — Cobertura objetivo: backend > 85%, frontend > 85% (statements/branches/functions/lines)
-- [ ] 15.4 — CI/CD completo: lint → test → build → coverage gates → deploy preview → E2E → deploy prod
-- [ ] 15.5 — Performance budgets: LCP ≤ 3.5s, CLS ≤ 0.05, TBT ≤ 200ms, perf ≥ 90, a11y ≥ 95 (Lighthouse CI)
-- [ ] 15.6 — Security: dependency scanning, SAST, secrets detection, pen-test checklist
+### ❌ Descartado (no aporta al portfolio)
+- **Envíos con carriers** (antiguas Fase 10): el seguimiento manual ya existe desde la 7.4 (`carrier` + `tracking_number`)
+- **RMA ampliado** (antigua Fase 11): hay base en `product-returns`; no se amplía
+- **Notificaciones push (VAPID), abandono de carrito y centro de preferencias** (antigua Fase 13): los emails de estado ya existen (V1)
+- **i18n FR/DE/IT**, `/pricing` y analytics GA4
 
 > **Deuda técnica conocida (no planificada como fase)**: header desborda < 560 px · `/search` devuelve 500 sin `OPENAI_API_KEY` · `api.ts` cobertura mejorable · `GET /inventory/**` y `/pricing/**` públicos por diseño
 

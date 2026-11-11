@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { useParams } from "next/navigation";
 import OrderDetailPage from "@/app/orders/[orderNumber]/page";
 import { CartProvider } from "@/context/CartContext";
@@ -578,5 +578,149 @@ describe("OrderDetailPage — rediseño (spec order-detail-redesign)", () => {
 
         await screen.findByText("Detalle del pedido");
         expect(screen.queryByTestId("tracking-block")).not.toBeInTheDocument();
+    });
+});
+
+// ── Fase 9 — Pago con Stripe en la ficha del cliente ─────────────────────────
+
+describe("OrderDetailPage — estado de pago (Fase 9)", () => {
+    const conPago = (extras: Partial<Order>): Order => ({ ...mockOrder, ...extras });
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        localStorage.clear();
+        vi.mocked(useParams).mockReturnValue({ orderNumber: "ORD-TEST-99" });
+        vi.mocked(api.getMyReturns).mockResolvedValue([]);
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        window.history.pushState({}, "", "/");
+    });
+
+    it("pedido pagado: muestra «Pagado» y ya no dice que no se procesó ningún pago", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(conPago({ paymentStatus: "PAID", amountRefunded: 0 }));
+
+        renderPage();
+
+        const bloque = await screen.findByTestId("payment-status");
+        expect(bloque).toHaveTextContent("Pagado");
+        expect(screen.queryByText(/no se procesó ningún pago/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /completar pago/i })).not.toBeInTheDocument();
+    });
+
+    it("pedido sin cobro online (NONE o sin campo): conserva el aviso histórico y no pinta el bloque", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(conPago({ paymentStatus: "NONE" }));
+
+        renderPage();
+
+        expect(await screen.findByText(/no se procesó ningún pago/i)).toBeInTheDocument();
+        expect(screen.queryByTestId("payment-status")).not.toBeInTheDocument();
+    });
+
+    it("pendiente de pago: enlaza a «Completar pago» en /orders/{n}/pay", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(
+            conPago({ status: "PENDING", paymentStatus: "REQUIRES_PAYMENT" })
+        );
+
+        renderPage();
+
+        expect(await screen.findByText("Pendiente de pago")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: /completar pago/i })).toHaveAttribute(
+            "href",
+            "/orders/ORD-TEST-99/pay"
+        );
+    });
+
+    it("pago caducado (cancelado sin pagar): lo dice y no ofrece pagar", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(
+            conPago({ status: "CANCELLED", paymentStatus: "REQUIRES_PAYMENT" })
+        );
+
+        renderPage();
+
+        expect(await screen.findByText(/Caducado: no se completó el pago/i)).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: /completar pago/i })).not.toBeInTheDocument();
+    });
+
+    it("reembolso parcial: muestra el estado y el importe devuelto", async () => {
+        vi.mocked(api.getOrder).mockResolvedValue(
+            conPago({ paymentStatus: "PARTIALLY_REFUNDED", amountRefunded: 30 })
+        );
+
+        renderPage();
+
+        expect(await screen.findByTestId("payment-status")).toHaveTextContent(
+            "Reembolsado parcialmente · 30.00 EUR"
+        );
+    });
+
+    it("tras pagar (redirect_status=succeeded) sondea hasta que el webhook confirma y deja de sondear", async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        window.history.pushState({}, "", "/orders/ORD-TEST-99?redirect_status=succeeded");
+        vi.mocked(api.getOrder)
+            .mockResolvedValueOnce(conPago({ status: "PENDING", paymentStatus: "REQUIRES_PAYMENT" }))
+            .mockResolvedValue(conPago({ status: "CONFIRMED", paymentStatus: "PAID" }));
+
+        renderPage();
+
+        expect(await screen.findByText("Confirmando pago...")).toBeInTheDocument();
+        // Aún no se ofrece «Completar pago»: ya se pagó, sólo falta la confirmación
+        expect(screen.queryByRole("link", { name: /completar pago/i })).not.toBeInTheDocument();
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(2100);
+        });
+
+        await waitFor(() => expect(screen.getByTestId("payment-status")).toHaveTextContent("Pagado"));
+        expect(screen.queryByText("Confirmando pago...")).not.toBeInTheDocument();
+
+        const llamadas = vi.mocked(api.getOrder).mock.calls.length;
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(10_000);
+        });
+        expect(vi.mocked(api.getOrder).mock.calls.length).toBe(llamadas); // ya no sondea
+    });
+
+    it("si en 30 s el webhook no llega: «se está procesando», sin afirmar éxito ni fallo, y para de sondear", async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        window.history.pushState({}, "", "/orders/ORD-TEST-99?redirect_status=processing");
+        vi.mocked(api.getOrder).mockResolvedValue(
+            conPago({ status: "PENDING", paymentStatus: "REQUIRES_PAYMENT" })
+        );
+
+        renderPage();
+        await screen.findByText("Confirmando pago...");
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(31_000);
+        });
+
+        expect(await screen.findByText(/Tu pago se está procesando/i)).toBeInTheDocument();
+        expect(screen.queryByText("Confirmando pago...")).not.toBeInTheDocument();
+        expect(screen.queryByText("Pagado")).not.toBeInTheDocument();
+
+        const llamadas = vi.mocked(api.getOrder).mock.calls.length;
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(10_000);
+        });
+        expect(vi.mocked(api.getOrder).mock.calls.length).toBe(llamadas);
+    });
+
+    it("sin redirect_status no sondea aunque el pedido esté pendiente (entrar a mirar no es pagar)", async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        vi.mocked(api.getOrder).mockResolvedValue(
+            conPago({ status: "PENDING", paymentStatus: "REQUIRES_PAYMENT" })
+        );
+
+        renderPage();
+        await screen.findByText("Pendiente de pago");
+
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(10_000);
+        });
+
+        expect(vi.mocked(api.getOrder)).toHaveBeenCalledTimes(1);
+        expect(screen.queryByText("Confirmando pago...")).not.toBeInTheDocument();
     });
 });

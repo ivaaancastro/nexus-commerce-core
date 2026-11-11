@@ -4,6 +4,8 @@ import com.nexus.commerce.dto.AdminOrderDetailResponse;
 import com.nexus.commerce.dto.AdminOrderPageResponse;
 import com.nexus.commerce.dto.AdminOrderStatusRequest;
 import com.nexus.commerce.dto.AdminOrderTrackingRequest;
+import com.nexus.commerce.dto.RefundRequest;
+import com.nexus.commerce.service.PaymentService;
 import com.nexus.commerce.entity.OrderStatus;
 import com.nexus.commerce.service.AdminOrderService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +40,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminOrderController {
 
     private final AdminOrderService adminOrderService;
+    private final PaymentService paymentService;
 
     @GetMapping
     @Operation(summary = "Listado paginado de todos los pedidos, con filtros status y q")
@@ -68,5 +72,13 @@ public class AdminOrderController {
             @PathVariable String orderNumber,
             @Valid @RequestBody AdminOrderTrackingRequest request) {
         return ResponseEntity.ok(adminOrderService.actualizarTracking(orderNumber, request));
+    }
+
+    @PostMapping("/{orderNumber}/refund")
+    @Operation(summary = "Reembolso total o parcial en Stripe (amount vacío = lo que queda). No cambia el estado ni repone stock")
+    public ResponseEntity<AdminOrderDetailResponse> reembolsar(
+            @PathVariable String orderNumber,
+            @Valid @RequestBody(required = false) RefundRequest request) {
+        return ResponseEntity.ok(paymentService.refund(orderNumber, request));
     }
 }

@@ -1,10 +1,13 @@
 package com.nexus.commerce.service;
 
+import com.nexus.commerce.config.PaymentsProperties;
 import com.nexus.commerce.dto.*;
 import com.nexus.commerce.entity.Address;
 import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
+import com.nexus.commerce.entity.PaymentMethod;
+import com.nexus.commerce.entity.PaymentStatus;
 import com.nexus.commerce.entity.Product;
 import com.nexus.commerce.entity.ShippingAddress;
 import com.nexus.commerce.entity.Sku;
@@ -52,6 +55,8 @@ public class OrderService {
     private final OrderEmailNotifier orderEmailNotifier;
     /** V5: revalidación atómica del cupón y registro de su uso (spec §2.3). */
     private final CouponService couponService;
+    /** Fase 9: con pasarela el pedido de tarjeta nace PENDING y se confirma por webhook. */
+    private final PaymentsProperties payments;
 
     @Transactional
     public OrderResponse processCheckout(String idempotencyKey, CheckoutRequest request, String userEmail) {
@@ -61,6 +66,12 @@ public class OrderService {
             log.info("Idempotency key '{}' detectada. Devolviendo orden {}", idempotencyKey, existingOrder.get().getOrderNumber());
             return mapToOrderResponse(existingOrder.get());
         }
+
+        // Fase 9 (D3): sólo tarjeta y Apple Pay (ambos = CARD en el Payment Element).
+        if (request.paymentMethod() != PaymentMethod.CARD) {
+            throw new IllegalArgumentException("Sólo se admite el pago con tarjeta o Apple Pay");
+        }
+        boolean pagoOnline = payments.isEnabled();
 
         log.info("Iniciando checkout transaccional para mercado '{}' con {} líneas",
                 request.marketCode(), request.items().size());
@@ -181,7 +192,8 @@ public class OrderService {
                 .idempotencyKey(idempotencyKey)
                 .marketCode(request.marketCode().toUpperCase())
                 .currency(currency)
-                .status(OrderStatus.CONFIRMED)
+                .status(pagoOnline ? OrderStatus.PENDING : OrderStatus.CONFIRMED)
+                .paymentStatus(pagoOnline ? PaymentStatus.REQUIRES_PAYMENT : PaymentStatus.NONE)
                 .subtotalAmount(subtotalAccumulator)
                 .taxAmount(taxAccumulator)
                 .totalAmount(totalAccumulator)
@@ -213,7 +225,10 @@ public class OrderService {
         // V1 order-status-emails (R1/D2): «hemos recibido tu pedido», encolado
         // dentro de la misma transacción (R5: si hay rollback, no queda email).
         // El pedido nace CONFIRMED sin cobro, así que el copy jamás dice «pagado».
-        orderEmailNotifier.notificar(savedOrder, OrderStatus.CONFIRMED);
+        // Con pasarela el email sale al CONFIRMAR por el webhook (PaymentService).
+        if (!pagoOnline) {
+            orderEmailNotifier.notificar(savedOrder, OrderStatus.CONFIRMED);
+        }
 
         return mapToOrderResponse(savedOrder);
     }
@@ -421,7 +436,9 @@ public class OrderService {
                 order.getTrackingNumber(),
                 itemResponses,
                 // V5: null en órdenes previas a V21 (el frontend no pinta nada)
-                order.getDiscountAmount()
+                order.getDiscountAmount(),
+                order.getPaymentStatus(),
+                order.getAmountRefunded()
         );
     }
 

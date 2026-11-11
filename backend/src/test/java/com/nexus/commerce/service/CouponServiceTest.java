@@ -405,4 +405,62 @@ class CouponServiceTest {
                 null, null, null, null, null, null, null, null, null)))
                 .isInstanceOf(CouponNotFoundException.class);
     }
+
+    // ── Fase 9 · D17: devolución del uso del cupón al cancelar ─────────────
+
+    private Order pedidoConCupon() {
+        return Order.builder().id(55L).orderNumber("ORD-CUP").couponCode("save10").couponId(COUPON_ID).build();
+    }
+
+    @Test
+    @DisplayName("F9 · releaseUsage borra el uso del pedido y resta 1 al contador")
+    void releaseUsageDevuelveElUso() {
+        Coupon cupon = cuponPorcentaje(new BigDecimal("10"));
+        cupon.setUsageCount(3);
+        when(couponRepository.findByCodeForUpdate("SAVE10")).thenReturn(Optional.of(cupon));
+        when(couponUsageRepository.deleteByOrderId(55L)).thenReturn(1);
+
+        service.releaseUsage(pedidoConCupon());
+
+        assertThat(cupon.getUsageCount()).isEqualTo(2);
+        verify(couponRepository).save(cupon);
+    }
+
+    @Test
+    @DisplayName("F9 · releaseUsage es idempotente: sin fila de uso no resta (llamarla dos veces no resta dos veces)")
+    void releaseUsageIdempotente() {
+        Coupon cupon = cuponPorcentaje(new BigDecimal("10"));
+        cupon.setUsageCount(3);
+        when(couponRepository.findByCodeForUpdate("SAVE10")).thenReturn(Optional.of(cupon));
+        when(couponUsageRepository.deleteByOrderId(55L)).thenReturn(0);
+
+        service.releaseUsage(pedidoConCupon());
+
+        assertThat(cupon.getUsageCount()).isEqualTo(3);
+        verify(couponRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("F9 · releaseUsage nunca deja el contador por debajo de 0")
+    void releaseUsageNoBajaDeCero() {
+        Coupon cupon = cuponPorcentaje(new BigDecimal("10"));
+        cupon.setUsageCount(0);
+        when(couponRepository.findByCodeForUpdate("SAVE10")).thenReturn(Optional.of(cupon));
+        when(couponUsageRepository.deleteByOrderId(55L)).thenReturn(1);
+
+        service.releaseUsage(pedidoConCupon());
+
+        assertThat(cupon.getUsageCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("F9 · releaseUsage: pedido sin cupón o cupón ya borrado → no hace nada y no falla")
+    void releaseUsageSinCuponNoHaceNada() {
+        service.releaseUsage(Order.builder().id(1L).orderNumber("ORD-X").build());
+        verifyNoInteractions(couponRepository, couponUsageRepository);
+
+        when(couponRepository.findByCodeForUpdate("SAVE10")).thenReturn(Optional.empty());
+        service.releaseUsage(pedidoConCupon());
+        verify(couponUsageRepository, never()).deleteByOrderId(any());
+    }
 }

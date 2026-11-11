@@ -2,6 +2,7 @@ package com.nexus.commerce.dto;
 
 import com.nexus.commerce.entity.OrderStatus;
 import com.nexus.commerce.entity.PaymentMethod;
+import com.nexus.commerce.entity.PaymentStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,6 +22,8 @@ import java.util.List;
  * @param discountAmount   V5 cupones: descuento ya aplicado (bruto, el número que
  *                         ve el usuario — spec §2.6). {@code null} en las órdenes
  *                         anteriores a V21 o sin cupón — el frontend no pinta nada.
+ * @param paymentStatus   Fase 9: estado del cobro ({@code NONE} si no hubo cobro online).
+ * @param amountRefunded  Fase 9: importe ya reembolsado ({@code 0} si ninguno).
  */
 public record OrderResponse(
         Long id,
@@ -39,5 +42,7 @@ public record OrderResponse(
         String carrier,
         String trackingNumber,
         List<OrderItemResponse> items,
-        BigDecimal discountAmount
+        BigDecimal discountAmount,
+        PaymentStatus paymentStatus,
+        BigDecimal amountRefunded
 ) {}

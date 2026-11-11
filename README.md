@@ -127,10 +127,16 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
   > ⚠️ **Cambio de catálogo manual → reindex manual**: crear, editar o borrar productos y SKUs desde `/admin` **no** reindexa los embeddings automáticamente (Tarea 7.2, decisión D6 — el enriquecimiento es un proceso aparte y no quería costes de LLM escondidos en un CRUD). Tras tocar el catálogo, dispara `POST /api/v1/products/search/index` para que la búsqueda semántica refleje el cambio; sin `OPENAI_API_KEY` la búsqueda sigue funcionando en modo texto exacto.
 
 ### Pedidos y Checkout
-* 🔒 `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID) y los campos `addressId` y `paymentMethod` (`CARD` | `BIZUM` | `PAYPAL` | `BANK_TRANSFER`). Reserva existencias, congela precios y genera la orden (`201 Created`). La dirección indicada se copia a la orden como **snapshot inmutable**: editarla después no cambia el pedido.
-* 🔒 `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido, con `shippingAddress`, `paymentMethod` y `returnDeadline` (fecha límite de devolución, calculada en servidor desde los 30 días de la ventana).
+* 🔒 `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID, **obligatoria**) y los campos `addressId` y `paymentMethod` (**solo `CARD`**: tarjeta o Apple Pay, que cobra el Payment Element de Stripe). Reserva existencias, congela precios y genera la orden (`201 Created`). La dirección indicada se copia a la orden como **snapshot inmutable**. Con Stripe activo el pedido nace `PENDING` + `REQUIRES_PAYMENT`; sin claves de Stripe nace `CONFIRMED` sin cobro (*modo sin pasarela*).
+* 🔒 `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido, con `shippingAddress`, `paymentMethod`, `paymentStatus`, `amountRefunded` y `returnDeadline`.
 
-> El **método de pago es un dato declarado, no un cobro**: no se pide número de tarjeta, no se tokeniza y no se conecta con ninguna pasarela — el proyecto no tiene PSP, igual que `refundAmount` es solo un registro contable.
+### Pagos con Stripe (test mode)
+* 🔒 `GET /api/v1/orders/{orderNumber}/payment` $\rightarrow$ `clientSecret` + clave publicable para el Payment Element. **Solo el dueño** del pedido; el `clientSecret` se pide a Stripe cada vez y **nunca se guarda ni se loguea**.
+* 🌐 `POST /api/v1/webhooks/stripe` $\rightarrow$ Eventos de Stripe. Público, pero autenticado por **firma** (`Stripe-Signature` verificada sobre el cuerpo crudo): `payment_intent.succeeded` confirma el pedido, `charge.refunded` fija el reembolso. Idempotente (tabla `stripe_events`).
+* 🌐 `GET /api/v1/payments/config` $\rightarrow$ `{ "paymentMode": "STRIPE" | "DISABLED" }`.
+* 🛡️ `POST /api/v1/admin/orders/{orderNumber}/refund` $\rightarrow$ Reembolso total (importe vacío = lo que queda) o parcial. **No cambia el estado del pedido ni repone stock.** Solo `ADMIN`.
+
+> **El webhook es la fuente de verdad del cobro**: la redirección del navegador no confirma nada; la ficha del pedido sondea hasta que Stripe avisa. Un pedido con tarjeta sin pagar **caduca a los 30 minutos** (libera stock y cupón). Cancelar un pedido devuelve el uso del cupón; un pedido pagado no se cancela sin reembolsarlo antes. Decisiones en [ADR-0007](docs/adr/0007-stripe-payments-gateway-and-webhook.md).
 
 ### Historial de Pedidos y Devoluciones
 
@@ -295,6 +301,21 @@ cuando hay que abrirlos.
 > eligió. `scripts/lighthouse.mjs` comprueba el puerto antes de lanzar y
 > **aborta con `exit 1`** si está ocupado. En CI no puede pasar: nadie escucha
 > ahí.
+
+### 2e. Pagos con Stripe en local (opcional)
+Sin claves la app funciona en **modo sin pasarela** (el pedido con tarjeta se confirma sin cobro) y toda la suite corre igual. Para cobrar de verdad en *test mode*, añade a `backend/.env` (no versionado):
+
+```properties
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...   # lo imprime `stripe listen` (las versiones recientes del CLI exigen `--events` o `--all-snapshot`)
+```
+
+```bash
+stripe listen --events payment_intent.succeeded,payment_intent.payment_failed,charge.refunded --forward-to localhost:8080/api/v1/webhooks/stripe
+```
+
+Tarjetas de prueba de Stripe: `4242 4242 4242 4242` (éxito), `4000 0027 6000 3184` (3D Secure) y `4000 0000 0000 9995` (fondos insuficientes). Los E2E de pago (`e2e/payments.spec.ts`) se activan con `E2E_STRIPE=1` (claves en `backend/.env` y `stripe listen` en marcha): `E2E_STRIPE=1 PORT=3001 npx playwright test e2e/payments.spec.ts --project=chromium`. Confirman el PaymentIntent por API porque Stripe bloquea con hCaptcha a los navegadores automatizados. ⚠️ **El resto de E2E de compra se ejecuta sin claves de Stripe** (modo sin pasarela, como en CI): con claves el pedido nace pendiente de pago y esas pruebas no completan el checkout. Una clave `sk_live_…` **hace fallar el arranque**: el proyecto solo admite test mode. **Apple Pay no aparece en `localhost`** (exige HTTPS y un dominio verificado en Stripe): se prueba sobre el despliegue.
 
 ### 3. Arrancar la Aplicación
 ```bash

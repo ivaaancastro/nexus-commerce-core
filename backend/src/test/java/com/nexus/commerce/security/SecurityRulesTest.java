@@ -304,4 +304,58 @@ class SecurityRulesTest {
                         .content("{\"basePrice\":10.00,\"discountPrice\":null,\"isActive\":true}"))
                 .andExpect(status().isNotFound());
     }
+
+    // ── Fase 9 · pagos con Stripe ──────────────────────────────────────────
+    // El contexto de test corre SIN claves de Stripe (surefire las fija vacías):
+    // modo sin pasarela. Lo que se prueba aquí es la PUERTA, no el negocio.
+
+    @Test
+    @DisplayName("F9 - El webhook de Stripe es público (se autentica por firma): sin JWT NO es 401")
+    void webhookEsPublicoSinJwt() throws Exception {
+        // Modo sin pasarela → 404 de negocio. Si la ruta no estuviera abierta sería 401.
+        mockMvc.perform(post("/api/v1/webhooks/stripe")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("F9 - Sólo POST /webhooks/stripe es público: GET sigue cerrado (denyAll)")
+    void webhookSoloPorPost() throws Exception {
+        mockMvc.perform(get("/api/v1/webhooks/stripe")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("F9 - GET /payments/config es público y declara el modo (DISABLED sin claves)")
+    void configDePagosEsPublica() throws Exception {
+        mockMvc.perform(get("/api/v1/payments/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentMode").value("DISABLED"));
+    }
+
+    @Test
+    @DisplayName("F9 - GET /orders/{n}/payment exige sesión (401 sin token)")
+    void sesionDePagoSinToken401() throws Exception {
+        mockMvc.perform(get("/api/v1/orders/ORD-X/payment")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("F9 - POST /admin/orders/{n}/refund: sin token 401, USER 403, ADMIN pasa la puerta (409 sin pasarela)")
+    void reembolsoSoloAdmin() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/orders/ORD-X/refund")
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/admin/orders/ORD-X/refund")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden());
+
+        String admin = jwtService.generateToken(1L, "admin@nexus.test", Role.ADMIN);
+        mockMvc.perform(post("/api/v1/admin/orders/ORD-X/refund")
+                        .header("Authorization", "Bearer " + admin)
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("PAYMENT_CONFLICT"));
+    }
 }

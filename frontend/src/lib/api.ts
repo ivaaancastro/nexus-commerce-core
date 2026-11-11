@@ -26,6 +26,9 @@ import {
     AdminOrderDetail,
     AdminOrderStatusData,
     AdminOrderTrackingData,
+    PaymentConfig,
+    PaymentSession,
+    RefundData,
     AdminDashboard,
     Wishlist,
     ProductReview,
@@ -150,6 +153,23 @@ export const api = {
             headers: getAuthHeaders(),
         });
         return handleResponse<Order>(res);
+    },
+
+    // ── Pagos con Stripe (Fase 9) ───────────────────────────────────────────
+
+    /** Modo de pago (`STRIPE` o `DISABLED` = sin pasarela). Público y sin secretos. */
+    getPaymentConfig: async (): Promise<PaymentConfig> => {
+        const res = await fetch(`${BASE_URL}/api/v1/payments/config`, { cache: "no-store" });
+        return handleResponse<PaymentConfig>(res);
+    },
+
+    /** `clientSecret` + clave publicable para el Payment Element. Sólo el dueño del pedido. */
+    getOrderPayment: async (orderNumber: string): Promise<PaymentSession> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/orders/${encodeURIComponent(orderNumber)}/payment`,
+            { cache: "no-store", headers: getAuthHeaders() }
+        );
+        return handleResponse<PaymentSession>(res);
     },
 
     // ── Historial de pedidos (solo sesión) ──────────────────────────────────
@@ -533,6 +553,22 @@ export const api = {
             headers: { "Content-Type": "application/json", ...getAuthHeaders() },
             body: JSON.stringify(data),
         });
+        return handleResponse<AdminOrderDetail>(res);
+    },
+
+    /** Reembolso total o parcial en Stripe; devuelve el pedido actualizado (sin re-fetch). */
+    refundAdminOrder: async (
+        orderNumber: string,
+        data: RefundData
+    ): Promise<AdminOrderDetail> => {
+        const res = await fetch(
+            `${BASE_URL}/api/v1/admin/orders/${encodeURIComponent(orderNumber)}/refund`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+                body: JSON.stringify(data),
+            }
+        );
         return handleResponse<AdminOrderDetail>(res);
     },
 

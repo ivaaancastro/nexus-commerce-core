@@ -303,6 +303,36 @@ public class CouponService {
         recordCouponUsage(couponCode, order.getUser().getId(), order, order.getDiscountAmount());
     }
 
+    /**
+     * Fase 9 (D17): devuelve el uso del cupón de un pedido que se cancela
+     * (admin, expiración o compensación de un fallo de Stripe). Debe llamarse en
+     * la misma transacción que la liberación de stock.
+     *
+     * <p>Idempotente: sólo decrementa si había una fila en {@code coupon_usages}
+     * ligada al pedido (la borra), así que llamarla dos veces no resta dos veces
+     * y {@code usageCount} nunca baja de 0. El pedido conserva su
+     * {@code couponCode}/{@code discountAmount} como histórico.</p>
+     */
+    @Transactional
+    public void releaseUsage(Order order) {
+        if (order.getCouponCode() == null || order.getCouponCode().isBlank()) {
+            return;
+        }
+        // Mismo bloqueo pesimista que el canje: serializa con redeemCoupon
+        Coupon coupon = couponRepository.findByCodeForUpdate(order.getCouponCode().toUpperCase()).orElse(null);
+        if (coupon == null) {
+            log.warn("Cupón {} del pedido {} ya no existe; no hay uso que devolver",
+                    order.getCouponCode(), order.getOrderNumber());
+            return;
+        }
+        int borrados = couponUsageRepository.deleteByOrderId(order.getId());
+        if (borrados > 0) {
+            coupon.setUsageCount(Math.max(0, coupon.getUsageCount() - 1));
+            couponRepository.save(coupon);
+            log.info("Cupón {} devuelto por la cancelación del pedido {}", coupon.getCode(), order.getOrderNumber());
+        }
+    }
+
     // ========== HELPERS ==========
 
     private BigDecimal calculateDiscount(Coupon coupon, BigDecimal subtotal) {

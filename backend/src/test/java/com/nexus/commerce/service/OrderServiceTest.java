@@ -1,5 +1,6 @@
 package com.nexus.commerce.service;
 
+import com.nexus.commerce.config.PaymentsProperties;
 import com.nexus.commerce.dto.*;
 import com.nexus.commerce.entity.Address;
 import com.nexus.commerce.entity.Coupon;
@@ -7,6 +8,7 @@ import com.nexus.commerce.entity.Order;
 import com.nexus.commerce.entity.OrderItem;
 import com.nexus.commerce.entity.OrderStatus;
 import com.nexus.commerce.entity.PaymentMethod;
+import com.nexus.commerce.entity.PaymentStatus;
 import com.nexus.commerce.entity.Product;
 import com.nexus.commerce.entity.Sku;
 import com.nexus.commerce.entity.User;
@@ -78,6 +80,10 @@ class OrderServiceTest {
     /** V5 cupones: el checkout lo canjea bajo transacción (spec §2.3). */
     @Mock
     private CouponService couponService;
+
+    /** Fase 9: por defecto {@code isEnabled() = false} → modo sin pasarela (comportamiento histórico). */
+    @Mock
+    private PaymentsProperties payments;
 
     @InjectMocks
     private OrderService orderService;
@@ -245,7 +251,7 @@ class OrderServiceTest {
         String email = "ana@nexus.dev";
         CheckoutRequest request = new CheckoutRequest("ES", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.BIZUM, null);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         User user = User.builder().id(USER_ID).email(email).build();
 
@@ -279,7 +285,7 @@ class OrderServiceTest {
         assertThat(captor.getValue().getUser()).isSameAs(user);
         assertThat(captor.getValue().getShippingAddress()).isNotNull();
         assertThat(captor.getValue().getShippingAddress().getCountryCode()).isEqualTo("ES");
-        assertThat(captor.getValue().getPaymentMethod()).isEqualTo(PaymentMethod.BIZUM);
+        assertThat(captor.getValue().getPaymentMethod()).isEqualTo(PaymentMethod.CARD);
     }
 
     @Test
@@ -324,7 +330,7 @@ class OrderServiceTest {
         String email = "ana@nexus.dev";
         CheckoutRequest request = new CheckoutRequest("US", List.of(
                 new CheckoutItemRequest(1L, "WH-MAD-01", 1)
-        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.PAYPAL, null);
+        ), "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.CARD, null);
 
         when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         when(userRepository.findByEmail(email))
@@ -919,6 +925,74 @@ class OrderServiceTest {
         assertThat(response.discountAmount()).isEqualByComparingTo("5.00");
         assertThat(response.totalAmount()).isEqualByComparingTo("95.00");
         verifyNoInteractions(couponService);
+        verify(orderRepository, never()).save(any());
+    }
+
+    // ── Fase 9 · Pagos con Stripe ───────────────────────────────────────────
+
+    /** Stubs comunes de un checkout de una línea (50,00 con IVA) para los tests de la Fase 9. */
+    private CheckoutRequest preparaCheckoutBasico(String idempotencyKey, String email, PaymentMethod metodo) {
+        when(orderRepository.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
+        when(userRepository.findByEmail(email))
+                .thenReturn(Optional.of(User.builder().id(USER_ID).email(email).build()));
+        when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(validAddress()));
+        when(warehouseSelectionService.selectOptimalWarehouse(any(), any(), any(), any())).thenReturn("WH-MAD-01");
+        when(inventoryService.reserveStock(any(ReserveStockRequest.class))).thenReturn(
+                new StockReservationResponse(1L, "WH-MAD-01", 1, 9, "RESERVED"));
+        when(pricingService.calculatePrice(1L, "ES")).thenReturn(Optional.of(new PriceCalculationResponse(
+                1L, "ES", "EUR", new BigDecimal("50.00"), new BigDecimal("50.00"), false,
+                new BigDecimal("41.32"), new BigDecimal("8.68"), new BigDecimal("21.00"))));
+        when(skuRepository.findById(1L)).thenReturn(Optional.of(skuWithProduct(1L, "0432-021-M")));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> {
+            Order o = inv.getArgument(0);
+            o.setId(100L);
+            return o;
+        });
+        return new CheckoutRequest("ES", List.of(new CheckoutItemRequest(1L, "WH-MAD-01", 1)),
+                "ES", 40.4168, -3.7038, ADDRESS_ID, metodo, null);
+    }
+
+    @Test
+    @DisplayName("Fase 9 · Con pasarela, el pedido con tarjeta nace PENDING + REQUIRES_PAYMENT y NO envía email")
+    void conPasarelaElPedidoNaceEnPendingSinEmail() {
+        when(payments.isEnabled()).thenReturn(true);
+        CheckoutRequest request = preparaCheckoutBasico("key-stripe", "ana@nexus.dev", PaymentMethod.CARD);
+
+        OrderResponse response = orderService.processCheckout("key-stripe", request, "ana@nexus.dev");
+
+        assertThat(response.status()).isEqualTo(OrderStatus.PENDING);
+        assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.REQUIRES_PAYMENT);
+        assertThat(response.amountRefunded()).isEqualByComparingTo(BigDecimal.ZERO);
+        // La reserva y el cupón siguen en T1: el stock queda retenido hasta el pago
+        verify(inventoryService).reserveStock(any(ReserveStockRequest.class));
+        // «Recibido» sale al confirmar el pago (webhook), no al crear el pedido
+        verifyNoInteractions(orderEmailNotifier);
+    }
+
+    @Test
+    @DisplayName("Fase 9 · Sin pasarela, el pedido sigue naciendo CONFIRMED + NONE y notifica (comportamiento histórico)")
+    void sinPasarelaElPedidoNaceConfirmedYNotifica() {
+        CheckoutRequest request = preparaCheckoutBasico("key-legacy", "ana@nexus.dev", PaymentMethod.CARD);
+
+        OrderResponse response = orderService.processCheckout("key-legacy", request, "ana@nexus.dev");
+
+        assertThat(response.status()).isEqualTo(OrderStatus.CONFIRMED);
+        assertThat(response.paymentStatus()).isEqualTo(PaymentStatus.NONE);
+        verify(orderEmailNotifier).notificar(any(Order.class), eq(OrderStatus.CONFIRMED));
+    }
+
+    @Test
+    @DisplayName("Fase 9 · Sólo se admite tarjeta/Apple Pay: otro método → 400 sin tocar inventario")
+    void rechazaMetodosDistintosDeTarjeta() {
+        when(orderRepository.findByIdempotencyKey("key-bizum")).thenReturn(Optional.empty());
+        CheckoutRequest request = new CheckoutRequest("ES", List.of(new CheckoutItemRequest(1L, "WH-MAD-01", 1)),
+                "ES", 40.4168, -3.7038, ADDRESS_ID, PaymentMethod.BIZUM, null);
+
+        assertThatThrownBy(() -> orderService.processCheckout("key-bizum", request, "ana@nexus.dev"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("tarjeta o Apple Pay");
+
+        verifyNoInteractions(inventoryService);
         verify(orderRepository, never()).save(any());
     }
 }

@@ -2,6 +2,9 @@ package com.nexus.commerce.controller;
 
 import com.nexus.commerce.dto.CheckoutRequest;
 import com.nexus.commerce.dto.OrderResponse;
+import com.nexus.commerce.dto.PaymentSessionResponse;
+import com.nexus.commerce.service.CheckoutService;
+import com.nexus.commerce.service.PaymentService;
 import com.nexus.commerce.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
 
     private final OrderService orderService;
+    private final CheckoutService checkoutService;
+    private final PaymentService paymentService;
 
     @PostMapping("/checkout")
     @Operation(summary = "Procesar el checkout y asociar el pedido al usuario autenticado")
@@ -27,11 +32,19 @@ public class OrderController {
             Authentication authentication,
             @Valid @RequestBody CheckoutRequest request
     ) {
-        OrderResponse response = orderService.processCheckout(
+        OrderResponse response = checkoutService.checkout(
                 idempotencyKey,
                 request,
                 authentication != null ? authentication.getName() : null);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{orderNumber}/payment")
+    @Operation(summary = "Datos para pagar con el Payment Element (clientSecret + clave publicable); sólo el dueño")
+    public ResponseEntity<PaymentSessionResponse> payment(
+            @PathVariable String orderNumber,
+            Authentication authentication) {
+        return ResponseEntity.ok(paymentService.getPaymentSession(authentication.getName(), orderNumber));
     }
 
     @GetMapping("/{orderNumber}")

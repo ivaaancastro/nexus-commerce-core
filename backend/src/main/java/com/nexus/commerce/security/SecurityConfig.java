@@ -90,6 +90,12 @@ public class SecurityConfig {
                 //    También ANTES de anyRequest().denyAll().
                 .requestMatchers("/api/v1/coupons/**").authenticated()
 
+                //    Fase 9 (R3/R7): el webhook de Stripe se autentica por FIRMA
+                //    (no hay JWT) y la config de pagos es pública y sin secretos.
+                //    Sólo esa ruta y método; ANTES de anyRequest().denyAll().
+                .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/stripe").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/payments/config").permitAll()
+
                 //    Fase 8 (R2): métricas básicas, solo admin.
                 .requestMatchers("/api/v1/metrics").hasRole("ADMIN")
 
