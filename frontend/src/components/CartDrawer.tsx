@@ -53,10 +53,10 @@ export default function CartDrawer() {
             {/* Panel lateral */}
             <div
                 className={`
-                    fixed top-0 right-0 h-full w-full sm:w-96 bg-white z-50 shadow-2xl
-                    transform transition-transform duration-300 ease-out
+                    fixed top-0 right-0 h-full w-full sm:w-96 bg-white z-50
+                    transform transition-[transform,box-shadow] duration-300 ease-out
                     flex flex-col
-                    ${isOpen ? "translate-x-0" : "translate-x-full"}
+                    ${isOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"}
                 `}
                 role="dialog"
                 aria-modal="true"

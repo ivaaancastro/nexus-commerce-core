@@ -33,6 +33,9 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 - **El checkout solo admite tarjeta y Apple Pay** (`CARD`): Bizum, PayPal y transferencia se retiran y el selector de método desaparece del carrito (la spec `checkout-payment-grid` queda superada). Los valores antiguos del enum se conservan solo para leer pedidos históricos.
 - **Cancelar un pedido devuelve el uso del cupón** también en pedidos sin Stripe (antes quedaba consumido).
 
+### Fixed
+- **Franja gris en el borde derecho de todas las páginas** (spec `specs/cart-drawer-shadow/`): el `CartDrawer` cerrado (aparcado con `translate-x-full`) seguía proyectando su `shadow-2xl` hacia dentro del viewport. La sombra se aplica ahora solo con el carrito abierto y se desvanece con el deslizamiento (`transition-[transform,box-shadow]`); el drawer abierto se ve igual que antes. Test de regresión en `CartDrawer.test.tsx`.
+
 
 ### Added
 - **V5: Sistema de cupones promocionales** (feature `feat/coupons`):
