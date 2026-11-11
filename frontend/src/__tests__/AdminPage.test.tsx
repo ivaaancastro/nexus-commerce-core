@@ -87,7 +87,9 @@ describe("AdminPage (/admin)", () => {
         // specs/admin-dashboard/ R8.3: el aviso «en construcción» ya no existe)
         expect(await screen.findByRole("heading", { name: /panel de administración/i }))
             .toBeInTheDocument();
-        expect(screen.getByText("admin@nexus.dev")).toBeInTheDocument();
+        // El saludo depende de la sesión, que llega después del encabezado:
+        // se espera a él (síncrono era intermitente bajo carga — Fase 10).
+        expect(await screen.findByText("admin@nexus.dev")).toBeInTheDocument();
         expect(screen.getByText("ADMIN")).toBeInTheDocument();
         expect(screen.queryByText(/en construcción/i)).not.toBeInTheDocument();
         expect(screen.queryByText(/7\.6/)).not.toBeInTheDocument();

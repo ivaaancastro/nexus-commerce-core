@@ -1,0 +1,33 @@
+# Blueprint de Render para el backend (Fase 10, D1). Guía: docs/deployment.md
+# Render → New → Blueprint → este repositorio. Los valores con `sync: false`
+# se piden en el panel al crear el servicio: aquí no hay ni un secreto.
+services:
+  - type: web
+    name: nexus-backend
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    # /api/v1/health es solo ADMIN (Fase 8); /markets es público y espera a Flyway.
+    healthCheckPath: /api/v1/markets
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod,demo
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: APP_BASE_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false

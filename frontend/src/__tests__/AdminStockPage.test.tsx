@@ -80,8 +80,10 @@ describe("AdminStockPage", () => {
 
         expect(await screen.findByText("Existencias por almacén")).toBeInTheDocument();
 
-        // Cabeceras de almacén con su nombre bajo el código
-        expect(screen.getByText("WH_ARTEIXO")).toBeInTheDocument();
+        // Cabeceras de almacén con su nombre bajo el código. El título es
+        // estático: se espera a la matriz, que llega con la respuesta
+        // (síncrono era intermitente bajo carga — Fase 10).
+        expect(await screen.findByText("WH_ARTEIXO")).toBeInTheDocument();
         expect(screen.getByText("Centro Logístico Sabón")).toBeInTheDocument();
         expect(screen.getByText("WH_ZARAGOZA")).toBeInTheDocument();
 

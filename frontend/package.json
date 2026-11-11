@@ -14,7 +14,8 @@
     "audit:a11y": "playwright test e2e/a11y.spec.ts --project=chromium",
     "audit:cwv": "next build && node scripts/lighthouse.mjs",
     "audit": "npm run audit:a11y && npm run audit:cwv",
-    "images": "node scripts/generate-product-images.mjs"
+    "images": "node scripts/generate-product-images.mjs",
+    "shots": "node scripts/capture-screenshots.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "7.0.1",

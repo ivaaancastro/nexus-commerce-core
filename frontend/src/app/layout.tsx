@@ -7,6 +7,8 @@ import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import CartDrawer from "@/components/CartDrawer";
+import DemoBanner from "@/components/DemoBanner";
+import WakeNotice from "@/components/WakeNotice";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +41,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 <CartDrawerProvider>
                   {children}
                   <CartDrawer />
+                  {/* Fase 10 (R6/R12): fijos, sin CLS; inertes fuera de la demo. */}
+                  <DemoBanner />
+                  <WakeNotice />
                 </CartDrawerProvider>
               </WishlistProvider>
             </CartProvider>

@@ -13,3 +13,4 @@ Este directorio documenta formalmente las decisiones arquitectónicas del núcle
 | [ADR-0005](0005-frontend-testing-strategy.md) | 2026-09-29 | Estrategia de Testing en Frontend con Vitest y React Testing Library | **Aprobado** |
 | [ADR-0006](0006-role-based-access-control.md) | 2026-10-09 | Control de Acceso Basado en Roles (RBAC) con `ADMIN`/`USER` | **Aprobado** |
 | [ADR-0007](0007-stripe-payments-gateway-and-webhook.md) | 2026-11-10 | Pagos con Stripe: Gateway Aislado y Webhook como Fuente de Verdad | **Aprobado** |
+| [ADR-0008](0008-deployment-vercel-render-neon-demo-mode.md) | 2026-11-11 | Despliegue en Vercel + Render + Neon, Proxy por Rewrite y Modo Demo | **Aprobado** |

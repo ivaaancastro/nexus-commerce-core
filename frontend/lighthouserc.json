@@ -5,7 +5,8 @@
         "http://localhost:3000/",
         "http://localhost:3000/catalog",
         "http://localhost:3000/products/0432%2F021",
-        "http://localhost:3000/login"
+        "http://localhost:3000/login",
+        "http://localhost:3000/proyecto"
       ],
       "startServerCommand": "npm run start",
       "numberOfRuns": 3,

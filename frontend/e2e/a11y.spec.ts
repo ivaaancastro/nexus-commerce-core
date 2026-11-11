@@ -2,7 +2,7 @@
 //
 // Las rutas del App Router se abren en un navegador real y se les pasa axe
 // (V2: +1 auditoría con el visor ampliado = 15 · V3: +1 `/wishlist` = 16 ·
-// V5: +1 `/admin/coupons` = 17).
+// V5: +1 `/admin/coupons` = 17 · Fase 10: +1 `/proyecto` = 18).
 // Esto es lo que complementa a la 4.1: ESLint comprueba que el JSX esté
 // *bien escrito*, y aquí se comprueba que la página *funcione* para quien usa
 // teclado o lector de pantalla.
@@ -26,7 +26,7 @@ const ADMIN = { email: "admin@nexus.dev", password: "Admin1234!" };
  * de la suite con **cero señal nueva**; la variación real entre motores ya la
  * cubre la 4.2 con los flujos de compra, sesión y bolsa.
  *
- * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 17 pruebas
+ * Se salta con `test.skip` en vez de filtrar el `testDir`: así las 18 pruebas
  * siguen existiendo en los tres proyectos y el motivo queda visible en el
  * informe, no escondido en la config.
  */
@@ -109,6 +109,8 @@ const PUBLIC_ROUTES = [
     "/register",
     "/verify-email",
     "/forgot-password",
+    // Fase 10 (RNF3): la landing del proyecto.
+    "/proyecto",
 ];
 
 test.describe("Accesibilidad · páginas públicas", () => {

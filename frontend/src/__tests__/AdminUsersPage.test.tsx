@@ -91,7 +91,10 @@ describe("AdminUsersPage", () => {
 
         expect(await screen.findByText("Gestión de usuarios")).toBeInTheDocument();
 
-        const tabla = screen.getByRole("table");
+        // El título es estático y aparece antes que los datos: se espera a la
+        // tabla, que llega con la respuesta (con un getBy síncrono el test era
+        // intermitente bajo carga — Fase 10).
+        const tabla = await screen.findByRole("table");
         for (const cabecera of ["Email", "Nombre", "Rol", "Estado", "Alta", "Acciones"]) {
             expect(
                 within(tabla).getByRole("columnheader", { name: cabecera })

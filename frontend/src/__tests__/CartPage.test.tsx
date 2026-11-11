@@ -159,7 +159,9 @@ describe("CartPage — guard de sesión y errores amigables (specs/checkout-auth
         expect(api.checkout).not.toHaveBeenCalled();
         expect(pushMock).not.toHaveBeenCalled();
 
-        const aviso = screen.getByText("Inicia sesión para completar tu compra");
+        // El aviso se pinta tras el estado del clic: se espera a él
+        // (síncrono era intermitente bajo carga — Fase 10).
+        const aviso = await screen.findByText("Inicia sesión para completar tu compra");
         const contenedor = aviso.closest("div") as HTMLElement;
         const enlace = within(contenedor).getByRole("link", { name: /iniciar sesión/i });
 
