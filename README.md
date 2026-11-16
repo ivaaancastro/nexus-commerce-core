@@ -8,6 +8,28 @@ Backend transaccional de alto rendimiento para retail global, diseñado bajo est
 ![Test Coverage](https://img.shields.io/badge/Coverage->90%25-success)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Layered-purple)
 
+## Demo en vivo
+
+**[nexus-commerce-core.vercel.app](https://nexus-commerce-core.vercel.app)** · [Descripción del proyecto](https://nexus-commerce-core.vercel.app/proyecto)
+
+Despliegue: **Vercel** (Next.js, proxy `/api/v1/*`) → **Render** (Spring Boot en Docker, perfiles `prod,demo`) → **Neon** (PostgreSQL 16 + pgvector), con **Stripe en test mode** y webhook firmado hacia el backend. Guía paso a paso en [`docs/deployment.md`](docs/deployment.md).
+
+| | |
+|:---|:---|
+| ![Catálogo](frontend/public/landing/catalogo.webp) | ![Ficha de producto](frontend/public/landing/ficha.webp) |
+| ![Bolsa y checkout](frontend/public/landing/carrito.webp) | ![Pedidos y pago](frontend/public/landing/pago.webp) |
+| ![Pedidos en el panel](frontend/public/landing/admin-pedidos.webp) | ![Dashboard](frontend/public/landing/dashboard.webp) |
+
+- **Cuenta de cliente:** `demo@nexus.dev` / `Demo1234!` · **administrador:** `admin@nexus.dev` / `Admin1234!` (datos de demostración públicos).
+- **Pago:** tarjeta de prueba `4242 4242 4242 4242`, cualquier fecha futura y CVC. El pedido pasa a *Confirmado* solo cuando llega el webhook firmado de Stripe; el panel permite reembolsos parciales y totales.
+- **Modo demo:** se bloquean las acciones destructivas (borrar catálogo y cupones, cambiar usuarios, recuperar contraseña); el resto del panel funciona y los datos pueden restablecerse en cualquier momento (`reset-demo.sh`).
+
+**Limitaciones conocidas:**
+- El backend en Render (plan gratuito) se duerme por inactividad: la primera petición puede tardar ~50 s.
+- Stripe puede mostrar un hCaptcha a navegadores automatizados o con bloqueadores de contenido, lo que impide completar el pago tecleado.
+- Apple Pay requiere verificar el dominio en Stripe y no está verificado en esta demo.
+- `GET /orders/{n}` no comprueba el propietario del pedido (deuda técnica preexistente).
+
 ---
 
 ## 1. Arquitectura y Principios de Diseño
