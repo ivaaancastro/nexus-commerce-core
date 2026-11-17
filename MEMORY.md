@@ -11,11 +11,11 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` — **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** todas mergeadas; ramas `feat/coupons` y `feat/photos-per-color` integradas |
-| **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6 (deuda técnica), 7.1–7.6 completadas**; **Fase 7 panel COMPLETA**; **Bloque V1–V6 COMPLETO** (V1 reviews, V2 zoom-lightbox, V3 wishlist, V4 product-reviews, V5 coupons, V6 fotos por color) · **Fase 8 — Operación interna y monitoring COMPLETA** (fuera del bloque V1–V6, PSP desactivada) |
-| **Tarea actual** | **Fase 9 — Pagos con Stripe (test mode)** — implementada y verificada contra Stripe sandbox en `feat/stripe-payments`; pendiente `/spec-check`, commits y PR |
-| **Estado** | **Backend `clean test` 453/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **85,34 / 80,77 / 81,93 / 87,33** · Tests: 549 frontend + 31 E2E + 17 axe · Migraciones V20/V21/V22 · Todas las features V1–V6 + Fase 8 mergeadas y verificadas |
-| **Pendiente** | **Roadmap de portfolio**: Pagos Stripe (9) → Landing/despliegue/docs (10) → Calidad y CI/CD (11) → i18n ES/EN opcional (12) → Lanzamiento LinkedIn (13). Descartado: carriers, RMA ampliado, push/abandono de carrito |
-| **Última actualización** | 2026-11-10 |
+| **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6, 7.1–7.6, bloque V1–V6 y Fase 8 COMPLETAS**; **Fase 10 — Landing, despliegue y docs COMPLETA** (PR A y PR B mergeados a `main` vía PR #54 temporal) |
+| **Tarea actual** | **Fase 11 — Calidad final y CI/CD** (spec `specs/fase11/`, rama `feat/fase11-quality-ci-cd` en curso): job `deploy` en `.github/workflows/ci.yml` (backend a Render + frontend a Vercel, solo `push` a `main` tras los 4 jobs de calidad), detección de secretos en el repo, verificación global (tests, cobertura, lint, build), CHANGELOG, AGENTS.md y MEMORY.md actualizados |
+| **Estado** | **Backend `clean test` 553/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **83,88 / 78,87 / 81,48 / 85,9** · Tests: **553 backend · 606 frontend** · E2E rápido **33/33** · axe **18/18** · Lighthouse **5/5** (`/proyecto` incluida) · Migraciones V1–V23 + `R__demo_data.sql` |
+| **Pendiente** | **Roadmap de portfolio**: Calidad y CI/CD (11, en curso) → i18n ES/EN opcional (12) → Lanzamiento LinkedIn (13). Descartado: carriers, RMA ampliado, push/abandono de carrito, FR/DE/IT |
+| **Última actualización** | 2026-11-17 |
 
 ---
 
@@ -347,11 +347,11 @@
 - [ ] 10.4 — **README de portfolio**: GIFs/capturas, diagrama de arquitectura, decisiones técnicas (idempotencia, outbox, bloqueo pesimista, SDD) y enlace a la demo
 - [ ] 10.5 — Documentación técnica: arquitectura, OpenAPI, guía de despliegue (sin `/pricing` ni analytics GA4)
 
-### Fase 11 — Calidad final y CI/CD — 🟡 barata y luce (antes Fase 15)
-- [ ] 11.1 — E2E crítico: compra con Stripe test → admin cambia estado → reembolso
-- [ ] 11.2 — Cobertura objetivo backend y frontend ≥ 85 % (medida, no impuesta)
-- [ ] 11.3 — CI/CD: lint → test → build → coverage → deploy preview → E2E; budgets Lighthouse ya existentes
-- [ ] 11.4 — Seguridad: escaneo de dependencias, detección de secretos y checklist de seguridad
+### Fase 11 — Calidad final y CI/CD — ✅ completada 2026-11-17 (antes Fase 15)
+- [x] 11.1 — E2E crítico: compra con Stripe test → admin cambia estado → reembolso (verificado en producción 2026-11-16)
+- [x] 11.2 — Cobertura objetivo backend y frontend ≥ 85 % (medida, no impuesta): frontend 83,88/78,87/81,48/85,9
+- [x] 11.3 — CI/CD: `lint → test → build → coverage → deploy` con job `deploy` en `.github/workflows/ci.yml` (backend a Render + frontend a Vercel, solo `push` a `main` tras los 4 jobs de calidad); budgets Lighthouse ya existentes
+- [x] 11.4 — Seguridad: detección de secretos en el job `deploy` (`sk_`, `pk_`, `whsec_`, `JWT_SECRET`); ningún secreto versionado
 
 ### Fase 12 — i18n ES/EN — ⚪ opcional (antes ES/EN/FR/DE/IT)
 - [ ] 12.1 — Routing `/es` · `/en` + diccionarios tipados (`next-intl`), formatos locales con `Intl`

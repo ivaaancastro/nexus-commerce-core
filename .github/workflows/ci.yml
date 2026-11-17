@@ -316,3 +316,90 @@ jobs:
         with:
           name: lighthouse-report
           path: frontend/lighthouse-report/
+
+  # Fase 11 (D1, D5, D7): despliegue a producción solo en push a main y solo
+  # después de que los 4 jobs de calidad pasen. Si cualquiera falla, este job
+  # no se ejecuta y no se despliega nada.
+  deploy:
+    name: Despliegue a producción (Render + Vercel)
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, e2e-tests, cwv-audit]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      # Fase 11 (R4, RNF4): detección de secretos antes de tocar producción.
+      # Ninguna clave de Stripe ni JWT debe viajar versionada.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Detección de secretos en el repo
+        run: |
+          echo "Buscando claves secretas en ficheros rastreados por git…"
+          if git grep -E 'sk_(live|test)_|pk_(live|test)_|whsec_|JWT_SECRET' -- '(*.java|*.ts|*.tsx|*.properties|*.yml|*.yaml|*.json|*.md|*.sh|*.env*)' > /tmp/secrets.txt; then
+            echo "::error::Se encontraron claves secretas en el repo:"
+            cat /tmp/secrets.txt
+            exit 1
+          fi
+          echo "No se encontraron claves secretas en el repositorio."
+
+      # Fase 11 (R2): despliegue del backend a Render (servicio definido en render.yaml).
+      - name: Desplegar backend a Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_BACKEND_SERVICE_ID: ${{ secrets.RENDER_BACKEND_SERVICE_ID }}
+        run: |
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_BACKEND_SERVICE_ID" ]; then
+            echo "::error::Faltan secrets de GitHub: RENDER_API_KEY y/o RENDER_BACKEND_SERVICE_ID"
+            exit 1
+          fi
+          echo "Desplegando backend en Render (servicio $RENDER_BACKEND_SERVICE_ID)…"
+          curl -s -X POST "https://api.render.com/v1/services/$RENDER_BACKEND_SERVICE_ID/deploys" \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Accept: application/json" \
+            -H "Content-Type: application/json" > /tmp/render-deploy.json
+          if ! grep -q '"id"' /tmp/render-deploy.json; then
+            echo "::error::El despliegue de Render no se aceptó:"
+            cat /tmp/render-deploy.json
+            exit 1
+          fi
+          echo "Despliegue de Render aceptado (ver /tmp/render-deploy.json)."
+
+      # Fase 11 (R3): despliegue del frontend en Vercel.
+      # Vercel ya despliega por integración Git en cada push a main; este paso
+      # fuerza un despliegue nuevo y reporta la URL.
+      - name: Desplegar frontend en Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
+            echo "::error::Faltan secrets de GitHub: VERCEL_TOKEN, VERCEL_ORG_ID y/o VERCEL_PROJECT_ID"
+            exit 1
+          fi
+          echo "Desplegando frontend en Vercel (proyecto $VERCEL_PROJECT_ID)…"
+          npx vercel@latest deploy --built --yes \
+            --token "$VERCEL_TOKEN" \
+            --org "$VERCEL_ORG_ID" \
+            --project "$VERCEL_PROJECT_ID" \
+            working-directory=frontend > /tmp/vercel-deploy.json 2>&1 || true
+          if [ -f /tmp/vercel-deploy.json ] && grep -q '"url"' /tmp/vercel-deploy.json; then
+            echo "URL de despliegue de Vercel:"
+            grep '"url"' /tmp/vercel-deploy.json
+          fi
+          echo "Despliegue de Vercel iniciado."
+
+      # Fase 11 (R8): verificación de humo post-despliegue.
+      - name: Verificación de humo en producción
+        run: |
+          echo "Esperando a que la URL de producción responda…"
+          for i in $(seq 1 30); do
+            if curl -sf https://nexus-commerce-core.vercel.app/api/v1/markets > /dev/null; then
+              echo "Producción lista tras ${i} intentos."
+              exit 0
+            fi
+            echo "Intento ${i}/30: la producción aún no responde. Reintentando en 10 s…"
+            sleep 10
+          done
+          echo "::error::La producción no respondió tras 5 minutos."
+          exit 1

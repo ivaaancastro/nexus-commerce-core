@@ -6,6 +6,14 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Fase 11: calidad final y CI/CD** (spec `specs/fase11/`):
+  - Job `deploy` en `.github/workflows/ci.yml`: despliegue automático del backend a Render (vía API de Render, `render.yaml`) y del frontend a Vercel (Vercel CLI), solo en `push` a `main` y **después** de que pasen los 4 jobs de calidad (`backend-tests`, `frontend-tests`, `e2e-tests`, `cwv-audit`). Incluye verificación de humo contra `https://nexus-commerce-core.vercel.app/api/v1/markets`.
+  - Paso de **detección de secretos** en el job `deploy`: falla el pipeline si encuentra `sk_`, `pk_`, `whsec_` o `JWT_SECRET` en ficheros rastreados por git.
+  - Documentación de los secrets de GitHub necesarios en `README.md` (§9): `RENDER_API_KEY`, `RENDER_BACKEND_SERVICE_ID`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+  - `CHANGELOG.md`, bloque «ESTADO ACTUAL» de `AGENTS.md` y `MEMORY.md` actualizados para ser verdad tras el merge.
+  - **Sin ADR nuevo** (la topología de despliegue ya está en ADR-0008) y **sin PR de documentación de cierre**.
+
+### Added
 - **Fase 10: despliegue, modo demo y landing** (spec `specs/fase10/`, [ADR-0008](docs/adr/0008-deployment-vercel-render-neon-demo-mode.md)):
   - `backend/Dockerfile` multi-etapa (JRE 21, usuario sin privilegios, JVM acotada a 512 MB, *health check* en `/api/v1/markets`) y `render.yaml` (blueprint de Render).
   - Perfil **`prod`**: datasource y `JWT_SECRET` por entorno sin valores por defecto, SQL silenciado. **`JwtSecretGuard` aborta el arranque** con el secreto de ejemplo del repo o con menos de 32 bytes.
