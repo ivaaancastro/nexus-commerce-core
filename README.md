@@ -10,6 +10,33 @@ Backend transaccional de alto rendimiento para retail global, construido bajo es
 
 ---
 
+## ⚡ Pruébalo en 1 minuto
+
+> **¿Vienes desde LinkedIn?** Es un ecommerce completo, del almacén al reembolso, desplegado y con **pagos reales de Stripe en modo prueba**. No necesitas instalar nada ni crear cuenta.
+
+[![Vídeo de la demo](docs/media/nexus-demo.gif)](docs/media/nexus-demo.mp4)
+
+*Recorrido de 47 s: login → catálogo → ficha → bolsa → pago → pedido confirmado por webhook → panel de administración. [Ver en MP4](docs/media/nexus-demo.mp4). Nota: Stripe bloquea con hCaptcha a los navegadores automatizados, así que en la grabación la tarjeta se teclea pero el último paso (confirmar el pago) se hace por API; el webhook y el resto son los reales.*
+
+**1.** Abre **[nexus-commerce-core.vercel.app](https://nexus-commerce-core.vercel.app)** (la primera carga puede tardar ~50 s: el backend gratuito se despierta).
+**2.** Entra con **`demo@nexus.dev` / `Demo1234!`**, añade una prenda a la bolsa (talla **M**) y pulsa *Tramitar pedido*.
+**3.** Paga con la tarjeta de prueba **`4242 4242 4242 4242`**, cualquier fecha futura y cualquier CVC. El pedido pasa a *Confirmado* cuando llega el webhook firmado de Stripe.
+**4.** Entra como administrador con **`admin@nexus.dev` / `Admin1234!`** para ver pedidos, dashboard, stock, cupones y reembolsos.
+
+| Tarjeta de prueba | Resultado |
+|:---|:---|
+| `4242 4242 4242 4242` | Pago correcto |
+| `4000 0027 6000 3184` | Exige 3D Secure |
+| `4000 0000 0000 9995` | Fondos insuficientes (rechazo) |
+
+Cualquier fecha futura y cualquier CVC. **No se cobra nada**: es el modo prueba de Stripe. Tampoco hay datos reales: las cuentas son públicas y la base se restablece de vez en cuando.
+
+**Lo que merece la pena mirar:** control de concurrencia en el stock (bloqueo pesimista, sin *over-selling*), checkout idempotente, importes con `BigDecimal` y 4 mercados/divisas, webhook de Stripe como fuente de verdad, panel de administración completo, búsqueda híbrida (vectorial + exacta), i18n ES/EN y **8 ADR + 38 specs** que documentan cada decisión.
+
+**Stack:** Java 21 · Spring Boot 3.4 · PostgreSQL 16 + pgvector · Next.js · TypeScript · Tailwind · Stripe · Playwright · Vitest · GitHub Actions · Vercel + Render + Neon.
+
+---
+
 ## 🚀 Demo en vivo
 
 **[nexus-commerce-core.vercel.app](https://nexus-commerce-core.vercel.app)** · [Landing del proyecto → `/proyecto`](https://nexus-commerce-core.vercel.app/proyecto)
@@ -422,18 +449,28 @@ Todos los ADR en [`docs/adr/`](docs/adr/).
 
 ## 6. Cómo se Construyó (Proceso)
 
-Este proyecto se desarrolló siguiendo **SDD (Spec-Driven Development)**. Ninguna funcionalidad se implementa sin una spec aprobada por el usuario:
+Este proyecto se desarrolló siguiendo **SDD (Spec-Driven Development)**, con **agentes de IA de programación** — **[opencode](https://opencode.ai) y [Claude Code](https://claude.com/claude-code)** — trabajando bajo un flujo y unas reglas escritas. Ninguna funcionalidad se implementa sin una spec aprobada por la persona que dirige el proyecto:
 
 ```
 PLAN → SPEC → APROBACIÓN → TASKS → CÓDIGO → /spec-check → /spec-close
 ```
+
+| Pieza | Para qué sirve |
+|:---|:---|
+| [`AGENTS.md`](AGENTS.md) | Reglas inviolables y estado del proyecto, cargado en cada sesión de los dos agentes (convenciones, dinero con `BigDecimal`, git solo con rama + PR, nada de código sin spec aprobada) |
+| [`MEMORY.md`](MEMORY.md) | Memoria persistente: decisiones, trampas medidas y estado entre sesiones |
+| [`.opencode/commands/`](.opencode/commands) | Comandos propios: `/new-feature` (rama + estructura de spec), `/spec-check` (código vs. spec) y `/spec-close` (tests + docs + PR) |
+| [`specs/`](specs/) | **38 features**, cada una con `plan.md`, `spec.md` y `tasks.md` aprobados antes de escribir código |
+| [`docs/adr/`](docs/adr/README.md) | 8 *Architecture Decision Records* con contexto, alternativas y consecuencias |
+
+**Cómo se reparte el trabajo:** los agentes investigan, redactan las specs, implementan y verifican; **una sola persona decide**: aprueba cada spec, cada commit y cada PR (un único autor, 400+ commits entre septiembre y noviembre de 2026). Las cifras de abajo se **miden** en cada cierre; no se estiman.
 
 ### Métricas de calidad (medidas, no impuestas)
 
 | Métrica | Valor | Fuente |
 |:---|:---|:---|
 | Tests backend | 553 | `./mvnw test` |
-| Tests frontend | 606 | `npx vitest run` |
+| Tests frontend | 629 | `npx vitest run` |
 | E2E rápido | 33/33 | Playwright (Chromium) |
 | axe (accesibilidad) | 18/18 | 14 rutas, sólo Chromium |
 | Lighthouse | 5/5 rutas verdes | `/proyecto` incluida |
@@ -475,7 +512,7 @@ El pipeline de GitHub Actions (`.github/workflows/ci.yml`) corre en cada `push` 
 | Job | Qué hace | Cuándo |
 |:---|:---|:---|
 | `backend-tests` | Suite de backend con PostgreSQL real (553 tests) | PR y push a `main` |
-| `frontend-tests` | Vitest + cobertura + build (606 tests) | PR y push a `main` |
+| `frontend-tests` | Vitest + cobertura + build (629 tests) | PR y push a `main` |
 | `e2e-tests` | Playwright contra stack real (33 pruebas + axe 18 rutas) | PR y push a `main` |
 | `cwv-audit` | Lighthouse (presupuesto CWV) en paralelo | PR y push a `main` |
 | `deploy` | **Backend a Render + frontend a Vercel**, con verificación de humo | Solo `push` a `main` y tras pasar los 4 jobs anteriores |
@@ -493,7 +530,3 @@ El pipeline de GitHub Actions (`.github/workflows/ci.yml`) corre en cada `push` 
 **Ninguna clave secreta viaja versionada:** `sk_`, `pk_`, `whsec_` y `JWT_SECRET` se inyectan en cada proveedor (Render/Vercel), nunca en el repo. El job `deploy` incluye un paso de **detección de secretos** que falla el pipeline si encuentra alguna de esas claves en ficheros rastreados por git.
 
 El despliegue es **idempotente**: volver a dispararlo no duplica despliegues ni falla si el servicio ya está desplegado.
-
----
-
-¿Qué te parece este README? ¿Quieres que lo ajuste en algo antes de seguir con el commit y el PR?

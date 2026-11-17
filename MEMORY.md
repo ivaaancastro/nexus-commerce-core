@@ -12,7 +12,7 @@
 |:---|:---|
 | **Rama actual** | `main` — **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** todas mergeadas; ramas `feat/coupons` y `feat/photos-per-color` integradas |
 | **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6, 7.1–7.6, bloque V1–V6, Fase 8, Fase 10 y Fase 11 COMPLETAS**; **Fase 12 — i18n ES/EN COMPLETA** (frontend, sin ADR, sin PR de documentación de cierre): `src/lib/i18n.ts` + `src/lib/locales/{es,en}.ts`, `src/hooks/useLocale.tsx`, `taxesIncludedLabel` y `getFriendlyErrorMessage` traducidos, selector de idioma en `Header`, `LocaleProvider` en `layout.tsx`, `tsc` 0, ESLint 0/0, build 0, cobertura 84,03/78,51/81,72/86,12 ≥ umbrales, 629 tests pasados. Sin aserciones preexistentes tocadas (R8.3). |
-| **Tarea actual** | — (Fase 12 cerrada post-merge) → **Fase 13 — Lanzamiento LinkedIn** |
+| **Tarea actual** | — (Fase 13 cerrada post-merge; hoja de ruta de portfolio completa) |
 | **Estado** | **Backend `clean test` 553/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **84,03 / 78,51 / 81,72 / 86,12** ≥ umbrales **77 / 76 / 74 / 79** · Tests: **553 backend · 629 frontend** · E2E rápido **33/33** · axe **18/18** · Lighthouse **5/5** (`/proyecto` incluida) · Migraciones V1–V23 + `R__demo_data.sql` |
 | **Pendiente** | **Roadmap de portfolio**: i18n ES/EN opcional (12, completada) → Lanzamiento LinkedIn (13). Descartado: carriers, RMA ampliado, push/abandono de carrito, FR/DE/IT |
 | **Última actualización** | 2026-11-17 |
@@ -362,8 +362,8 @@
 - [x] 12.6 — Verificación: `tsc` 0, ESLint 0/0, build 0, `test:coverage` EXIT 0 (629 tests, cobertura 84,03/78,51/81,72/86,12 ≥ 77/76/74/79), sin ADR, sin migración, sin backend, sin E2E nuevos, sin PR de documentación de cierre
 
 ### Fase 13 — Lanzamiento en LinkedIn — 📣 (no es código)
-- [ ] 13.1 — Post con arquitectura y decisiones (idempotencia, outbox, bloqueo pesimista, SDD), GIF de la demo y enlace
-- [ ] 13.2 — Repo presentable: README, topics, capturas, release `v1.0.0`
+- [x] 13.1 — Post con arquitectura y decisiones, vídeo MP4 + GIF de la demo (`docs/media/`, `npm run record-demo`) y textos en `docs/linkedin.md` (los publica el usuario)
+- [x] 13.2 — Repo presentable: README «Pruébalo en 1 minuto» + proceso SDD/opencode/Claude Code · ⏳ tag/release `v1.0.0`, descripción y topics del repo: tras el merge y con confirmación
 
 ### ❌ Descartado (no aporta al portfolio)
 - **Envíos con carriers** (antiguas Fase 10): el seguimiento manual ya existe desde la 7.4 (`carrier` + `tracking_number`)
