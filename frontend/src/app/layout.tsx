@@ -6,6 +6,7 @@ import { MarketProvider } from "@/context/MarketContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { LocaleProvider } from "@/hooks/useLocale";
 import CartDrawer from "@/components/CartDrawer";
 import DemoBanner from "@/components/DemoBanner";
 import WakeNotice from "@/components/WakeNotice";
@@ -35,17 +36,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <MarketProvider>
             <CartProvider>
-              {/* V3 wishlist: cuelga de AuthProvider (necesita la sesión) y
-                  vive dentro del árbol de cliente como cualquier otro contexto. */}
-              <WishlistProvider>
-                <CartDrawerProvider>
-                  {children}
+              {/* Fase 12: el idioma es independiente del mercado y del carrito. */}
+              <LocaleProvider>
+                {/* V3 wishlist: cuelga de AuthProvider (necesita la sesión) y
+                    vive dentro del árbol de cliente como cualquier otro contexto. */}
+                <WishlistProvider>
+                  <CartDrawerProvider>
+                    {children}
                   <CartDrawer />
                   {/* Fase 10 (R6/R12): fijos, sin CLS; inertes fuera de la demo. */}
                   <DemoBanner />
                   <WakeNotice />
                 </CartDrawerProvider>
               </WishlistProvider>
+              </LocaleProvider>
             </CartProvider>
           </MarketProvider>
         </AuthProvider>

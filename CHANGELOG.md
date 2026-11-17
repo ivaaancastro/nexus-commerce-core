@@ -14,6 +14,18 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
   - **Sin ADR nuevo** (la topología de despliegue ya está en ADR-0008) y **sin PR de documentación de cierre**.
 
 ### Added
+- **Fase 12: i18n ES/EN (frontend)** (spec `specs/fase12/`, opcional en hoja de ruta 6–15):
+  - **Utilidad propia sin dependencias nuevas** (D1): `src/lib/i18n.ts` con `createI18n(locales, defaultLocale)` que devuelve `{ t, locale, setLocale }`; `t(key)` devuelve el texto del idioma activo y la **clave como fallback** — nunca lanza ni deja la UI en blanco (D4/D8). `src/lib/locales/es.ts` y `src/lib/locales/en.ts` con el mismo shape de claves y las mismas claves en ambos.
+  - **`src/hooks/useLocale.tsx`** (`LocaleProvider` + `useLocale()`): patrón `MarketContext` (valor por defecto `es`, **sin `throw`** cuando no hay provider) con `useState` para que cambiar de idioma re-renderice; el idioma se lee de `localStorage` (`nexus-locale`) y es **independiente del mercado/moneda** (D2/D4). Default `es` (D3).
+  - **`src/lib/taxes.ts`**: `taxesIncludedLabel(taxRate, locale)` traducida ES/EN (D6).
+  - **`src/lib/errors.ts`**: `getFriendlyErrorMessage(error, locale?)` con `locale` opcional (default `"es"`); todos los llamantes existentes siguen sin cambios (R8.3) y quienes quieran inglés pasan `"en"` (D7).
+  - **`src/components/Header.tsx`**: selector de idioma (Español / English) junto al selector de mercado y textos de navegación (`Colección`, `Búsqueda Vectorial`, `Admin`, `Pedidos`, `Favoritos`, `Cuenta`, `Iniciar sesión`, `Cerrar sesión`) vía `t()` (D7).
+  - **`src/app/layout.tsx`**: el árbol se envuelve con `LocaleProvider` para que `t()` use los diccionarios en producción (no el fallback de clave).
+  - **Tests**: `I18n.test.ts` (diccionarios, fallback a clave, guardia de locale inválido), `Locale.test.tsx` (hook, persistencia en localStorage, degradado seguro sin provider), bloques EN en `Taxes.test.ts` y `Errors.test.ts` (aserciones preexistentes **intactas** — R8.3), `Header.test.tsx` envuelto con `LocaleProvider` sin tocar aserciones.
+  - **Fronteras**: **sin ADR**, **sin migración**, **sin backend** (errores del servidor siguen en español — D5), **sin PR de documentación de cierre**, **sin E2E nuevos**.
+  - **Verificación**: `tsc` 0 · ESLint 0 errores / 0 warnings · `npm run build` 0 · `npm run test:coverage` **EXIT 0**, **629 tests pasados**, cobertura **84,03 / 78,51 / 81,72 / 86,12** ≥ umbrales congelados **77 / 76 / 74 / 79** · preexistentes intactos (0 aserciones tocadas).
+
+### Added
 - **Fase 10: despliegue, modo demo y landing** (spec `specs/fase10/`, [ADR-0008](docs/adr/0008-deployment-vercel-render-neon-demo-mode.md)):
   - `backend/Dockerfile` multi-etapa (JRE 21, usuario sin privilegios, JVM acotada a 512 MB, *health check* en `/api/v1/markets`) y `render.yaml` (blueprint de Render).
   - Perfil **`prod`**: datasource y `JWT_SECRET` por entorno sin valores por defecto, SQL silenciado. **`JwtSecretGuard` aborta el arranque** con el secreto de ejemplo del repo o con menos de 32 bytes.

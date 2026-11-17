@@ -6,11 +6,13 @@ import { useCartDrawer } from "@/context/CartDrawerContext";
 import { useAuth } from "@/context/AuthContext";
 import { useMarket } from "@/context/MarketContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useLocale } from "@/hooks/useLocale";
 
 export default function Header() {
     const { openDrawer } = useCartDrawer();
     const { isAuthenticated, logout, user } = useAuth();
     const { markets, market, setMarketCode } = useMarket();
+    const { locale, setLocale, t } = useLocale();
     // V3 wishlist: el enlace a /wishlist se pinta con sesión; la ruta
     // está protegida y sin sesión redirige a /login (D9).
     useWishlist();
@@ -37,10 +39,10 @@ export default function Header() {
 
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs uppercase tracking-wider text-neutral-600 font-medium">
                     <Link href="/catalog" className="hover:text-black transition-colors">
-                        Colección
+                        {t("nav.collection")}
                     </Link>
                     <Link href="/search" className="hover:text-black transition-colors">
-                        Búsqueda Vectorial
+                        {t("nav.search")}
                     </Link>
                     <div className="h-4 w-px bg-neutral-200" />
                     {markets.length > 0 && (
@@ -77,6 +79,37 @@ export default function Header() {
                             </svg>
                         </span>
                     )}
+                    {markets.length > 0 && (
+                        <span className="relative inline-flex items-center text-neutral-600">
+                            <select
+                                aria-label="Idioma"
+                                value={locale}
+                                onChange={(event) => setLocale(event.target.value as "es" | "en")}
+                                className="appearance-none bg-transparent pr-4 uppercase cursor-pointer transition-colors hover:text-black focus:text-black focus:outline-none focus:border-b focus:border-neutral-400"
+                            >
+                                <option value="es" className="text-neutral-900">
+                                    Español
+                                </option>
+                                <option value="en" className="text-neutral-900">
+                                    English
+                                </option>
+                            </select>
+                            <svg
+                                aria-hidden="true"
+                                className="pointer-events-none absolute right-0 w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth={1.5}
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M19 9l-7 7-7-7"
+                                />
+                            </svg>
+                        </span>
+                    )}
 
                     {isAuthenticated ? (
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -85,11 +118,11 @@ export default function Header() {
                                 (el 403 de la API es el otro lado de la puerta). */}
                             {user?.role === "ADMIN" && (
                                 <Link href="/admin" className="hover:text-black transition-colors">
-                                    Admin
+                                    {t("nav.admin")}
                                 </Link>
                             )}
                             <Link href="/orders" className="hover:text-black transition-colors">
-                                Pedidos
+                                {t("nav.orders")}
                             </Link>
                             {/* V3 wishlist (D9): sólo con sesión — la ruta es
                                 protegida y sin sesión redirigiría a /login.
@@ -97,21 +130,21 @@ export default function Header() {
                                 enlace no cambie de sitio al añadir o quitar
                                 artículos. */}
                             <Link href="/wishlist" className="hover:text-black transition-colors">
-                                Favoritos
+                                {t("nav.wishlist")}
                             </Link>
                             <Link href="/profile" className="hover:text-black transition-colors">
-                                Cuenta
+                                {t("nav.account")}
                             </Link>
                             <button
                                 onClick={logout}
                                 className="text-neutral-600 hover:text-black transition-colors"
                             >
-                                Cerrar sesión
+                                {t("nav.logout")}
                             </button>
                         </div>
                     ) : (
                         <Link href="/login" className="hover:text-black transition-colors">
-                            Iniciar sesión
+                            {t("nav.login")}
                         </Link>
                     )}
 

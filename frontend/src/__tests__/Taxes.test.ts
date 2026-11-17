@@ -66,6 +66,21 @@ describe("taxesIncludedLabel (R4 — texto neutro y uniforme)", () => {
             expect(taxesIncludedLabel(rate)).toMatch(/^Impuestos incluidos \([\d.]+ %\)$/);
         }
     });
+
+    // ── Fase 12: inglés ──────────────────────────────────────────────────────
+
+    it("en — Taxes included", () => {
+        expect(taxesIncludedLabel(21, "en")).toBe("Taxes included (21 %)");
+        expect(taxesIncludedLabel(20, "en")).toBe("Taxes included (20 %)");
+    });
+
+    it("en — lleva el porcentaje con una tasa decimal", () => {
+        expect(taxesIncludedLabel(7.25, "en")).toMatch(/^Taxes included \([\d.]+ %\)$/);
+    });
+
+    it("sin locale sigue siendo español (regresión)", () => {
+        expect(taxesIncludedLabel(21)).toBe("Impuestos incluidos (21 %)");
+    });
 });
 
 describe("taxRateFromAmounts (R3 — la tasa de un pedido cobrado)", () => {

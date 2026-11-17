@@ -47,8 +47,10 @@ export function formatTaxRate(taxRate: number): string {
 }
 
 /** Nota única y repetida en PDP, carrito, drawer y pedido del cliente. */
-export function taxesIncludedLabel(taxRate: number): string {
-    return `Impuestos incluidos (${formatTaxRate(taxRate)} %)`;
+export function taxesIncludedLabel(taxRate: number, locale: "es" | "en" = "es"): string {
+    const rate = formatTaxRate(taxRate);
+    if (locale === "en") return `Taxes included (${rate} %)`;
+    return `Impuestos incluidos (${rate} %)`;
 }
 
 /**
