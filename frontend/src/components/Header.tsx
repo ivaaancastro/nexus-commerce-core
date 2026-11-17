@@ -11,8 +11,9 @@ export default function Header() {
     const { openDrawer } = useCartDrawer();
     const { isAuthenticated, logout, user } = useAuth();
     const { markets, market, setMarketCode } = useMarket();
-    // V3 wishlist: contador derivado del contexto — sin peticiones nuevas (D9).
-    const { items } = useWishlist();
+    // V3 wishlist: el enlace a /wishlist se pinta con sesión; la ruta
+    // está protegida y sin sesión redirige a /login (D9).
+    useWishlist();
 
     return (
         <header className="border-b border-neutral-200 bg-white sticky top-0 z-50">
@@ -91,10 +92,12 @@ export default function Header() {
                                 Pedidos
                             </Link>
                             {/* V3 wishlist (D9): sólo con sesión — la ruta es
-                                protegida y sin sesión redirigiría a /login. El
-                                «(n)» aparece cuando hay artículos (R8.1). */}
+                                protegida y sin sesión redirigiría a /login.
+                                El texto es siempre «Favoritos» para que el
+                                enlace no cambie de sitio al añadir o quitar
+                                artículos. */}
                             <Link href="/wishlist" className="hover:text-black transition-colors">
-                                Favoritos{items.length > 0 ? ` (${items.length})` : ""}
+                                Favoritos
                             </Link>
                             <Link href="/profile" className="hover:text-black transition-colors">
                                 Cuenta
