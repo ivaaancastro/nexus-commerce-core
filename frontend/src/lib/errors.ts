@@ -49,28 +49,41 @@ function extractServerMessage(message: string): string | null {
 
 /**
  * Traduce errores técnicos del backend a mensajes amigables para el usuario.
+ *
+ * `locale` es opcional: cuando se omite se asume `"es"` (comportamiento
+ * histórico, todos los llamantes existentes siguen sin cambios — regla R8.3).
+ * Cuando se pasa `"en"`, se devuelve la versión en inglés.
  */
-export function getFriendlyErrorMessage(error: unknown): string {
+export function getFriendlyErrorMessage(error: unknown, locale: "es" | "en" = "es"): string {
     const message = error instanceof Error ? error.message : "Error inesperado";
+    const en = locale === "en";
 
     // Errores de validación de email
     if (message.includes("did not match the expected pattern")) {
-        return "El formato del email no es válido. Ejemplo: nombre@ejemplo.com";
+        return en
+            ? "The email format is not valid. Example: name@example.com"
+            : "El formato del email no es válido. Ejemplo: nombre@ejemplo.com";
     }
 
     // Errores de email ya registrado
     if (message.includes("email ya está registrado")) {
-        return "Este email ya está registrado. ¿Quieres iniciar sesión?";
+        return en
+            ? "This email is already registered. Do you want to sign in?"
+            : "Este email ya está registrado. ¿Quieres iniciar sesión?";
     }
 
     // Errores de credenciales
     if (message.includes("Credenciales inválidas")) {
-        return "El email o la contraseña son incorrectos.";
+        return en
+            ? "The email or password are incorrect."
+            : "El email o la contraseña son incorrectos.";
     }
 
     // Errores de email no verificado
     if (message.includes("Email no verificado")) {
-        return "Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.";
+        return en
+            ? "You must verify your email before signing in. Check your inbox."
+            : "Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.";
     }
 
     // Cuenta suspendida (Tarea 7.5, R4): el chequeo llega como 403 con este
@@ -79,27 +92,35 @@ export function getFriendlyErrorMessage(error: unknown): string {
     // permiso, la cuenta está congelada.
     if (message.includes("suspendida")) {
         const serverMessage = extractServerMessage(message);
-        return serverMessage ?? "Tu cuenta está suspendida. Contacta con soporte.";
+        return serverMessage ?? (en ? "Your account is suspended. Contact support." : "Tu cuenta está suspendida. Contacta con soporte.");
     }
 
     // Errores de código de verificación
     if (message.includes("Código de verificación inválido")) {
-        return "El código de verificación no es correcto. Inténtalo de nuevo.";
+        return en
+            ? "The verification code is not correct. Try again."
+            : "El código de verificación no es correcto. Inténtalo de nuevo.";
     }
 
     // Errores de código de recuperación
     if (message.includes("Código de recuperación inválido")) {
-        return "El código de recuperación no es correcto. Inténtalo de nuevo.";
+        return en
+            ? "The recovery code is not correct. Try again."
+            : "El código de recuperación no es correcto. Inténtalo de nuevo.";
     }
 
     // Errores de usuario no encontrado
     if (message.includes("Usuario no encontrado")) {
-        return "No encontramos ninguna cuenta con ese email.";
+        return en
+            ? "We couldn't find any account with that email."
+            : "No encontramos ninguna cuenta con ese email.";
     }
 
     // Errores de contraseña débil
     if (message.includes("contraseña debe tener al menos 8 caracteres")) {
-        return "La contraseña debe tener al menos 8 caracteres.";
+        return en
+            ? "The password must be at least 8 characters."
+            : "La contraseña debe tener al menos 8 caracteres.";
     }
 
     // Códigos HTTP del proyecto (AGENTS.md §4.5)
@@ -109,23 +130,31 @@ export function getFriendlyErrorMessage(error: unknown): string {
         // así que se muestra tal cual en el formulario.
         const serverMessage = extractServerMessage(message);
         if (serverMessage) return serverMessage;
-        return "Revisa los datos del formulario.";
+        return en ? "Please check the form data." : "Revisa los datos del formulario.";
     }
     if (isHttpStatus(message, 401)) {
-        return "Tu sesión ha caducado. Inicia de nuevo para continuar.";
+        return en
+            ? "Your session has expired. Sign in again to continue."
+            : "Tu sesión ha caducado. Inicia de nuevo para continuar.";
     }
     if (isHttpStatus(message, 403)) {
-        return "No tienes permiso para realizar esta acción.";
+        return en
+            ? "You don't have permission to do this."
+            : "No tienes permiso para realizar esta acción.";
     }
     // Fase 9: Stripe no responde o falló al iniciar/reembolsar. El detalle
     // técnico va al log del servidor; aquí sólo un mensaje claro y NEUTRO: el 502
     // sirve tanto al checkout como al reembolso del panel, así que no afirma qué
     // dinero se movió (el carrito añade «No se ha cobrado nada», que sí es cierto ahí).
     if (isHttpStatus(message, 502)) {
-        return "No hemos podido contactar con la pasarela de pago. Inténtalo de nuevo en un momento.";
+        return en
+            ? "We could not contact the payment gateway. Try again in a moment."
+            : "No hemos podido contactar con la pasarela de pago. Inténtalo de nuevo en un momento.";
     }
     if (isHttpStatus(message, 404)) {
-        return "No encontramos lo que buscas.";
+        return en
+            ? "We couldn't find what you're looking for."
+            : "No encontramos lo que buscas.";
     }
     if (isHttpStatus(message, 409)) {
         // El backend devuelve 409 para stock, devoluciones (Tarea 5.4),
@@ -142,14 +171,18 @@ export function getFriendlyErrorMessage(error: unknown): string {
         if (message.includes('"PAYMENT_CONFLICT"')) {
             return (
                 extractServerMessage(message) ??
-                "Esa operación de pago ya no está disponible para este pedido."
+                (en
+                    ? "That payment operation is no longer available for this order."
+                    : "Esa operación de pago ya no está disponible para este pedido.")
             );
         }
         // ORDER_CONFLICT va aparte: su fallback no es el de stock (R3.1).
         if (message.includes('"ORDER_CONFLICT"')) {
             return (
                 extractServerMessage(message) ??
-                "Ese cambio de estado ya no está disponible. Recarga el pedido e inténtalo de nuevo."
+                (en
+                    ? "That status change is no longer available. Reload the order and try again."
+                    : "Ese cambio de estado ya no está disponible. Recarga el pedido e inténtalo de nuevo.")
             );
         }
         if (
@@ -165,14 +198,18 @@ export function getFriendlyErrorMessage(error: unknown): string {
             const serverMessage = extractServerMessage(message);
             if (serverMessage) return serverMessage;
         }
-        return "No queda stock suficiente para completar el pedido.";
+        return en
+            ? "Not enough stock to complete the order."
+            : "No queda stock suficiente para completar el pedido.";
     }
 
     // Errores de servidor
     if (isHttpStatus(message, 500) || message.includes("Internal Server Error")) {
-        return "Algo salió mal. Inténtalo de nuevo en unos minutos.";
+        return en
+            ? "Something went wrong. Try again in a few minutes."
+            : "Algo salió mal. Inténtalo de nuevo en unos minutos.";
     }
 
     // Error por defecto
-    return "Algo salió mal. Inténtalo de nuevo.";
+    return en ? "Something went wrong. Try again." : "Algo salió mal. Inténtalo de nuevo.";
 }

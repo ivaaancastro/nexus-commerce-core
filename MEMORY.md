@@ -11,10 +11,10 @@
 | Aspecto | Valor |
 |:---|:---|
 | **Rama actual** | `main` — **V4 `product-reviews` + V5 `coupons` + V6 `photos-per-color`** todas mergeadas; ramas `feat/coupons` y `feat/photos-per-color` integradas |
-| **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6, 7.1–7.6, bloque V1–V6 y Fase 8 COMPLETAS**; **Fase 10 — Landing, despliegue y docs COMPLETA** (PR A y PR B mergeados a `main` vía PR #54 temporal) |
-| **Tarea actual** | **Fase 11 — Calidad final y CI/CD** (spec `specs/fase11/`, rama `feat/fase11-quality-ci-cd` en curso): job `deploy` en `.github/workflows/ci.yml` (backend a Render + frontend a Vercel, solo `push` a `main` tras los 4 jobs de calidad), detección de secretos en el repo, verificación global (tests, cobertura, lint, build), CHANGELOG, AGENTS.md y MEMORY.md actualizados |
-| **Estado** | **Backend `clean test` 553/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **83,88 / 78,87 / 81,48 / 85,9** · Tests: **553 backend · 606 frontend** · E2E rápido **33/33** · axe **18/18** · Lighthouse **5/5** (`/proyecto` incluida) · Migraciones V1–V23 + `R__demo_data.sql` |
-| **Pendiente** | **Roadmap de portfolio**: Calidad y CI/CD (11, en curso) → i18n ES/EN opcional (12) → Lanzamiento LinkedIn (13). Descartado: carriers, RMA ampliado, push/abandono de carrito, FR/DE/IT |
+| **Fase actual** | **Hoja de ruta 6–15 (ecommerce completo)** — **Fase 6, 7.1–7.6, bloque V1–V6, Fase 8, Fase 10 y Fase 11 COMPLETAS**; **Fase 12 — i18n ES/EN COMPLETA** (frontend, sin ADR, sin PR de documentación de cierre): `src/lib/i18n.ts` + `src/lib/locales/{es,en}.ts`, `src/hooks/useLocale.tsx`, `taxesIncludedLabel` y `getFriendlyErrorMessage` traducidos, selector de idioma en `Header`, `LocaleProvider` en `layout.tsx`, `tsc` 0, ESLint 0/0, build 0, cobertura 84,03/78,51/81,72/86,12 ≥ umbrales, 629 tests pasados. Sin aserciones preexistentes tocadas (R8.3). |
+| **Tarea actual** | — (Fase 12 cerrada post-merge) → **Fase 13 — Lanzamiento LinkedIn** |
+| **Estado** | **Backend `clean test` 553/0/0** · Frontend `tsc` 0, `build` 0, `eslint` 0/0 · Cobertura frontend **84,03 / 78,51 / 81,72 / 86,12** ≥ umbrales **77 / 76 / 74 / 79** · Tests: **553 backend · 629 frontend** · E2E rápido **33/33** · axe **18/18** · Lighthouse **5/5** (`/proyecto` incluida) · Migraciones V1–V23 + `R__demo_data.sql` |
+| **Pendiente** | **Roadmap de portfolio**: i18n ES/EN opcional (12, completada) → Lanzamiento LinkedIn (13). Descartado: carriers, RMA ampliado, push/abandono de carrito, FR/DE/IT |
 | **Última actualización** | 2026-11-17 |
 
 ---
@@ -353,9 +353,13 @@
 - [x] 11.3 — CI/CD: `lint → test → build → coverage → deploy` con job `deploy` en `.github/workflows/ci.yml` (backend a Render + frontend a Vercel, solo `push` a `main` tras los 4 jobs de calidad); budgets Lighthouse ya existentes
 - [x] 11.4 — Seguridad: detección de secretos en el job `deploy` (`sk_`, `pk_`, `whsec_`, `JWT_SECRET`); ningún secreto versionado
 
-### Fase 12 — i18n ES/EN — ⚪ opcional (antes ES/EN/FR/DE/IT)
-- [ ] 12.1 — Routing `/es` · `/en` + diccionarios tipados (`next-intl`), formatos locales con `Intl`
-- [ ] 12.2 — Traducción de UI y errores; `hreflang`. Sólo ES y EN; el panel admin puede quedar en un idioma
+### Fase 12 — i18n ES/EN — ✅ completada 2026-11-17 (opcional; lightweight custom, sin `next-intl`)
+- [x] 12.1 — `src/lib/i18n.ts` (`createI18n`/`t` con fallback a clave, nunca lanza) + `src/lib/locales/{es,en}.ts` (mismo shape, mismas claves)
+- [x] 12.2 — `src/hooks/useLocale.tsx` (`LocaleProvider` + `useLocale()`, default `es`, sin `throw`, lee `localStorage` `nexus-locale`, independiente del mercado/moneda)
+- [x] 12.3 — `taxesIncludedLabel(taxRate, locale)` y `getFriendlyErrorMessage(error, locale?)` traducidos ES/EN (`locale` opcional, default `"es"` — llamantes existentes sin cambios, R8.3)
+- [x] 12.4 — Selector de idioma en `Header` (Español/English) y textos de navegación vía `t()`; `layout.tsx` envuelve el árbol con `LocaleProvider`
+- [x] 12.5 — Tests: `I18n.test.ts`, `Locale.test.tsx`, bloques EN en `Taxes.test.ts` y `Errors.test.ts` (aserciones preexistentes intactas), `Header.test.tsx` con `LocaleProvider`
+- [x] 12.6 — Verificación: `tsc` 0, ESLint 0/0, build 0, `test:coverage` EXIT 0 (629 tests, cobertura 84,03/78,51/81,72/86,12 ≥ 77/76/74/79), sin ADR, sin migración, sin backend, sin E2E nuevos, sin PR de documentación de cierre
 
 ### Fase 13 — Lanzamiento en LinkedIn — 📣 (no es código)
 - [ ] 13.1 — Post con arquitectura y decisiones (idempotencia, outbox, bloqueo pesimista, SDD), GIF de la demo y enlace

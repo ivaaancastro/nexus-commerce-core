@@ -344,3 +344,52 @@ describe("getFriendlyErrorMessage — pagos (Fase 9)", () => {
         );
     });
 });
+
+// ── Fase 12: inglés ──────────────────────────────────────────────────────────
+
+describe("getFriendlyErrorMessage — inglés (Fase 12)", () => {
+    it("401 en", () => {
+        expect(
+            getFriendlyErrorMessage(apiError(401, '{"message":"Autenticación requerida"}'), "en")
+        ).toBe("Your session has expired. Sign in again to continue.");
+    });
+
+    it("403 en", () => {
+        expect(
+            getFriendlyErrorMessage(apiError(403, '{"error":"Forbidden"}'), "en")
+        ).toBe("You don't have permission to do this.");
+    });
+
+    it("404 en", () => {
+        expect(
+            getFriendlyErrorMessage(apiError(404, "Order not found"), "en")
+        ).toBe("We couldn't find what you're looking for.");
+    });
+
+    it("409 stock en", () => {
+        expect(
+            getFriendlyErrorMessage(
+                apiError(409, '{"message":"Stock insuficiente"}'),
+                "en"
+            )
+        ).toBe("Not enough stock to complete the order.");
+    });
+
+    it("500 en", () => {
+        expect(
+            getFriendlyErrorMessage(apiError(500, "Internal Server Error"), "en")
+        ).toBe("Something went wrong. Try again in a few minutes.");
+    });
+
+    it("default en", () => {
+        expect(getFriendlyErrorMessage("fallo raro", "en")).toBe(
+            "Something went wrong. Try again."
+        );
+    });
+
+    it("sin locale sigue siendo español (regresión)", () => {
+        expect(getFriendlyErrorMessage(apiError(403, '{"error":"Forbidden"}'))).toBe(
+            "No tienes permiso para realizar esta acción."
+        );
+    });
+});

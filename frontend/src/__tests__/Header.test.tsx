@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import { CartDrawerProvider } from "@/context/CartDrawerContext";
 import { MarketProvider } from "@/context/MarketContext";
+import { LocaleProvider } from "@/hooks/useLocale";
 import { api } from "@/lib/api";
 import type { User } from "@/types/auth";
 import type { Market } from "@/types/commerce";
@@ -49,11 +50,13 @@ function renderHeader() {
         <AuthProvider>
             {/* Mismo árbol que layout.tsx: MarketProvider envuelve a CartProvider (D5) */}
             <MarketProvider>
-                <CartProvider>
-                    <CartDrawerProvider>
-                        <Header />
-                    </CartDrawerProvider>
-                </CartProvider>
+                <LocaleProvider>
+                    <CartProvider>
+                        <CartDrawerProvider>
+                            <Header />
+                        </CartDrawerProvider>
+                    </CartProvider>
+                </LocaleProvider>
             </MarketProvider>
         </AuthProvider>
     );
