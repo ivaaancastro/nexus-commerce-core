@@ -6,6 +6,13 @@ El formato sigue las directrices de [Keep a Changelog](https://keepachangelog.co
 ## [Unreleased]
 
 ### Added
+- **Fase 13: lanzamiento LinkedIn** (spec `specs/fase13/`, solo documentación y medios):
+  - `README.md`: bloque **«Pruébalo en 1 minuto»** (demo, pasos, cuentas, tarjetas de prueba `4242…`/3DS/rechazo, GIF con enlace al MP4) y sección «Cómo se construyó» ampliada con **SDD + opencode + Claude Code** (`AGENTS.md`, `MEMORY.md`, comandos `/spec-*`, 38 specs, 8 ADR). Contadores de tests actualizados (frontend 629) y retirada una frase suelta al final del README.
+  - `docs/media/nexus-demo.mp4` (47 s) y `nexus-demo.gif`; script reproducible `frontend/scripts/record-demo.mjs` (`npm run record-demo`). El último paso del pago se confirma por API (hCaptcha de Stripe a navegadores automatizados).
+  - `docs/linkedin.md`: proyecto (nombre, descripción, aptitudes, fechas) y post, para copiar y pegar.
+  - **Sin código de aplicación, sin migración, sin ADR y sin PR de documentación de cierre.**
+
+### Added
 - **Fase 11: calidad final y CI/CD** (spec `specs/fase11/`):
   - Job `deploy` en `.github/workflows/ci.yml`: despliegue automático del backend a Render (vía API de Render, `render.yaml`) y del frontend a Vercel (Vercel CLI), solo en `push` a `main` y **después** de que pasen los 4 jobs de calidad (`backend-tests`, `frontend-tests`, `e2e-tests`, `cwv-audit`). Incluye verificación de humo contra `https://nexus-commerce-core.vercel.app/api/v1/markets`.
   - Paso de **detección de secretos** en el job `deploy`: falla el pipeline si encuentra `sk_`, `pk_`, `whsec_` o `JWT_SECRET` en ficheros rastreados por git.

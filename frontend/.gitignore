@@ -49,3 +49,6 @@ next-env.d.ts
 # regeneran con `npm run audit:cwv`; no son fuente de verdad.
 /lighthouse-report/
 /.lighthouseci/
+
+# demo-video (Fase 13): salida .webm de `npm run record-demo`; el MP4/GIF finales viven en docs/media
+/demo-video/

@@ -15,7 +15,8 @@
     "audit:cwv": "next build && node scripts/lighthouse.mjs",
     "audit": "npm run audit:a11y && npm run audit:cwv",
     "images": "node scripts/generate-product-images.mjs",
-    "shots": "node scripts/capture-screenshots.mjs"
+    "shots": "node scripts/capture-screenshots.mjs",
+    "record-demo": "node scripts/record-demo.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "7.0.1",
