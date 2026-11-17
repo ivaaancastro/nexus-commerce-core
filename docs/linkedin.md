@@ -13,7 +13,7 @@
 | **Enlace** | https://nexus-commerce-core.vercel.app |
 | **Colaboradores** | Ninguno (proyecto en solitario) |
 | **Asociado con** | Ninguna (proyecto personal) |
-| **Multimedia** | Sube el **MP4** `docs/media/nexus-demo.mp4` (**no el GIF**: LinkedIn lo acepta pero lo deja en blanco al guardar) y, si no genera miniatura, la portada `docs/media/nexus-demo-portada.png`. Añade también el enlace al repositorio https://github.com/ivaaancastro/nexus-commerce-core |
+| **Multimedia** | La sección de proyectos **solo admite PDF, PowerPoint, Word, JPG, PNG y GIF (sin animación: toma el primer fotograma)**, no vídeo. Sube **`docs/media/nexus-tour.pdf`** (7 páginas: portada, catálogo, ficha, bolsa, pago, pedidos del panel y dashboard) y/o la portada `docs/media/nexus-demo-portada.png`. **No subas el GIF**: su primer fotograma es una página en blanco. Añade el enlace https://github.com/ivaaancastro/nexus-commerce-core#-pruébalo-en-1-minuto, donde sí se ve el GIF animado |
 
 ### Descripción (≈1 400 caracteres; el límite de LinkedIn son 2 000)
 
@@ -78,5 +78,5 @@ Si trabajas con agentes de IA en proyectos reales, me encantaría saber cómo or
 
 - [ ] Abre la demo y comprueba que carga (despierta el backend con 1 minuto de antelación).
 - [ ] Comprueba que el release `v1.0.0` y el README se ven bien en GitHub.
-- [ ] Sube el vídeo como nativo (MP4, nunca el GIF); añade subtítulos si LinkedIn te los ofrece. Portada: `docs/media/nexus-demo-portada.png`.
+- [ ] Proyecto: sube el PDF (`nexus-tour.pdf`) o la portada PNG, nunca el GIF ni el MP4. El **vídeo MP4 solo va en el post** (vídeo nativo); añade subtítulos si LinkedIn te los ofrece.
 - [ ] El vídeo simula el último paso del pago (confirmación del PaymentIntent por API, porque Stripe bloquea con hCaptcha a los navegadores automatizados); el resto es la web real. Si prefieres, regraba ese tramo tú y no habrá dudas.
