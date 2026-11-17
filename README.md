@@ -1,6 +1,6 @@
 # Nexus Commerce Core
 
-Backend transaccional de alto rendimiento para retail global, diseñado bajo estándares de ingeniería de producción inspirados en plataformas de comercio electrónico de escala masiva.
+Backend transaccional de alto rendimiento para retail global, construido bajo estándares de ingeniería de producción inspirados en plataformas de comercio electrónico de escala masiva. Catálogo multimercado, precios con desglose impositivo, inventario omnicanal con control de concurrencia y checkout transaccional con pagos Stripe en test mode.
 
 ![Java 21](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.4.3-brightgreen?logo=springboot)
@@ -8,9 +8,11 @@ Backend transaccional de alto rendimiento para retail global, diseñado bajo est
 ![Test Coverage](https://img.shields.io/badge/Coverage->90%25-success)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20%2F%20Layered-purple)
 
-## Demo en vivo
+---
 
-**[nexus-commerce-core.vercel.app](https://nexus-commerce-core.vercel.app)** · [Descripción del proyecto](https://nexus-commerce-core.vercel.app/proyecto)
+## 🚀 Demo en vivo
+
+**[nexus-commerce-core.vercel.app](https://nexus-commerce-core.vercel.app)** · [Landing del proyecto → `/proyecto`](https://nexus-commerce-core.vercel.app/proyecto)
 
 Despliegue: **Vercel** (Next.js, proxy `/api/v1/*`) → **Render** (Spring Boot en Docker, perfiles `prod,demo`) → **Neon** (PostgreSQL 16 + pgvector), con **Stripe en test mode** y webhook firmado hacia el backend. Guía paso a paso en [`docs/deployment.md`](docs/deployment.md).
 
@@ -74,6 +76,47 @@ flowchart TD
 * **Taxonomía Automatizada:** Integración de **Spring AI** para enriquecer descripciones textiles no estructuradas mediante *Structured Outputs* (JSON Schema estricto).
 * **Trazabilidad de Decisiones:** Los fundamentos técnicos y compromisos arquitectónicos están documentados en [docs/adr](docs/adr/README.md).
 
+### Topología de Despliegue (Producción)
+
+```mermaid
+flowchart LR
+    subgraph Browser [🌐 Navegador del usuario]
+        UI[Vercel · Next.js · tienda + landing /proyecto]
+    end
+
+    subgraph Backend [☁️ Render · Spring Boot en Docker]
+        API[API REST · /api/v1/*]
+        Payments[StripeGateway · PaymentIntent]
+        Webhook[Webhook Stripe · POST /api/v1/webhooks/stripe]
+    end
+
+    subgraph Database [🐘 Neon · PostgreSQL 16 + pgvector]
+        DB[Catálogo, stock, pedidos, usuarios, cupones]
+    end
+
+    subgraph Stripe [💳 Stripe · test mode]
+        PI[PaymentIntent · clienteSecret]
+        Events[Eventos · succeeded / failed / refunded]
+    end
+
+    UI -.->|rewrite /api/v1/*| API
+    API <--> DB
+    API -->|crea PaymentIntent| PI
+    API -->|confirmar pago| Webhook
+    Events -->|firma verificada| Webhook
+    Webhook -->|ordem CONFIRMED| API
+
+    classDef browser fill:#0f172a,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
+    classDef backend fill:#1e293b,stroke:#475569,stroke-width:1px,color:#f8fafc;
+    classDef db fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+    classDef stripe fill:#312e81,stroke:#6366f1,stroke-width:2px,color:#f8fafc;
+
+    class UI browser;
+    class API,Payments,Webhook backend;
+    class DB db;
+    class PI,Events stripe;
+```
+
 ### Imágenes de Producto (Frontend)
 
 Las imágenes **no viven en la base de datos**: son ficheros estáticos bajo `frontend/public/products/`, servidos por la canalización de `next/image`. El backend no tiene migración, campo, DTO ni endpoint para ellas.
@@ -107,6 +150,8 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 
 > Los endpoints marcados con 🔒 requieren cabecera `Authorization: Bearer {access token}`.
 
+La especificación OpenAPI 3 completa está en [`docs/openapi.json`](docs/openapi.json) y se sirve en `/v3/api-docs` (Swagger UI en `/swagger-ui.html`).
+
 ### Seguridad y Modelo de Autorización
 
 > **Regla**: `SecurityConfig` termina en `anyRequest().denyAll()` — **lo que no está listado, no funciona**. Un endpoint nuevo nace cerrado (`401`/`403`), nunca abierto por accidente. La lista completa, con el orden «primera coincidencia gana», está comentada en `security/SecurityConfig.java`.
@@ -119,6 +164,7 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 * **Usuario administrador inicial** (migración `V13`, idempotente): **`admin@nexus.dev` / `Admin1234!`** — nace ya verificado con la contraseña hasheada con BCrypt coste 12. **Cámbiala en el primer arranque**; los E2E y axe (panel admin) la usan (cuenta `ADMIN` de la semilla V13).
 
 ### Autenticación y Sesión
+
 * `POST /api/v1/auth/register` $\rightarrow$ Crea la cuenta y envía un código de verificación de 6 dígitos al email (`200` sin cuerpo). La contraseña se almacena con BCrypt.
 * `POST /api/v1/auth/verify-email?email={email}&code={code}` $\rightarrow$ Verifica el email. **Obligatorio antes del login.** El código caduca en 15 minutos.
 * `POST /api/v1/auth/resend-verification?email={email}` $\rightarrow$ Reenvía el código de verificación.
@@ -129,30 +175,36 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 * 🔒 `GET /api/v1/auth/me` $\rightarrow$ Devuelve el perfil del usuario asociado al token (`401` sin token).
 
 ### Catálogo de Productos
+
 * `GET /api/v1/products/families` $\rightarrow$ Taxonomía real del catálogo: `[{ family, productCount }]` ordenada por familia. **Público** (sin sesión) y calculada en BD con `SELECT family, COUNT(*)`, contando **productos y no SKUs**. Es la única fuente del menú de familias: la portada y la columna de filtros se pintan de esta respuesta, nunca de un `Set` derivado de la lista de productos.
 * `GET /api/v1/products?family={familia}&size={talla}&color={color}&sort={orden}` $\rightarrow$ Lista de productos filtrada **en backend** y combinada con **AND**. `family` exige que el producto pertenezca a esa familia; `size` y `color` exigen que coincidan **en el mismo SKU**, de modo que `?size=M&color=Negro` no sirve para mezclar variantes de prendas distintas. `sort` admite `default` \| `name-asc` \| `name-desc` (cualquier otro valor → `400` con los valores admitidos); una familia inexistente → `200 []`. **Sin paginación**: la respuesta siempre llega entera.
 * `GET /api/v1/products/search?reference={ref}` $\rightarrow$ Búsqueda exacta por código comercial (ej: `0432/021`).
 * 🔒 `POST /api/v1/products/enrich?reference={ref}` $\rightarrow$ Clasificación y enriquecimiento taxonómico mediante LLM. Responde `503` con `code: ENRICHMENT_UNAVAILABLE` si no hay `OPENAI_API_KEY` válida.
 
 ### Mercados y Precios Multimercado
+
 * `GET /api/v1/markets` $\rightarrow$ Lista los mercados activos con su divisa y tipo impositivo (`code`, `name`, `currency`, `taxRate`), ordenados por código. **Público** (sin sesión) y sin lógica de negocio: solo `findAll` + mapeo a `MarketResponse`. Es la única fuente de la lista del selector de mercado del frontend.
 * `GET /api/v1/pricing/skus/{skuId}?market={code}` $\rightarrow$ Devuelve desglose financiero (base neta, impuestos, moneda y descuento) **del mercado indicado**. Devuelve `404` si ese mercado no tiene precio para el SKU, estado que la ficha de producto traduce a «No disponible en …».
 
 ### Inventario y Stock
+
 * `GET /api/v1/inventory/skus/{skuId}` $\rightarrow$ Consulta agregada del stock omnicanal y desglose por almacén.
 * 🔒 `POST /api/v1/inventory/reserve` $\rightarrow$ Reserva atómica de existencias. Devuelve `409 Conflict` si el ATS es insuficiente.
 
 ### Búsqueda y Enriquecimiento
+
 * `GET /api/v1/products/search/semantic?query={q}&family={f}&limit={n}` $\rightarrow$ Búsqueda por similitud semántica mediante embeddings vectoriales (HNSW). El filtro `family` se inyecta en la expresión de filtro **sólo** si la familia existe en el catálogo (`existsByFamily`) y no contiene comillas; si no, la búsqueda **devuelve `200 []` sin consultar el vector store**. No admite filtro por precio. Cada resultado declara su **`searchMode`**: `SEMANTIC` con clave `OPENAI_API_KEY` válida (trae `similarityScore`), o `TEXT` cuando no la hay — fallback `ILIKE` **sin score**, para que la UI nunca muestre un «Match %» inventado.
 * 🔒 `POST /api/v1/products/search/index` $\rightarrow$ Dispara la reindexación vectorial completa del catálogo. Responde `503` con `code: SEMANTIC_SEARCH_UNAVAILABLE` si no hay `OPENAI_API_KEY` válida.
 
-  > ⚠️ **Cambio de catálogo manual → reindex manual**: crear, editar o borrar productos y SKUs desde `/admin` **no** reindexa los embeddings automáticamente (Tarea 7.2, decisión D6 — el enriquecimiento es un proceso aparte y no quería costes de LLM escondidos en un CRUD). Tras tocar el catálogo, dispara `POST /api/v1/products/search/index` para que la búsqueda semántica refleje el cambio; sin `OPENAI_API_KEY` la búsqueda sigue funcionando en modo texto exacto.
+> ⚠️ **Cambio de catálogo manual → reindex manual**: crear, editar o borrar productos y SKUs desde `/admin` **no** reindexa los embeddings automáticamente (Tarea 7.2, decisión D6 — el enriquecimiento es un proceso aparte y no quería costes de LLM escondidos en un CRUD). Tras tocar el catálogo, dispara `POST /api/v1/products/search/index` para que la búsqueda semántica refleje el cambio; sin `OPENAI_API_KEY` la búsqueda sigue funcionando en modo texto exacto.
 
 ### Pedidos y Checkout
+
 * 🔒 `POST /api/v1/orders/checkout` $\rightarrow$ Procesa la compra. Requiere cabecera `Idempotency-Key` (UUID, **obligatoria**) y los campos `addressId` y `paymentMethod` (**solo `CARD`**: tarjeta o Apple Pay, que cobra el Payment Element de Stripe). Reserva existencias, congela precios y genera la orden (`201 Created`). La dirección indicada se copia a la orden como **snapshot inmutable**. Con Stripe activo el pedido nace `PENDING` + `REQUIRES_PAYMENT`; sin claves de Stripe nace `CONFIRMED` sin cobro (*modo sin pasarela*).
 * 🔒 `GET /api/v1/orders/{orderNumber}` $\rightarrow$ Recupera el detalle completo de un pedido, con `shippingAddress`, `paymentMethod`, `paymentStatus`, `amountRefunded` y `returnDeadline`.
 
 ### Pagos con Stripe (test mode)
+
 * 🔒 `GET /api/v1/orders/{orderNumber}/payment` $\rightarrow$ `clientSecret` + clave publicable para el Payment Element. **Solo el dueño** del pedido; el `clientSecret` se pide a Stripe cada vez y **nunca se guarda ni se loguea**.
 * 🌐 `POST /api/v1/webhooks/stripe` $\rightarrow$ Eventos de Stripe. Público, pero autenticado por **firma** (`Stripe-Signature` verificada sobre el cuerpo crudo): `payment_intent.succeeded` confirma el pedido, `charge.refunded` fija el reembolso. Idempotente (tabla `stripe_events`).
 * 🌐 `GET /api/v1/payments/config` $\rightarrow$ `{ "paymentMode": "STRIPE" | "DISABLED" }`.
@@ -170,6 +222,7 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 > Cada línea del detalle de pedido enriquece su respuesta con `returnEligible` y `returnIneligibleReason` (`NOT_DELIVERED` | `EXPIRED` | `ALREADY_RETURNED`), de modo que la UI puede explicar **por qué** una línea no admite devolución. `refundAmount` es un **registro contable**: no hay pasarela de pago y no se mueve dinero.
 
 ### Perfil y Direcciones
+
 * 🔒 `GET /api/v1/users/me` $\rightarrow$ Devuelve el perfil completo, incluidas las medidas (`height`, `weight`) usadas para recomendar tallas.
 * 🔒 `PUT /api/v1/users/me` $\rightarrow$ Actualiza el perfil. Es una **actualización parcial**: los campos `null` conservan su valor. El **email no es modificable**. Valida altura (100–250 cm), peso (30–250 kg) y fecha de nacimiento (no futura, no anterior a 1900).
 * 🔒 `GET /api/v1/users/me/addresses` $\rightarrow$ Lista las direcciones del usuario, la principal primero. Máximo **2** direcciones.
@@ -179,6 +232,7 @@ Para añadir una imagen nueva: coloca el fichero en `public/products/`, ejecuta 
 * 🔒 `POST /api/v1/users/me/size-recommendation` $\rightarrow$ Body `{ "productId": n }`. Devuelve `{ recommendedSize, reason, confidence }` a partir de las medidas del perfil y las tallas disponibles del producto. `confidence` es `Alta`, `Media` o `Baja` según la fiabilidad de la tabla de referencia. Devuelve `400` si el usuario no tiene medidas guardadas.
 
 ### Documentación Interactiva y Contratos (OpenAPI 3 / Swagger)
+
 * **Swagger UI:** `http://localhost:8080/swagger-ui.html` (consola de ejecución y pruebas de endpoints).
 * **OpenAPI Spec:** `http://localhost:8080/v3/api-docs` (contrato JSON para generación de clientes tipados).
 
@@ -325,6 +379,7 @@ cuando hay que abrirlos.
 > ahí.
 
 ### 2e. Pagos con Stripe en local (opcional)
+
 Sin claves la app funciona en **modo sin pasarela** (el pedido con tarjeta se confirma sin cobro) y toda la suite corre igual. Para cobrar de verdad en *test mode*, añade a `backend/.env` (no versionado):
 
 ```properties
@@ -345,3 +400,72 @@ cd backend
 ./mvnw spring-boot:run
 ```
 La aplicación iniciará en `http://localhost:8080`. Flyway ejecutará automáticamente las migraciones pendientes en `src/main/resources/db/migration`.
+
+---
+
+## 5. Decisiones Arquitectónicas Clave (ADR)
+
+| Decisión | ADR | Qué establece |
+|:---|:---|:---|
+| Stack base, concurrencia de inventario, precisión financiera | [ADR-0001](docs/adr/0001-core-architecture-and-concurrency.md) | Java 21, Spring Boot 3.4, `BigDecimal` + `HALF_UP`, bloqueo pesimista para ATS |
+| Búsqueda semántica híbrida | [ADR-0002](docs/adr/0002-hybrid-semantic-search-pgvector.md) | PostgreSQL + pgvector, HNSW, embeddings, fallback `ILIKE` sin `OPENAI_API_KEY` |
+| Motor transaccional de pedidos | [ADR-0003](docs/adr/0003-transactional-order-checkout-and-idempotency.md) | Checkout transaccional, snapshot fiscal, idempotencia `Idempotency-Key` |
+| Arquitectura frontend | [ADR-0004](docs/adr/0004-frontend-architecture-and-proxy.md) | Next.js App Router, rewrite proxy sin CORS, idempotencia en cliente |
+| Estrategia de testing frontend | [ADR-0005](docs/adr/0005-frontend-testing-strategy.md) | Vitest + React Testing Library, umbrales de cobertura medidos y congelados |
+| Control de acceso por roles | [ADR-0006](docs/adr/0006-role-based-access-control.md) | JWT claim `role`, `USER` por defecto, `ADMIN` para `/admin/**` |
+| Pagos con Stripe | [ADR-0007](docs/adr/0007-stripe-payments-gateway-and-webhook.md) | `StripeGateway` aísla la red, webhook como fuente de verdad, solo test mode |
+| Despliegue | [ADR-0008](docs/adr/0008-deployment-vercel-render-neon-demo-mode.md) | Vercel + Render + Neon, proxy por rewrite, modo demo |
+
+Todos los ADR en [`docs/adr/`](docs/adr/).
+
+---
+
+## 6. Cómo se Construyó (Proceso)
+
+Este proyecto se desarrolló siguiendo **SDD (Spec-Driven Development)**. Ninguna funcionalidad se implementa sin una spec aprobada por el usuario:
+
+```
+PLAN → SPEC → APROBACIÓN → TASKS → CÓDIGO → /spec-check → /spec-close
+```
+
+### Métricas de calidad (medidas, no impuestas)
+
+| Métrica | Valor | Fuente |
+|:---|:---|:---|
+| Tests backend | 553 | `./mvnw test` |
+| Tests frontend | 606 | `npx vitest run` |
+| E2E rápido | 33/33 | Playwright (Chromium) |
+| axe (accesibilidad) | 18/18 | 14 rutas, sólo Chromium |
+| Lighthouse | 5/5 rutas verdes | `/proyecto` incluida |
+| Cobertura (línea/rama/clase/método) | 83,88 / 78,87 / 81,48 / 85,9 | JaCoCo |
+| tsc / ESLint / build | 0 / 0 / 0 | Frontend |
+
+Todas las specs en [`specs/`](specs/).
+
+---
+
+## 7. Despliegue en Producción
+
+La guía paso a paso está en [`docs/deployment.md`](docs/deployment.md). Resumen:
+
+1. **Neon**: proyecto PostgreSQL 16 + pgvector, región Frankfurt.
+2. **Render**: backend Docker (`render.yaml`), perfiles `prod,demo`, health check `/api/v1/markets`.
+3. **Vercel**: frontend (Root Directory `frontend`), rewrite `/api/v1/*` al backend, `BACKEND_URL` parametrizado.
+4. **Stripe**: test mode, webhook a `/api/v1/webhooks/stripe`, claves `sk_test_…` / `pk_test_…` / `whsec_…`.
+
+Sin SMTP real: el email va al log («MODO DESARROLLO») y el usuario demo nace verificado.
+
+---
+
+## 8. Limitaciones Conocidas
+
+| Limitación | Detalle |
+|:---|:---|
+| Backend se duerme | Render plan gratuito: ~50 s de despertar en la primera petición tras inactividad |
+| Stripe hCaptcha | Navegadores automatizados o con bloqueadores pueden bloquear el pago tecleado |
+| Apple Pay | Requiere HTTPS + dominio verificado en Stripe; no verificado en esta demo |
+| `GET /orders/{n}` | No comprueba el propietario del pedido (deuda técnica preexistente) |
+
+---
+
+¿Qué te parece este README? ¿Quieres que lo ajuste en algo antes de seguir con el commit y el PR?
