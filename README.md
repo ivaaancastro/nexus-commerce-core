@@ -468,4 +468,32 @@ Sin SMTP real: el email va al log («MODO DESARROLLO») y el usuario demo nace v
 
 ---
 
+## 9. CI/CD y Despliegue Automático (Fase 11)
+
+El pipeline de GitHub Actions (`.github/workflows/ci.yml`) corre en cada `push` y `pull request` a `main`:
+
+| Job | Qué hace | Cuándo |
+|:---|:---|:---|
+| `backend-tests` | Suite de backend con PostgreSQL real (553 tests) | PR y push a `main` |
+| `frontend-tests` | Vitest + cobertura + build (606 tests) | PR y push a `main` |
+| `e2e-tests` | Playwright contra stack real (33 pruebas + axe 18 rutas) | PR y push a `main` |
+| `cwv-audit` | Lighthouse (presupuesto CWV) en paralelo | PR y push a `main` |
+| `deploy` | **Backend a Render + frontend a Vercel**, con verificación de humo | Solo `push` a `main` y tras pasar los 4 jobs anteriores |
+
+### Secrets de GitHub necesarios (configurar en el repositorio)
+
+| Secreto | Para qué | Dónde se obtiene |
+|:---|:---|:---|
+| `RENDER_API_KEY` | Desplegar el backend en Render | Render → Account Settings → API Keys |
+| `RENDER_BACKEND_SERVICE_ID` | Identificar el servicio backend en Render | Render → Backend service → Settings → ID |
+| `VERCEL_TOKEN` | Desplegar el frontend en Vercel | Vercel → Settings → Tokens |
+| `VERCEL_ORG_ID` | Organización de Vercel | Vercel → Settings → General → Team ID |
+| `VERCEL_PROJECT_ID` | Proyecto de frontend en Vercel | Vercel → Proyecto → Settings → General → Project ID |
+
+**Ninguna clave secreta viaja versionada:** `sk_`, `pk_`, `whsec_` y `JWT_SECRET` se inyectan en cada proveedor (Render/Vercel), nunca en el repo. El job `deploy` incluye un paso de **detección de secretos** que falla el pipeline si encuentra alguna de esas claves en ficheros rastreados por git.
+
+El despliegue es **idempotente**: volver a dispararlo no duplica despliegues ni falla si el servicio ya está desplegado.
+
+---
+
 ¿Qué te parece este README? ¿Quieres que lo ajuste en algo antes de seguir con el commit y el PR?
